@@ -20,7 +20,9 @@ const io = new Server(server, {
 require('./sockets/cricket.socket')(io);
 require('./sockets/cricketevent.socket')(io);
 require('./sockets/soccer.socket')(io);
+require('./sockets/soccerevent.socket')(io);
 require('./sockets/tennis.socket')(io);
+require('./sockets/tennisevent.socket')(io);
 
 // Start server
 server.listen(PORT, () => {
