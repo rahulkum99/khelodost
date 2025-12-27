@@ -18,6 +18,7 @@ const io = new Server(server, {
 
 // Load socket handlers
 require('./sockets/cricket.socket')(io);
+require('./sockets/cricketevent.socket')(io);
 require('./sockets/soccer.socket')(io);
 require('./sockets/tennis.socket')(io);
 

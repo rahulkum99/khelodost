@@ -13,7 +13,7 @@ const {
       if (data && data.length > 0) {
         // Emit to ALL connected users instantly
         io.emit('cricket_matches', data);
-        console.log(`📡 Broadcasted cricket data to all users (${data.length} matches)`);
+        // console.log(`📡 Broadcasted cricket data to all users (${data.length} matches)`);
       }
     }, 400);
   

@@ -12,7 +12,7 @@ const {
       const data = await fetchTennisData();
       if (data && data.length > 0) {
         io.emit('tennis_matches', data);
-        console.log(`📡 Broadcasted tennis data to all users (${data.length} matches)`);
+        // console.log(`📡 Broadcasted tennis data to all users (${data.length} matches)`);
       }
     }, 400);
   
