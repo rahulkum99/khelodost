@@ -20,6 +20,13 @@ const ROLE_HIERARCHY = {
   [ROLES.SUPER_ADMIN]: 6
 };
 
+// Supported currencies
+const CURRENCIES = {
+  INR: 'INR',
+  USD: 'USD',
+  EUR: 'EUR'
+};
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -30,9 +37,16 @@ const userSchema = new mongoose.Schema({
     maxlength: [30, 'Username cannot exceed 30 characters'],
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
   },
+  name: {
+    type: String,
+    required: [false, 'Name is optional'],
+    trim: true,
+    minlength: [3, 'Name must be at least 3 characters'],
+    maxlength: [30, 'Name cannot exceed 30 characters']
+  },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: [false, 'Email is optional'],
     unique: true,
     trim: true,
     lowercase: true,
@@ -43,6 +57,45 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [8, 'Password must be at least 8 characters'],
     select: false // Don't return password by default
+  },
+  mobileNumber: {
+    type: String,
+    required: [true, 'Mobile number is required'],
+    trim: true,
+    match: [/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,10}$/, 'Please provide a valid mobile number']
+  },
+  commission: {
+    type: Number,
+    required: [true, 'Commission is required'],
+    min: [0, 'Commission cannot be negative'],
+    max: [100, 'Commission cannot exceed 100%'],
+    default: 0
+  },
+  rollingCommission: {
+    type: Number,
+    required: [true, 'Rolling commission is required'],
+    min: [0, 'Rolling commission cannot be negative'],
+    max: [100, 'Rolling commission cannot exceed 100%'],
+    default: 0
+  },
+  currency: {
+    type: String,
+    required: [true, 'Currency is required'],
+    enum: Object.values(CURRENCIES),
+    default: CURRENCIES.INR,
+    uppercase: true
+  },
+  exposureLimit: {
+    type: Number,
+    required: [true, 'Exposure limit is required'],
+    min: [0, 'Exposure limit cannot be negative'],
+    max: [9999999999, 'Exposure limit cannot exceed 10 digits'],
+    validate: {
+      validator: function(v) {
+        return v.toString().length <= 10;
+      },
+      message: 'Exposure limit must be a 10 digit number'
+    }
   },
   role: {
     type: String,
@@ -80,12 +133,6 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
-  },
-  profile: {
-    firstName: String,
-    lastName: String,
-    phone: String,
-    avatar: String
   }
 }, {
   timestamps: true,
@@ -96,8 +143,13 @@ const userSchema = new mongoose.Schema({
 // Index for faster queries
 userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
+userSchema.index({ name: 1 });
+userSchema.index({ mobileNumber: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
+
+// Compound index for login (username, name, or email)
+userSchema.index({ email: 1, username: 1, name: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
@@ -173,6 +225,11 @@ userSchema.statics.getRoles = function() {
   return ROLES;
 };
 
+// Static method to get all currencies
+userSchema.statics.getCurrencies = function() {
+  return CURRENCIES;
+};
+
 // Remove sensitive data from JSON output
 userSchema.methods.toJSON = function() {
   const obj = this.toObject();
@@ -184,5 +241,4 @@ userSchema.methods.toJSON = function() {
 
 const User = mongoose.model('User', userSchema);
 
-module.exports = { User, ROLES, ROLE_HIERARCHY };
-
+module.exports = { User, ROLES, ROLE_HIERARCHY, CURRENCIES };

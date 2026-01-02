@@ -37,7 +37,9 @@ const getAllUsers = async (req, res) => {
     if (search) {
       filter.$or = [
         { username: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { mobileNumber: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -125,10 +127,26 @@ const updateUser = async (req, res) => {
 
     // Don't allow password update through this route
     delete updateData.password;
+    delete updateData.refreshToken;
+    delete updateData.refreshTokenExpiry;
+
+    // Allowed fields for update
+    const allowedFields = [
+      'username', 'name', 'email', 'mobileNumber', 'commission', 
+      'rollingCommission', 'currency', 'exposureLimit', 
+      'role', 'isActive', 'isEmailVerified'
+    ];
+    
+    const filteredData = {};
+    Object.keys(updateData).forEach(key => {
+      if (allowedFields.includes(key)) {
+        filteredData[key] = updateData[key];
+      }
+    });
 
     const user = await User.findByIdAndUpdate(
       id,
-      { $set: updateData },
+      { $set: filteredData },
       { new: true, runValidators: true }
     ).select('-password -refreshToken');
 

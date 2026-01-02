@@ -1,20 +1,34 @@
-const { User, ROLES } = require('../../models/User');
+const { User, ROLES, CURRENCIES } = require('../../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../utils/jwt');
 
 /**
  * Register a new user
  */
 const register = async (userData, createdBy = null) => {
-  const { username, email, password, role = ROLES.USER } = userData;
+  const { 
+    username,
+    name, 
+    email, 
+    password, 
+    mobileNumber,
+    commission,
+    rollingCommission,
+    currency = CURRENCIES.INR,
+    exposureLimit,
+    role = ROLES.USER 
+  } = userData;
 
   // Check if user already exists
   const existingUser = await User.findOne({
-    $or: [{ email }, { username }]
+    $or: [{ email }, { mobileNumber }, { username }]
   });
 
   if (existingUser) {
     if (existingUser.email === email) {
       throw new Error('Email already registered');
+    }
+    if (existingUser.mobileNumber === mobileNumber) {
+      throw new Error('Mobile number already registered');
     }
     if (existingUser.username === username) {
       throw new Error('Username already taken');
@@ -24,8 +38,14 @@ const register = async (userData, createdBy = null) => {
   // Create user
   const user = await User.create({
     username,
+    name,
     email,
     password,
+    mobileNumber,
+    commission,
+    rollingCommission,
+    currency,
+    exposureLimit,
     role,
     createdBy: createdBy || null
   });
@@ -47,14 +67,20 @@ const register = async (userData, createdBy = null) => {
 };
 
 /**
- * Login user
+ * Login user - username can be username, name, or email
  */
-const login = async (email, password) => {
-  // Get user with password
-  const user = await User.findOne({ email }).select('+password');
+const login = async (username, password) => {
+  // Find user by username, email, or name
+  const user = await User.findOne({
+    $or: [
+      { username: username.trim() },
+      { email: username.toLowerCase().trim() },
+      { name: username.trim() }
+    ]
+  }).select('+password');
 
   if (!user) {
-    throw new Error('Invalid email or password');
+    throw new Error('Invalid username or password');
   }
 
   // Check if account is locked
@@ -68,7 +94,7 @@ const login = async (email, password) => {
 
   if (!isPasswordValid) {
     await user.incLoginAttempts();
-    throw new Error('Invalid email or password');
+    throw new Error('Invalid username or password');
   }
 
   // Reset login attempts
@@ -157,7 +183,7 @@ const getProfile = async (userId) => {
  * Update user profile
  */
 const updateProfile = async (userId, updateData) => {
-  const allowedFields = ['profile', 'email'];
+  const allowedFields = ['name', 'mobileNumber'];
   const updateFields = {};
 
   Object.keys(updateData).forEach(key => {
@@ -210,4 +236,3 @@ module.exports = {
   updateProfile,
   changePassword
 };
-
