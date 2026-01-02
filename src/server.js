@@ -1,10 +1,12 @@
 require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
-
+const connectDB = require('./config/db');
 const app = require('./app');
 
 const PORT = process.env.PORT || 5000;
+
+connectDB();
 
 // Create HTTP server
 const server = http.createServer(app);
