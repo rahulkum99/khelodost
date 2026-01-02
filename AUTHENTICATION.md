@@ -2,7 +2,25 @@
 
 ## Overview
 
-This is a production-ready, highly secure role-based authentication and authorization system using JWT (JSON Web Tokens).
+This is a production-ready, highly secure role-based authentication and authorization system using JWT (JSON Web Tokens) with comprehensive user management features including commission tracking, exposure limits, and multi-currency support.
+
+## User Model Fields
+
+The system supports the following user fields:
+
+### Required Fields
+- **username** - Unique identifier (3-30 characters, alphanumeric + underscore)
+- **password** - Secure password (min 8 chars, uppercase, lowercase, number)
+- **mobileNumber** - Valid phone number format
+- **commission** - Percentage (0-100%)
+- **rollingCommission** - Percentage (0-100%)
+- **currency** - Currency code (INR, USD, EUR) - defaults to INR
+- **exposureLimit** - 10-digit number (0-9999999999)
+- **role** - User role (defaults to "user")
+
+### Optional Fields
+- **name** - User's full name (3-30 characters)
+- **email** - Email address (unique if provided)
 
 ## Role Hierarchy
 
@@ -53,6 +71,8 @@ The system supports 6 roles with hierarchical permissions:
    - Email format validation
    - Username format validation
    - Password strength validation
+   - Commission percentage validation
+   - Exposure limit validation (10 digits)
 
 ## API Endpoints
 
@@ -64,10 +84,41 @@ POST /api/auth/register
 Content-Type: application/json
 
 {
-  "username": "johndoe",
+  "username": "abc",
+  "name": "John Doe",
   "email": "john@example.com",
   "password": "SecurePass123",
-  "role": "user" // Optional, defaults to "user"
+  "mobileNumber": "+919876543210",
+  "commission": 5.5,
+  "rollingCommission": 2.5,
+  "currency": "INR",
+  "exposureLimit": 1000000000,
+  "role": "user"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "user": {
+      "_id": "...",
+      "username": "abc",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "mobileNumber": "+919876543210",
+      "commission": 5.5,
+      "rollingCommission": 2.5,
+      "currency": "INR",
+      "exposureLimit": 1000000000,
+      "role": "user",
+      "isActive": true
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
 }
 ```
 
@@ -77,10 +128,15 @@ POST /api/auth/login
 Content-Type: application/json
 
 {
-  "email": "john@example.com",
+  "username": "abc",
   "password": "SecurePass123"
 }
 ```
+
+**Note:** The `username` field can be:
+- Username (e.g., "abc")
+- Name (e.g., "John Doe")
+- Email (e.g., "john@example.com")
 
 **Response:**
 ```json
@@ -113,6 +169,30 @@ GET /api/auth/profile
 Authorization: Bearer <accessToken>
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "_id": "...",
+      "username": "abc",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "mobileNumber": "+919876543210",
+      "commission": 5.5,
+      "rollingCommission": 2.5,
+      "currency": "INR",
+      "exposureLimit": 1000000000,
+      "role": "user",
+      "isActive": true,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  }
+}
+```
+
 #### Update Profile
 ```http
 PUT /api/auth/profile
@@ -120,11 +200,8 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
-  "profile": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "phone": "+1234567890"
-  }
+  "name": "John Updated",
+  "mobileNumber": "+919876543211"
 }
 ```
 
@@ -154,6 +231,29 @@ GET /api/user?page=1&limit=10&role=user&isActive=true&search=john
 Authorization: Bearer <accessToken>
 ```
 
+**Query Parameters:**
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 10)
+- `role` - Filter by role
+- `isActive` - Filter by active status (true/false)
+- `search` - Search by username, name, email, or mobile number
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "users": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 50,
+      "pages": 5
+    }
+  }
+}
+```
+
 #### Get User by ID
 ```http
 GET /api/user/:id
@@ -168,8 +268,14 @@ Content-Type: application/json
 
 {
   "username": "newuser",
+  "name": "New User",
   "email": "newuser@example.com",
   "password": "SecurePass123",
+  "mobileNumber": "+919876543210",
+  "commission": 3.0,
+  "rollingCommission": 1.5,
+  "currency": "INR",
+  "exposureLimit": 500000000,
   "role": "agent"
 }
 ```
@@ -181,6 +287,14 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
+  "username": "updateduser",
+  "name": "Updated Name",
+  "email": "updated@example.com",
+  "mobileNumber": "+919876543211",
+  "commission": 6.0,
+  "rollingCommission": 3.0,
+  "currency": "USD",
+  "exposureLimit": 2000000000,
   "role": "master",
   "isActive": true
 }
@@ -198,9 +312,52 @@ GET /api/user/stats
 Authorization: Bearer <accessToken>
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "total": 100,
+    "active": 95,
+    "byRole": {
+      "user": 50,
+      "agent": 30,
+      "master": 15,
+      "admin": 5
+    }
+  }
+}
+```
+
 ## Usage Examples
 
 ### Frontend Integration
+
+#### Register
+```javascript
+const response = await fetch('http://localhost:5000/api/auth/register', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    username: 'abc',
+    name: 'John Doe',
+    email: 'john@example.com',
+    password: 'SecurePass123',
+    mobileNumber: '+919876543210',
+    commission: 5.5,
+    rollingCommission: 2.5,
+    currency: 'INR',
+    exposureLimit: 1000000000,
+    role: 'user'
+  })
+});
+
+const data = await response.json();
+localStorage.setItem('accessToken', data.data.accessToken);
+localStorage.setItem('refreshToken', data.data.refreshToken);
+```
 
 #### Login
 ```javascript
@@ -210,8 +367,8 @@ const response = await fetch('http://localhost:5000/api/auth/login', {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'Password123'
+    username: 'abc', // Can be username, name, or email
+    password: 'SecurePass123'
   })
 });
 
@@ -230,6 +387,9 @@ const response = await fetch('http://localhost:5000/api/auth/profile', {
     'Authorization': `Bearer ${accessToken}`
   }
 });
+
+const data = await response.json();
+console.log('User profile:', data.data.user);
 ```
 
 #### Refresh Token
@@ -249,6 +409,56 @@ localStorage.setItem('accessToken', data.data.accessToken);
 localStorage.setItem('refreshToken', data.data.refreshToken);
 ```
 
+## Field Validation Rules
+
+### Username
+- Required
+- 3-30 characters
+- Only letters, numbers, and underscores
+- Must be unique
+
+### Name
+- Optional
+- 2-100 characters (if provided)
+
+### Email
+- Optional
+- Valid email format (if provided)
+- Must be unique (if provided)
+
+### Password
+- Required
+- Minimum 8 characters
+- Must contain:
+  - At least one uppercase letter
+  - At least one lowercase letter
+  - At least one number
+
+### Mobile Number
+- Required
+- Valid phone number format
+- Supports international format with country code
+
+### Commission
+- Required
+- Number between 0 and 100
+- Represents percentage
+
+### Rolling Commission
+- Required
+- Number between 0 and 100
+- Represents percentage
+
+### Currency
+- Required
+- Must be one of: INR, USD, EUR
+- Defaults to INR
+
+### Exposure Limit
+- Required
+- Number between 0 and 9999999999
+- Maximum 10 digits
+
 ## Setup Instructions
 
 ### 1. Environment Variables
@@ -264,19 +474,19 @@ JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-characters
 JWT_EXPIRE=15m
 JWT_REFRESH_EXPIRE=7d
 CORS_ORIGIN=https://yourdomain.com
+
+# Super Admin Configuration
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_USERNAME=superadmin
+SUPER_ADMIN_NAME=Super Admin
+SUPER_ADMIN_PASSWORD=SecurePassword123
+SUPER_ADMIN_MOBILE=+1234567890
 ```
 
 ### 2. Create Super Admin
 
 ```bash
 npm run create-admin
-```
-
-Or set environment variables:
-```env
-SUPER_ADMIN_EMAIL=admin@example.com
-SUPER_ADMIN_USERNAME=superadmin
-SUPER_ADMIN_PASSWORD=SecurePassword123
 ```
 
 ### 3. Start Server
@@ -320,7 +530,9 @@ router.get('/agent-or-higher', authenticate, requireMinRole(ROLES.AGENT), handle
 5. **Regular security audits**
 6. **Keep dependencies updated**
 7. **Use strong JWT secrets** (minimum 32 characters)
-8. **Implement 2FA for sensitive accounts** (future enhancement)
+8. **Validate all user inputs** (already implemented)
+9. **Implement 2FA for sensitive accounts** (future enhancement)
+10. **Regularly backup user data**
 
 ## Security Checklist
 
@@ -335,6 +547,8 @@ router.get('/agent-or-higher', authenticate, requireMinRole(ROLES.AGENT), handle
 - ✅ Role-based access control
 - ✅ Token expiry
 - ✅ Secure password requirements
+- ✅ Unique username validation
+- ✅ Commission and exposure limit validation
 
 ## Troubleshooting
 
@@ -347,10 +561,20 @@ router.get('/agent-or-higher', authenticate, requireMinRole(ROLES.AGENT), handle
 - Account unlocks automatically after lock period
 
 ### Invalid Credentials
-- Check email/password
+- Check username/password
+- Username can be username, name, or email
 - Account may be locked after 5 failed attempts
+
+### Username Already Taken
+- Username must be unique
+- Try a different username
+
+### Validation Errors
+- Check all required fields are provided
+- Ensure commission is between 0-100
+- Ensure exposure limit is 10 digits or less
+- Check currency is one of: INR, USD, EUR
 
 ## Support
 
 For issues or questions, please check the code documentation or contact the development team.
-
