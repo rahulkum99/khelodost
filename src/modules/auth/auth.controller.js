@@ -43,7 +43,7 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-    const result = await authService.login(username, password);
+    const result = await authService.login(username, password, req);
 
     // Set refresh token in HTTP-only cookie (optional, more secure)
     res.cookie('refreshToken', result.refreshToken, {
@@ -100,7 +100,7 @@ const refreshAccessToken = async (req, res, next) => {
  */
 const logout = async (req, res, next) => {
   try {
-    await authService.logout(req.userId);
+    await authService.logout(req.userId, req);
 
     // Clear refresh token cookie
     res.clearCookie('refreshToken');
@@ -141,7 +141,7 @@ const getProfile = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const user = await authService.updateProfile(req.userId, req.body);
+    const user = await authService.updateProfile(req.userId, req.body, req);
 
     res.json({
       success: true,
@@ -162,7 +162,7 @@ const updateProfile = async (req, res, next) => {
 const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    await authService.changePassword(req.userId, currentPassword, newPassword);
+    await authService.changePassword(req.userId, currentPassword, newPassword, req);
 
     res.json({
       success: true,

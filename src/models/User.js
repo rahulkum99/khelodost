@@ -141,27 +141,23 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// Note: email and username already have indexes from 'unique: true'
 userSchema.index({ name: 1 });
 userSchema.index({ mobileNumber: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 
 // Compound index for login (username, name, or email)
+// This helps with login queries that search across multiple fields
 userSchema.index({ email: 1, username: 1, name: 1 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
+// Use promise-based middleware without `next` to avoid callback issues in scripts
+userSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
+
+  const salt = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Method to compare password

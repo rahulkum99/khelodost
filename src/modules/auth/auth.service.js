@@ -1,5 +1,6 @@
 const { User, ROLES, CURRENCIES } = require('../../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../utils/jwt');
+const { createActivityLog } = require('../../services/activityLog.service');
 
 /**
  * Register a new user
@@ -69,7 +70,7 @@ const register = async (userData, createdBy = null) => {
 /**
  * Login user - username can be username, name, or email
  */
-const login = async (username, password) => {
+const login = async (username, password, req = null) => {
   // Find user by username, email, or name
   const user = await User.findOne({
     $or: [
@@ -80,12 +81,37 @@ const login = async (username, password) => {
   }).select('+password');
 
   if (!user) {
+    // Log failed login attempt (without user)
+    if (req) {
+      await createActivityLog(
+        null,
+        'login_failed',
+        req,
+        {
+          loginStatus: 'failed',
+          failureReason: 'User not found',
+          metadata: { attemptedUsername: username }
+        }
+      );
+    }
     throw new Error('Invalid username or password');
   }
 
   // Check if account is locked
   if (user.isLocked()) {
     const lockTime = Math.ceil((user.lockUntil - Date.now()) / 1000 / 60);
+    // Log locked account attempt
+    if (req) {
+      await createActivityLog(
+        user,
+        'login_failed',
+        req,
+        {
+          loginStatus: 'locked',
+          failureReason: 'Account locked'
+        }
+      );
+    }
     throw new Error(`Account locked. Try again in ${lockTime} minutes.`);
   }
 
@@ -94,6 +120,18 @@ const login = async (username, password) => {
 
   if (!isPasswordValid) {
     await user.incLoginAttempts();
+    // Log failed login attempt
+    if (req) {
+      await createActivityLog(
+        user,
+        'login_failed',
+        req,
+        {
+          loginStatus: 'failed',
+          failureReason: 'Invalid password'
+        }
+      );
+    }
     throw new Error('Invalid username or password');
   }
 
@@ -103,6 +141,18 @@ const login = async (username, password) => {
   // Update last login
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
+
+  // Log successful login
+  if (req) {
+    await createActivityLog(
+      user,
+      'login',
+      req,
+      {
+        loginStatus: 'success'
+      }
+    );
+  }
 
   // Generate tokens
   const accessToken = generateAccessToken({ userId: user._id, role: user.role });
@@ -162,10 +212,25 @@ const refreshToken = async (refreshToken) => {
 /**
  * Logout user
  */
-const logout = async (userId) => {
+const logout = async (userId, req = null) => {
   await User.findByIdAndUpdate(userId, {
     $unset: { refreshToken: 1, refreshTokenExpiry: 1 }
   });
+
+  // Log logout activity
+  if (req) {
+    const user = await User.findById(userId);
+    if (user) {
+      await createActivityLog(
+        user,
+        'logout',
+        req,
+        {
+          loginStatus: 'success'
+        }
+      );
+    }
+  }
 };
 
 /**
@@ -182,7 +247,7 @@ const getProfile = async (userId) => {
 /**
  * Update user profile
  */
-const updateProfile = async (userId, updateData) => {
+const updateProfile = async (userId, updateData, req = null) => {
   const allowedFields = ['name', 'mobileNumber'];
   const updateFields = {};
 
@@ -202,13 +267,26 @@ const updateProfile = async (userId, updateData) => {
     throw new Error('User not found');
   }
 
+  // Log profile update
+  if (req) {
+    await createActivityLog(
+      user,
+      'profile_update',
+      req,
+      {
+        loginStatus: 'success',
+        metadata: { updatedFields: Object.keys(updateFields) }
+      }
+    );
+  }
+
   return user.toJSON();
 };
 
 /**
  * Change password
  */
-const changePassword = async (userId, currentPassword, newPassword) => {
+const changePassword = async (userId, currentPassword, newPassword, req = null) => {
   const user = await User.findById(userId).select('+password');
 
   if (!user) {
@@ -223,6 +301,18 @@ const changePassword = async (userId, currentPassword, newPassword) => {
 
   user.password = newPassword;
   await user.save();
+
+  // Log password change
+  if (req) {
+    await createActivityLog(
+      user,
+      'password_change',
+      req,
+      {
+        loginStatus: 'success'
+      }
+    );
+  }
 
   return { message: 'Password changed successfully' };
 };

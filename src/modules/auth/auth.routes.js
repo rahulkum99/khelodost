@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('./auth.controller');
+const activityLogController = require('./activityLog.controller');
 const authValidation = require('./auth.validation');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authLimiter } = require('../../middlewares/security.middleware');
@@ -44,6 +45,10 @@ router.put(
   authController.handleValidationErrors,
   authController.changePassword
 );
+
+// Activity Log routes
+router.get('/activity-logs', activityLogController.getActivityLogs);
+router.get('/account-statement', activityLogController.getAccountStatement);
 
 module.exports = router;
 

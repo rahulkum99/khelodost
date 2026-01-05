@@ -7,6 +7,9 @@ const { securityHeaders, apiLimiter } = require('./middlewares/security.middlewa
 
 const app = express();
 
+// Trust proxy for accurate IP detection (important for activity logging)
+app.set('trust proxy', true);
+
 // Security headers
 app.use(securityHeaders);
 

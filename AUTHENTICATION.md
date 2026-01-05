@@ -20,7 +20,7 @@ The system supports the following user fields:
 
 ### Optional Fields
 - **name** - User's full name (3-30 characters)
-- **email** - Email address (unique if provided)
+- **email** - Email address (optional if provided)
 
 ## Role Hierarchy
 
@@ -73,6 +73,16 @@ The system supports 6 roles with hierarchical permissions:
    - Password strength validation
    - Commission percentage validation
    - Exposure limit validation (10 digits)
+
+7. **Activity Logging & Account Statement**
+   - Comprehensive activity tracking
+   - Login/logout logging with IP and location
+   - Failed login attempt tracking
+   - Password change logging
+   - Profile update tracking
+   - IP geolocation (ISP, City, State, Country)
+   - Device and browser detection
+   - Account statement with statistics
 
 ## API Endpoints
 
@@ -221,6 +231,104 @@ Content-Type: application/json
 ```http
 POST /api/auth/logout
 Authorization: Bearer <accessToken>
+```
+
+#### Get Activity Logs
+```http
+GET /api/auth/activity-logs?page=1&limit=20&activityType=login&loginStatus=success&startDate=2024-01-01&endDate=2024-12-31&ipAddress=192.168.1.1
+Authorization: Bearer <accessToken>
+```
+
+**Query Parameters:**
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 20)
+- `activityType` - Filter by activity type (login, logout, login_failed, password_change, profile_update, token_refresh)
+- `loginStatus` - Filter by login status (success, failed, locked)
+- `startDate` - Start date filter (ISO format)
+- `endDate` - End date filter (ISO format)
+- `ipAddress` - Filter by IP address
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "_id": "...",
+        "user": "...",
+        "activityType": "login",
+        "loginStatus": "success",
+        "ipAddress": "192.168.1.1",
+        "isp": "Airtel",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "country": "India",
+        "userAgent": "Mozilla/5.0...",
+        "device": "Desktop",
+        "browser": "Chrome",
+        "os": "Windows",
+        "createdAt": "2024-01-15T10:30:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 150,
+      "pages": 8
+    }
+  }
+}
+```
+
+#### Get Account Statement
+```http
+GET /api/auth/account-statement?startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer <accessToken>
+```
+
+**Query Parameters:**
+- `startDate` - Start date filter (ISO format, optional)
+- `endDate` - End date filter (ISO format, optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "totalActivities": 250,
+      "byType": [
+        {
+          "_id": "login",
+          "count": 180,
+          "lastActivity": "2024-01-15T10:30:00.000Z"
+        },
+        {
+          "_id": "logout",
+          "count": 50,
+          "lastActivity": "2024-01-15T09:20:00.000Z"
+        }
+      ],
+      "loginStats": {
+        "success": 175,
+        "failed": 5
+      },
+      "uniqueIPs": 12,
+      "uniqueLocations": 8
+    },
+    "recentActivities": [
+      {
+        "activityType": "login",
+        "loginStatus": "success",
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "ipAddress": "192.168.1.1",
+        "city": "Mumbai",
+        "country": "India"
+      }
+    ]
+  }
+}
 ```
 
 ### Admin Endpoints (Require Admin Role or Higher)
