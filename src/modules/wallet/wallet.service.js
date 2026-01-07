@@ -229,6 +229,198 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
 };
 
 /**
+ * Transfer amount from one wallet to another
+ * Users can transfer from their own wallet to other users' wallets
+ * Upper-level admins can transfer to lower-level users they created
+ */
+const transferAmount = async (fromUserId, toUserId, amount, performedBy, description, req = null) => {
+  // Validate amount
+  if (!amount || amount <= 0) {
+    throw new Error('Amount must be greater than 0');
+  }
+
+  if (amount > 9999999999) {
+    throw new Error('Amount exceeds maximum limit');
+  }
+
+  // Cannot transfer to self
+  if (fromUserId.toString() === toUserId.toString()) {
+    throw new Error('Cannot transfer to your own wallet');
+  }
+
+  // Get performer user
+  const performer = await User.findById(performedBy);
+  if (!performer) {
+    throw new Error('Performer not found');
+  }
+
+  // Get from user (sender)
+  const fromUser = await User.findById(fromUserId);
+  if (!fromUser) {
+    throw new Error('Sender user not found');
+  }
+
+  // Get to user (receiver)
+  const toUser = await User.findById(toUserId);
+  if (!toUser) {
+    throw new Error('Receiver user not found');
+  }
+
+  // Check if performer is transferring from their own wallet
+  const isTransferringFromOwnWallet = fromUserId.toString() === performedBy.toString();
+
+  // If not transferring from own wallet, check permissions
+  if (!isTransferringFromOwnWallet) {
+    const performerRoleLevel = ROLE_HIERARCHY[performer.role] || 0;
+    const fromUserRoleLevel = ROLE_HIERARCHY[fromUser.role] || 0;
+
+    // Super Admin can transfer from anyone
+    if (performer.role !== 'super_admin') {
+      // Check if performer has higher role than sender
+      if (performerRoleLevel <= fromUserRoleLevel) {
+        throw new Error('You can only transfer from wallets of users with lower role level');
+      }
+
+      // Check if admin can only transfer from users they created
+      if (fromUser.createdBy && fromUser.createdBy.toString() !== performedBy.toString()) {
+        throw new Error('You can only transfer from wallets of users you created');
+      }
+    }
+  }
+
+  // Check receiver permissions
+  const performerRoleLevel = ROLE_HIERARCHY[performer.role] || 0;
+  const toUserRoleLevel = ROLE_HIERARCHY[toUser.role] || 0;
+
+  // Super Admin can transfer to anyone
+  if (performer.role !== 'super_admin') {
+    // Check if performer has higher role than receiver
+    if (performerRoleLevel <= toUserRoleLevel) {
+      throw new Error('You can only transfer to users with lower role level');
+    }
+
+    // Check if admin can only transfer to users they created
+    if (toUser.createdBy && toUser.createdBy.toString() !== performedBy.toString()) {
+      throw new Error('You can only transfer to users you created');
+    }
+  }
+
+  // Get wallets
+  const fromWallet = await Wallet.findOne({ user: fromUserId });
+  if (!fromWallet) {
+    throw new Error('Sender wallet not found');
+  }
+
+  const toWallet = await Wallet.getOrCreateWallet(toUserId, toUser.currency);
+
+  // Check if wallets are available
+  if (!fromWallet.isAvailable()) {
+    throw new Error(`Sender wallet is ${fromWallet.isLocked ? 'locked' : 'inactive'}. ${fromWallet.lockedReason || ''}`);
+  }
+
+  if (!toWallet.isAvailable()) {
+    throw new Error(`Receiver wallet is ${toWallet.isLocked ? 'locked' : 'inactive'}. ${toWallet.lockedReason || ''}`);
+  }
+
+  // Check if currencies match
+  if (fromWallet.currency !== toWallet.currency) {
+    throw new Error(`Currency mismatch. Cannot transfer from ${fromWallet.currency} to ${toWallet.currency}`);
+  }
+
+  // Check if sufficient balance in sender wallet
+  if (fromWallet.balance < amount) {
+    throw new Error('Insufficient balance in sender wallet');
+  }
+
+  // Start transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const fromBalanceBefore = fromWallet.balance;
+    const fromBalanceAfter = fromBalanceBefore - amount;
+
+    const toBalanceBefore = toWallet.balance;
+    const toBalanceAfter = toBalanceBefore + amount;
+
+    // Update sender wallet balance
+    fromWallet.balance = fromBalanceAfter;
+    fromWallet.lastTransactionAt = new Date();
+    await fromWallet.save({ session });
+
+    // Update receiver wallet balance
+    toWallet.balance = toBalanceAfter;
+    toWallet.lastTransactionAt = new Date();
+    await toWallet.save({ session });
+
+    // Create debit transaction for sender
+    const debitTransaction = await WalletTransaction.create([{
+      wallet: fromWallet._id,
+      user: fromUserId,
+      transactionType: WalletTransaction.TRANSACTION_TYPES.DEBIT,
+      amount: amount,
+      balanceBefore: fromBalanceBefore,
+      balanceAfter: fromBalanceAfter,
+      currency: fromWallet.currency,
+      status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
+      description: description || `Transfer to ${toUser.username}`,
+      performedBy: performedBy,
+      ipAddress: req ? req.ip : null,
+      userAgent: req ? req.get('user-agent') : null,
+      metadata: {
+        transferType: 'outgoing',
+        toUser: toUser.username,
+        toUserId: toUserId.toString()
+      }
+    }], { session });
+
+    // Create credit transaction for receiver
+    const creditTransaction = await WalletTransaction.create([{
+      wallet: toWallet._id,
+      user: toUserId,
+      transactionType: WalletTransaction.TRANSACTION_TYPES.CREDIT,
+      amount: amount,
+      balanceBefore: toBalanceBefore,
+      balanceAfter: toBalanceAfter,
+      currency: toWallet.currency,
+      status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
+      description: description || `Transfer from ${fromUser.username}`,
+      performedBy: performedBy,
+      relatedTransaction: debitTransaction[0]._id,
+      ipAddress: req ? req.ip : null,
+      userAgent: req ? req.get('user-agent') : null,
+      metadata: {
+        transferType: 'incoming',
+        fromUser: fromUser.username,
+        fromUserId: fromUserId.toString()
+      }
+    }], { session });
+
+    // Link transactions
+    debitTransaction[0].relatedTransaction = creditTransaction[0]._id;
+    await debitTransaction[0].save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      fromWallet: fromWallet.toJSON(),
+      toWallet: toWallet.toJSON(),
+      debitTransaction: debitTransaction[0].toJSON(),
+      creditTransaction: creditTransaction[0].toJSON(),
+      fromBalanceBefore,
+      fromBalanceAfter,
+      toBalanceBefore,
+      toBalanceAfter
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+/**
  * Get wallet transactions
  */
 const getTransactions = async (userId, query = {}) => {

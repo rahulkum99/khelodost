@@ -5,8 +5,7 @@ const walletSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   balance: {
     type: Number,
@@ -54,7 +53,7 @@ const walletSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
-walletSchema.index({ user: 1 });
+// Note: user field already has unique: true which creates an index automatically
 walletSchema.index({ currency: 1 });
 walletSchema.index({ isActive: 1 });
 walletSchema.index({ balance: 1 });

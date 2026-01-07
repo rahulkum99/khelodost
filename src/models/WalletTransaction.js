@@ -22,20 +22,17 @@ const walletTransactionSchema = new mongoose.Schema({
   wallet: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Wallet',
-    required: true,
-    index: true
+    required: true
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   transactionType: {
     type: String,
     enum: Object.values(TRANSACTION_TYPES),
-    required: true,
-    index: true
+    required: true
   },
   amount: {
     type: Number,
@@ -71,8 +68,7 @@ const walletTransactionSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: Object.values(TRANSACTION_STATUS),
-    default: TRANSACTION_STATUS.COMPLETED,
-    index: true
+    default: TRANSACTION_STATUS.COMPLETED
   },
   description: {
     type: String,
@@ -83,14 +79,12 @@ const walletTransactionSchema = new mongoose.Schema({
   referenceId: {
     type: String,
     unique: true,
-    sparse: true,
-    index: true
+    sparse: true
   },
   performedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   relatedTransaction: {
     type: mongoose.Schema.Types.ObjectId,
@@ -128,7 +122,7 @@ walletTransactionSchema.index({ transactionType: 1, createdAt: -1 });
 walletTransactionSchema.index({ status: 1, createdAt: -1 });
 walletTransactionSchema.index({ performedBy: 1, createdAt: -1 });
 walletTransactionSchema.index({ createdAt: -1 });
-walletTransactionSchema.index({ referenceId: 1 });
+// Note: referenceId field already has unique: true which creates an index automatically
 
 // Compound indexes
 walletTransactionSchema.index({ wallet: 1, status: 1, createdAt: -1 });
