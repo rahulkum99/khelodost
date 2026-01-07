@@ -1,9 +1,11 @@
 const { User, ROLES, CURRENCIES } = require('../../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../utils/jwt');
 const { createActivityLog } = require('../../services/activityLog.service');
+const Wallet = require('../../models/Wallet');
 
 /**
  * Register a new user
+ * Note: Users cannot register themselves. They must be created by authorized users.
  */
 const register = async (userData, createdBy = null) => {
   const { 
@@ -51,7 +53,7 @@ const register = async (userData, createdBy = null) => {
     createdBy: createdBy || null
   });
 
-  // Generate tokens
+  // Generate tokens (for newly created users, they can use these to login)
   const accessToken = generateAccessToken({ userId: user._id, role: user.role });
   const refreshToken = generateRefreshToken({ userId: user._id });
 
@@ -59,6 +61,14 @@ const register = async (userData, createdBy = null) => {
   user.refreshToken = refreshToken;
   user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
   await user.save({ validateBeforeSave: false });
+
+  // Auto-create wallet for the new user
+  try {
+    await Wallet.getOrCreateWallet(user._id, currency);
+  } catch (error) {
+    // Log error but don't fail user creation
+    console.error('Error creating wallet for user:', error);
+  }
 
   return {
     user: user.toJSON(),

@@ -96,9 +96,64 @@ const canManageUser = (req, res, next) => {
   });
 };
 
+/**
+ * Check if user can create another user with a specific role
+ * Hierarchy:
+ * - Super Admin (Level 6) can create: Admin, Super Master, Master, Agent, User
+ * - Admin (Level 5) can create: Super Master, Master, Agent, User
+ * - Master (Level 3) can create: Agent, User
+ * - Agent (Level 2) can create: User
+ * - User (Level 1) cannot create anyone
+ */
+const canCreateUserWithRole = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required.'
+    });
+  }
+
+  const creatorRole = req.user.role;
+  const creatorRoleLevel = ROLE_HIERARCHY[creatorRole] || 0;
+  
+  // Get the role to be created from request body
+  const targetRole = req.body.role || ROLES.USER;
+  const targetRoleLevel = ROLE_HIERARCHY[targetRole] || 0;
+
+  // Define which roles each level can create
+  const allowedRolesToCreate = {
+    [ROLES.SUPER_ADMIN]: [ROLES.ADMIN, ROLES.SUPER_MASTER, ROLES.MASTER, ROLES.AGENT, ROLES.USER],
+    [ROLES.ADMIN]: [ROLES.SUPER_MASTER, ROLES.MASTER, ROLES.AGENT, ROLES.USER],
+    [ROLES.SUPER_MASTER]: [ROLES.MASTER, ROLES.AGENT, ROLES.USER],
+    [ROLES.MASTER]: [ROLES.AGENT, ROLES.USER],
+    [ROLES.AGENT]: [ROLES.USER],
+    [ROLES.USER]: [],
+  };
+
+  const allowedRoles = allowedRolesToCreate[creatorRole] || [];
+
+  if (!allowedRoles.includes(targetRole)) {
+    return res.status(403).json({
+      success: false,
+      message: `You do not have permission to create a user with role '${targetRole}'. Your role '${creatorRole}' can only create: ${allowedRoles.join(', ') || 'none'}.`
+    });
+  }
+
+  // Additional check: creator must have higher role level than target
+  if (creatorRoleLevel <= targetRoleLevel) {
+    return res.status(403).json({
+      success: false,
+      message: `You cannot create a user with role '${targetRole}' as it is equal to or higher than your role '${creatorRole}'.`
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authorize,
   requireMinRole,
-  canManageUser
+  canManageUser,
+  canCreateUserWithRole
 };
 

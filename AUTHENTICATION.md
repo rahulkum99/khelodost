@@ -35,6 +35,37 @@ The system supports 6 roles with hierarchical permissions:
 
 **Higher level roles automatically have access to lower level permissions.**
 
+## User Creation Hierarchy
+
+**Important:** Users cannot register themselves. All users must be created by authorized users with appropriate role permissions.
+
+### Role-Based User Creation Permissions
+
+The system enforces strict hierarchical rules for user creation:
+
+- **Super Admin** (Level 6) can create:
+  - Admin, Super Master, Master, Agent, User
+
+- **Admin** (Level 5) can create:
+  - Super Master, Master, Agent, User
+
+- **Super Master** (Level 4) can create:
+  - Master, Agent, User
+
+- **Master** (Level 3) can create:
+  - Agent, User
+
+- **Agent** (Level 2) can create:
+  - User
+
+- **User** (Level 1) cannot create any users
+
+**Rules:**
+- A user can only create users with roles lower than their own
+- A user cannot create a user with the same or higher role level
+- All user creation requires authentication
+- The creator's ID is automatically tracked in the `createdBy` field
+
 ## Security Features
 
 ### ✅ Implemented Security Measures
@@ -88,50 +119,6 @@ The system supports 6 roles with hierarchical permissions:
 
 ### Public Endpoints
 
-#### Register
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "username": "abc",
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "SecurePass123",
-  "mobileNumber": "+919876543210",
-  "commission": 5.5,
-  "rollingCommission": 2.5,
-  "currency": "INR",
-  "exposureLimit": 1000000000,
-  "role": "user"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "User registered successfully",
-  "data": {
-    "user": {
-      "_id": "...",
-      "username": "abc",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "mobileNumber": "+919876543210",
-      "commission": 5.5,
-      "rollingCommission": 2.5,
-      "currency": "INR",
-      "exposureLimit": 1000000000,
-      "role": "user",
-      "isActive": true
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
 #### Login
 ```http
 POST /api/auth/login
@@ -172,6 +159,66 @@ Content-Type: application/json
 ```
 
 ### Protected Endpoints (Require Authentication)
+
+#### Create User (Register)
+```http
+POST /api/auth/register
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecurePass123",
+  "mobileNumber": "+919876543210",
+  "commission": 5.5,
+  "rollingCommission": 2.5,
+  "currency": "INR",
+  "exposureLimit": 1000000000,
+  "role": "user"
+}
+```
+
+**Note:** 
+- This endpoint requires authentication
+- Users cannot register themselves
+- The creator must have permission to create users with the specified role
+- See [User Creation Hierarchy](#user-creation-hierarchy) for role-based permissions
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "user": {
+      "_id": "...",
+      "username": "newuser",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "mobileNumber": "+919876543210",
+      "commission": 5.5,
+      "rollingCommission": 2.5,
+      "currency": "INR",
+      "exposureLimit": 1000000000,
+      "role": "user",
+      "isActive": true,
+      "createdBy": "..."
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Error Response (Insufficient Permissions):**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to create a user with role 'admin'. Your role 'agent' can only create: user."
+}
+```
 
 #### Get Profile
 ```http
@@ -388,6 +435,12 @@ Content-Type: application/json
 }
 ```
 
+**Note:**
+- Available to all authenticated users (not just Admin)
+- The creator must have permission to create users with the specified role
+- See [User Creation Hierarchy](#user-creation-hierarchy) for role-based permissions
+- Same functionality as `/api/auth/register` endpoint
+
 #### Update User
 ```http
 PUT /api/user/:id
@@ -441,15 +494,19 @@ Authorization: Bearer <accessToken>
 
 ### Frontend Integration
 
-#### Register
+#### Create User (Requires Authentication)
 ```javascript
+// First, ensure you're authenticated and have the proper role
+const accessToken = localStorage.getItem('accessToken');
+
 const response = await fetch('http://localhost:5000/api/auth/register', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}`
   },
   body: JSON.stringify({
-    username: 'abc',
+    username: 'newuser',
     name: 'John Doe',
     email: 'john@example.com',
     password: 'SecurePass123',
@@ -458,14 +515,20 @@ const response = await fetch('http://localhost:5000/api/auth/register', {
     rollingCommission: 2.5,
     currency: 'INR',
     exposureLimit: 1000000000,
-    role: 'user'
+    role: 'user' // Must be a role you have permission to create
   })
 });
 
 const data = await response.json();
-localStorage.setItem('accessToken', data.data.accessToken);
-localStorage.setItem('refreshToken', data.data.refreshToken);
+if (data.success) {
+  console.log('User created:', data.data.user);
+  // New user's tokens are returned (optional to use)
+} else {
+  console.error('Error:', data.message);
+}
 ```
+
+**Note:** Users cannot register themselves. All user creation requires authentication and proper role permissions.
 
 #### Login
 ```javascript
@@ -619,7 +682,7 @@ router.get('/protected', authenticate, (req, res) => {
 
 ### Authorization Middleware
 ```javascript
-const { authorize, requireMinRole } = require('./middlewares/authorize.middleware');
+const { authorize, requireMinRole, canCreateUserWithRole } = require('./middlewares/authorize.middleware');
 const { ROLES } = require('./models/User');
 
 // Specific roles
@@ -627,6 +690,9 @@ router.get('/admin-only', authenticate, authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN
 
 // Minimum role level
 router.get('/agent-or-higher', authenticate, requireMinRole(ROLES.AGENT), handler);
+
+// User creation with role-based permissions
+router.post('/create-user', authenticate, canCreateUserWithRole, handler);
 ```
 
 ## Best Practices
@@ -677,11 +743,18 @@ router.get('/agent-or-higher', authenticate, requireMinRole(ROLES.AGENT), handle
 - Username must be unique
 - Try a different username
 
+### Cannot Create User
+- Ensure you are authenticated
+- Check that your role has permission to create the specified role
+- You cannot create users with the same or higher role level
+- See [User Creation Hierarchy](#user-creation-hierarchy) for details
+
 ### Validation Errors
 - Check all required fields are provided
 - Ensure commission is between 0-100
 - Ensure exposure limit is 10 digits or less
 - Check currency is one of: INR, USD, EUR
+- Verify the role you're trying to create is allowed for your role level
 
 ## Support
 

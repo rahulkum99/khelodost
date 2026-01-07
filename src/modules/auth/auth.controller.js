@@ -17,22 +17,31 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 /**
- * Register new user
+ * Register new user (requires authentication and proper role permissions)
+ * Users cannot register themselves - they must be created by authorized users
  */
 const register = async (req, res, next) => {
   try {
-    const createdBy = req.user ? req.user._id : null;
+    // Ensure user is authenticated (middleware should handle this, but double-check)
+    if (!req.user || !req.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Users cannot register themselves.'
+      });
+    }
+
+    const createdBy = req.userId;
     const result = await authService.register(req.body, createdBy);
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'User created successfully',
       data: result
     });
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: error.message || 'Registration failed'
+      message: error.message || 'User creation failed'
     });
   }
 };

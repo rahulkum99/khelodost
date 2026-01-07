@@ -4,6 +4,7 @@ const router = express.Router();
 // Import route modules
 const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/user/user.routes');
+const walletRoutes = require('../modules/wallet/wallet.routes');
 
 // Health check route
 router.get('/health', (req, res) => {
@@ -13,6 +14,7 @@ router.get('/health', (req, res) => {
 // Mount route modules
 router.use('/auth', authRoutes);
 router.use('/user', userRoutes);
+router.use('/wallet', walletRoutes);
 
 module.exports = router;
 

@@ -8,14 +8,6 @@ const { authLimiter } = require('../../middlewares/security.middleware');
 
 // Public routes
 router.post(
-  '/register',
-  authLimiter,
-  authValidation.validateRegister,
-  authController.handleValidationErrors,
-  authController.register
-);
-
-router.post(
   '/login',
   authLimiter,
   authValidation.validateLogin,
@@ -30,6 +22,17 @@ router.post(
 
 // Protected routes
 router.use(authenticate); // All routes below require authentication
+
+// User creation route - requires authentication and proper role permissions
+const { canCreateUserWithRole } = require('../../middlewares/authorize.middleware');
+router.post(
+  '/register',
+  authLimiter,
+  canCreateUserWithRole,
+  authValidation.validateRegister,
+  authController.handleValidationErrors,
+  authController.register
+);
 
 router.post('/logout', authController.logout);
 router.get('/profile', authController.getProfile);

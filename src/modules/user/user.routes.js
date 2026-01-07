@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('./user.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorize, requireMinRole } = require('../../middlewares/authorize.middleware');
+const { authorize, requireMinRole, canCreateUserWithRole } = require('../../middlewares/authorize.middleware');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
 const { validateUpdateUser } = require('../auth/auth.validation');
@@ -23,13 +23,15 @@ router.get('/me', (req, res) => {
   userController.getUserById(req, res);
 });
 
-// Admin routes - require admin role or higher
+// User creation route - available to all authenticated users (permissions checked by middleware)
+router.post('/', canCreateUserWithRole, validateUpdateUser, handleValidationErrors, userController.createUser);
+
+// Admin routes - require admin role or higher for viewing/managing all users
 router.use(requireMinRole(ROLES.ADMIN));
 
 router.get('/', userController.getAllUsers);
 router.get('/stats', userController.getUserStats);
 router.get('/:id', userController.getUserById);
-router.post('/', validateUpdateUser, handleValidationErrors, userController.createUser);
 router.put('/:id', validateUpdateUser, handleValidationErrors, userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 
