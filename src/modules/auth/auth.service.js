@@ -22,15 +22,23 @@ const register = async (userData, createdBy = null) => {
   } = userData;
 
   // Check if user already exists
+  const orConditions = [{ username }];
+  if (email) {
+    orConditions.push({ email });
+  }
+  if (mobileNumber) {
+    orConditions.push({ mobileNumber });
+  }
+
   const existingUser = await User.findOne({
-    $or: [{ email }, { mobileNumber }, { username }]
+    $or: orConditions
   });
 
   if (existingUser) {
-    if (existingUser.email === email) {
+    if (email && existingUser.email === email) {
       throw new Error('Email already registered');
     }
-    if (existingUser.mobileNumber === mobileNumber) {
+    if (mobileNumber && existingUser.mobileNumber === mobileNumber) {
       throw new Error('Mobile number already registered');
     }
     if (existingUser.username === username) {
@@ -39,27 +47,27 @@ const register = async (userData, createdBy = null) => {
   }
 
   // Create user
-  const user = await User.create({
+  const newUserData = {
     username,
     name,
-    email,
     password,
-    mobileNumber,
     commission,
     rollingCommission,
     currency,
     exposureLimit,
     role,
     createdBy: createdBy || null
-  });
+  };
 
-  // Generate tokens (for newly created users, they can use these to login)
-  const accessToken = generateAccessToken({ userId: user._id, role: user.role });
-  const refreshToken = generateRefreshToken({ userId: user._id });
+  // Only include optional fields if provided
+  if (email) {
+    newUserData.email = email;
+  }
+  if (mobileNumber) {
+    newUserData.mobileNumber = mobileNumber;
+  }
 
-  // Save refresh token
-  user.refreshToken = refreshToken;
-  user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const user = await User.create(newUserData);
   await user.save({ validateBeforeSave: false });
 
   // Auto-create wallet for the new user
@@ -71,9 +79,7 @@ const register = async (userData, createdBy = null) => {
   }
 
   return {
-    user: user.toJSON(),
-    accessToken,
-    refreshToken
+    user: user.toJSON()
   };
 };
 

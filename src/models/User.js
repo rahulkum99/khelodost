@@ -46,11 +46,18 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [false, 'Email is optional'],
+    required: false,
     unique: true,
+    sparse: true, // Allows documents without email field (sparse index ignores missing fields)
     trim: true,
     lowercase: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
+    validate: {
+      validator: function(v) {
+        if (!v) return true; // Allow undefined/null
+        return /^\S+@\S+\.\S+$/.test(v);
+      },
+      message: 'Please provide a valid email address'
+    }
   },
   password: {
     type: String,
@@ -60,9 +67,17 @@ const userSchema = new mongoose.Schema({
   },
   mobileNumber: {
     type: String,
-    required: [true, 'Mobile number is required'],
+    required: false,
+    unique: true,
+    sparse: true, // Allows documents without mobileNumber field (sparse index ignores missing fields)
     trim: true,
-    match: [/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,10}$/, 'Please provide a valid mobile number']
+    validate: {
+      validator: function(v) {
+        if (!v) return true; // Allow undefined/null
+        return /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,10}$/.test(v);
+      },
+      message: 'Please provide a valid mobile number'
+    }
   },
   commission: {
     type: Number,
@@ -141,9 +156,8 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-// Note: email and username already have indexes from 'unique: true'
+// Note: email, username, and mobileNumber already have indexes from 'unique: true'
 userSchema.index({ name: 1 });
-userSchema.index({ mobileNumber: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 

@@ -16,6 +16,7 @@ const validateRegister = [
     .withMessage('Name must be between 2 and 100 characters'),
   
   body('email')
+    .optional()
     .trim()
     .isEmail()
     .normalizeEmail()
@@ -28,6 +29,7 @@ const validateRegister = [
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   
   body('mobileNumber')
+    .optional()
     .trim()
     .matches(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,10}$/)
     .withMessage('Please provide a valid mobile number'),
