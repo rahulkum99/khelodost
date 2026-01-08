@@ -13,7 +13,8 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true
+  skipSuccessfulRequests: true,
+  validate: { trustProxy: false } // We handle trust proxy in app.js
 });
 
 /**
@@ -27,7 +28,8 @@ const apiLimiter = rateLimit({
     message: 'Too many requests. Please try again later.'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { trustProxy: false } // We handle trust proxy in app.js
 });
 
 /**
@@ -41,7 +43,8 @@ const sensitiveLimiter = rateLimit({
     message: 'Too many sensitive operations. Please try again later.'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { trustProxy: false } // We handle trust proxy in app.js
 });
 
 /**
