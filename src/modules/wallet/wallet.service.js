@@ -230,8 +230,10 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
 
 /**
  * Transfer amount from one wallet to another
- * Users can transfer from their own wallet to other users' wallets
- * Upper-level admins can transfer to lower-level users they created
+ * - All users (including Super Admin) can transfer from their own wallet to other users' wallets
+ * - Super Admin can transfer from their own wallet to any user
+ * - Super Admin can also transfer from any wallet to any wallet
+ * - Upper-level admins can transfer from wallets of users they created to users they created
  */
 const transferAmount = async (fromUserId, toUserId, amount, performedBy, description, req = null) => {
   // Validate amount
