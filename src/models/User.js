@@ -87,11 +87,60 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   rollingCommission: {
-    type: Number,
-    required: [true, 'Rolling commission is required'],
-    min: [0, 'Rolling commission cannot be negative'],
-    max: [100, 'Rolling commission cannot exceed 100%'],
-    default: 0
+    type: mongoose.Schema.Types.Mixed,
+    default: {
+      fancy: 0,
+      matka: 0,
+      casino: 0,
+      binary: 0,
+      sportbook: 0,
+      line: 0,
+      bookmaker: 0,
+      virtualSports: 0,
+      cricket: 0,
+      tennis: 0,
+      soccer: 0
+    },
+    validate: {
+      validator: function(v) {
+        if (typeof v !== 'object' || v === null) return false;
+        const validKeys = ['fancy', 'matka', 'casino', 'binary', 'sportbook', 'line', 'bookmaker', 'virtualSports', 'cricket', 'tennis', 'soccer'];
+        for (const key in v) {
+          if (!validKeys.includes(key)) return false;
+          if (typeof v[key] !== 'number' || v[key] < 0 || v[key] > 100) return false;
+        }
+        return true;
+      },
+      message: 'Rolling commission must be an object with valid keys (fancy, matka, casino, binary, sportbook, line, bookmaker, virtualSports, cricket, tennis, soccer) and values between 0 and 100'
+    }
+  },
+  agentRollingCommission: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {
+      fancy: 0,
+      matka: 0,
+      casino: 0,
+      binary: 0,
+      sportbook: 0,
+      line: 0,
+      bookmaker: 0,
+      virtualSports: 0,
+      cricket: 0,
+      tennis: 0,
+      soccer: 0
+    },
+    validate: {
+      validator: function(v) {
+        if (typeof v !== 'object' || v === null) return false;
+        const validKeys = ['fancy', 'matka', 'casino', 'binary', 'sportbook', 'line', 'bookmaker', 'virtualSports', 'cricket', 'tennis', 'soccer'];
+        for (const key in v) {
+          if (!validKeys.includes(key)) return false;
+          if (typeof v[key] !== 'number' || v[key] < 0 || v[key] > 100) return false;
+        }
+        return true;
+      },
+      message: 'Agent rolling commission must be an object with valid keys (fancy, matka, casino, binary, sportbook, line, bookmaker, virtualSports, cricket, tennis, soccer) and values between 0 and 100'
+    }
   },
   currency: {
     type: String,

@@ -133,7 +133,7 @@ const updateUser = async (req, res) => {
     // Allowed fields for update
     const allowedFields = [
       'username', 'name', 'email', 'mobileNumber', 'commission', 
-      'rollingCommission', 'currency', 'exposureLimit', 
+      'rollingCommission', 'agentRollingCommission', 'currency', 'exposureLimit', 
       'role', 'isActive', 'isEmailVerified'
     ];
     

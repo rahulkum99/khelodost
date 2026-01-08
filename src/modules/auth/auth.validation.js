@@ -1,6 +1,14 @@
 const { body } = require('express-validator');
 const { ROLES, CURRENCIES } = require('../../models/User');
 
+// Password confirmation validation (for sensitive operations)
+// Uses 'adminPassword' field to avoid conflict with new user's 'password' field
+const validatePasswordConfirmation = [
+  body('adminPassword')
+    .notEmpty()
+    .withMessage('Admin password confirmation is required for this operation. Please provide your password in the "adminPassword" field.')
+];
+
 // Register validation
 const validateRegister = [
   body('username')
@@ -39,8 +47,40 @@ const validateRegister = [
     .withMessage('Commission must be a number between 0 and 100'),
   
   body('rollingCommission')
-    .isFloat({ min: 0, max: 100 })
-    .withMessage('Rolling commission must be a number between 0 and 100'),
+    .optional()
+    .isObject()
+    .withMessage('Rolling commission must be an object')
+    .custom((value) => {
+      if (!value) return true;
+      const validKeys = ['fancy', 'matka', 'casino', 'binary', 'sportbook', 'line', 'bookmaker', 'virtualSports', 'cricket', 'tennis', 'soccer'];
+      for (const key in value) {
+        if (!validKeys.includes(key)) {
+          throw new Error(`Invalid rolling commission key: ${key}. Valid keys are: ${validKeys.join(', ')}`);
+        }
+        if (typeof value[key] !== 'number' || value[key] < 0 || value[key] > 100) {
+          throw new Error(`Rolling commission ${key} must be a number between 0 and 100`);
+        }
+      }
+      return true;
+    }),
+  
+  body('agentRollingCommission')
+    .optional()
+    .isObject()
+    .withMessage('Agent rolling commission must be an object')
+    .custom((value) => {
+      if (!value) return true;
+      const validKeys = ['fancy', 'matka', 'casino', 'binary', 'sportbook', 'line', 'bookmaker', 'virtualSports', 'cricket', 'tennis', 'soccer'];
+      for (const key in value) {
+        if (!validKeys.includes(key)) {
+          throw new Error(`Invalid agent rolling commission key: ${key}. Valid keys are: ${validKeys.join(', ')}`);
+        }
+        if (typeof value[key] !== 'number' || value[key] < 0 || value[key] > 100) {
+          throw new Error(`Agent rolling commission ${key} must be a number between 0 and 100`);
+        }
+      }
+      return true;
+    }),
   
   body('currency')
     .optional()
@@ -143,8 +183,39 @@ const validateUpdateUser = [
   
   body('rollingCommission')
     .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage('Rolling commission must be a number between 0 and 100'),
+    .isObject()
+    .withMessage('Rolling commission must be an object')
+    .custom((value) => {
+      if (!value) return true;
+      const validKeys = ['fancy', 'matka', 'casino', 'binary', 'sportbook', 'line', 'bookmaker', 'virtualSports', 'cricket', 'tennis', 'soccer'];
+      for (const key in value) {
+        if (!validKeys.includes(key)) {
+          throw new Error(`Invalid rolling commission key: ${key}. Valid keys are: ${validKeys.join(', ')}`);
+        }
+        if (typeof value[key] !== 'number' || value[key] < 0 || value[key] > 100) {
+          throw new Error(`Rolling commission ${key} must be a number between 0 and 100`);
+        }
+      }
+      return true;
+    }),
+  
+  body('agentRollingCommission')
+    .optional()
+    .isObject()
+    .withMessage('Agent rolling commission must be an object')
+    .custom((value) => {
+      if (!value) return true;
+      const validKeys = ['fancy', 'matka', 'casino', 'binary', 'sportbook', 'line', 'bookmaker', 'virtualSports', 'cricket', 'tennis', 'soccer'];
+      for (const key in value) {
+        if (!validKeys.includes(key)) {
+          throw new Error(`Invalid agent rolling commission key: ${key}. Valid keys are: ${validKeys.join(', ')}`);
+        }
+        if (typeof value[key] !== 'number' || value[key] < 0 || value[key] > 100) {
+          throw new Error(`Agent rolling commission ${key} must be a number between 0 and 100`);
+        }
+      }
+      return true;
+    }),
   
   body('currency')
     .optional()
@@ -178,6 +249,7 @@ const validateUpdateUser = [
 ];
 
 module.exports = {
+  validatePasswordConfirmation,
   validateRegister,
   validateLogin,
   validateChangePassword,

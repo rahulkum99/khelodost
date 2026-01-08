@@ -4,6 +4,7 @@ const authController = require('./auth.controller');
 const activityLogController = require('./activityLog.controller');
 const authValidation = require('./auth.validation');
 const { authenticate } = require('../../middlewares/auth.middleware');
+const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
 const { authLimiter } = require('../../middlewares/security.middleware');
 
 // Public routes
@@ -24,11 +25,15 @@ router.post(
 router.use(authenticate); // All routes below require authentication
 
 // User creation route - requires authentication and proper role permissions
+// Requires password confirmation for security
 const { canCreateUserWithRole } = require('../../middlewares/authorize.middleware');
 router.post(
   '/register',
   authLimiter,
   canCreateUserWithRole,
+  authValidation.validatePasswordConfirmation,
+  authController.handleValidationErrors,
+  requirePasswordConfirmation,
   authValidation.validateRegister,
   authController.handleValidationErrors,
   authController.register

@@ -16,6 +16,7 @@ const register = async (userData, createdBy = null) => {
     mobileNumber,
     commission,
     rollingCommission,
+    agentRollingCommission,
     currency = CURRENCIES.INR,
     exposureLimit,
     role = ROLES.USER 
@@ -46,13 +47,29 @@ const register = async (userData, createdBy = null) => {
     }
   }
 
+  // Default commission structures
+  const defaultRollingCommission = {
+    fancy: 0,
+    matka: 0,
+    casino: 0,
+    binary: 0,
+    sportbook: 0,
+    line: 0,
+    bookmaker: 0,
+    virtualSports: 0,
+    cricket: 0,
+    tennis: 0,
+    soccer: 0
+  };
+
   // Create user
   const newUserData = {
     username,
     name,
     password,
     commission,
-    rollingCommission,
+    rollingCommission: rollingCommission || defaultRollingCommission,
+    agentRollingCommission: agentRollingCommission || defaultRollingCommission,
     currency,
     exposureLimit,
     role,

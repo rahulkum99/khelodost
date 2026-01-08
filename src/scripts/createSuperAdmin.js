@@ -31,6 +31,21 @@ const createSuperAdmin = async () => {
       process.exit(0);
     }
 
+    // Default commission structures
+    const defaultRollingCommission = {
+      fancy: 0,
+      matka: 0,
+      casino: 0,
+      binary: 0,
+      sportbook: 0,
+      line: 0,
+      bookmaker: 0,
+      virtualSports: 0,
+      cricket: 0,
+      tennis: 0,
+      soccer: 0
+    };
+
     // Create super admin
     const superAdmin = await User.create({
       username,
@@ -39,7 +54,8 @@ const createSuperAdmin = async () => {
       password,
       mobileNumber,
       commission: 0,
-      rollingCommission: 0,
+      rollingCommission: defaultRollingCommission,
+      agentRollingCommission: defaultRollingCommission,
       currency: 'INR',
       exposureLimit: 9999999999,
       role: ROLES.SUPER_ADMIN,

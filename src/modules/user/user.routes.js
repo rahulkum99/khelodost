@@ -3,9 +3,10 @@ const router = express.Router();
 const userController = require('./user.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize, requireMinRole, canCreateUserWithRole } = require('../../middlewares/authorize.middleware');
+const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
-const { validateUpdateUser } = require('../auth/auth.validation');
+const { validateUpdateUser, validatePasswordConfirmation } = require('../auth/auth.validation');
 const { handleValidationErrors } = require('../auth/auth.controller');
 
 // Apply rate limiting to all routes
@@ -24,7 +25,17 @@ router.get('/me', (req, res) => {
 });
 
 // User creation route - available to all authenticated users (permissions checked by middleware)
-router.post('/', canCreateUserWithRole, validateUpdateUser, handleValidationErrors, userController.createUser);
+// Requires password confirmation for security
+router.post(
+  '/', 
+  canCreateUserWithRole, 
+  validatePasswordConfirmation,
+  handleValidationErrors,
+  requirePasswordConfirmation,
+  validateUpdateUser, 
+  handleValidationErrors, 
+  userController.createUser
+);
 
 // Admin routes - require admin role or higher for viewing/managing all users
 router.use(requireMinRole(ROLES.ADMIN));
@@ -32,7 +43,25 @@ router.use(requireMinRole(ROLES.ADMIN));
 router.get('/', userController.getAllUsers);
 router.get('/stats', userController.getUserStats);
 router.get('/:id', userController.getUserById);
-router.put('/:id', validateUpdateUser, handleValidationErrors, userController.updateUser);
-router.delete('/:id', userController.deleteUser);
+
+// Update user - requires password confirmation
+router.put(
+  '/:id', 
+  validatePasswordConfirmation,
+  handleValidationErrors,
+  requirePasswordConfirmation,
+  validateUpdateUser, 
+  handleValidationErrors, 
+  userController.updateUser
+);
+
+// Delete user - requires password confirmation
+router.delete(
+  '/:id', 
+  validatePasswordConfirmation,
+  handleValidationErrors,
+  requirePasswordConfirmation,
+  userController.deleteUser
+);
 
 module.exports = router;
