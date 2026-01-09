@@ -1,6 +1,7 @@
 const { User, ROLES } = require('../../models/User');
 const authService = require('../auth/auth.service');
 const { getLatestCricketData } = require('../../services/cricket.service');
+const walletService = require('../wallet/wallet.service');
 
 /**
  * Get cricket matches (public route)
@@ -85,9 +86,26 @@ const getUserById = async (req, res) => {
       });
     }
 
+    // Get wallet balance for the user
+    let wallet = null;
+    try {
+      wallet = await walletService.getBalance(req.params.id);
+    } catch (error) {
+      // Wallet might not exist yet, set default values
+      wallet = {
+        balance: 0,
+        currency: user.currency || 'INR',
+        isActive: true,
+        isLocked: false
+      };
+    }
+
     res.json({
       success: true,
-      data: { user }
+      data: { 
+        user,
+        wallet
+      }
     });
   } catch (error) {
     res.status(500).json({
