@@ -115,6 +115,18 @@ The system enforces strict hierarchical rules for user creation:
    - Device and browser detection
    - Account statement with statistics
 
+8. **Password Change History**
+   - Complete audit trail of all password changes
+   - Tracks who changed the password (self or admin)
+   - Records IP address, device, browser, and OS information
+   - Admin password changes include metadata (admin username, roles)
+   - Historical tracking for security compliance
+
+9. **Password Confirmation for Sensitive Operations**
+   - Admins must provide their password (`adminPassword`) for sensitive operations
+   - Required for: creating users, updating users, deleting users, changing user passwords
+   - Adds an extra layer of security for administrative actions
+
 ## API Endpoints
 
 ### Public Endpoints
@@ -167,13 +179,39 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
+  "adminPassword": "AdminPassword123",
   "username": "newuser",
   "name": "John Doe",
   "email": "john@example.com",
   "password": "SecurePass123",
   "mobileNumber": "+919876543210",
   "commission": 5.5,
-  "rollingCommission": 2.5,
+  "rollingCommission": {
+    "fancy": 0,
+    "matka": 0,
+    "casino": 0,
+    "binary": 0,
+    "sportbook": 0,
+    "line": 0,
+    "bookmaker": 0,
+    "virtualSports": 0,
+    "cricket": 2.5,
+    "tennis": 1.5,
+    "soccer": 1.0
+  },
+  "agentRollingCommission": {
+    "fancy": 0,
+    "matka": 0,
+    "casino": 0,
+    "binary": 0,
+    "sportbook": 0,
+    "line": 0,
+    "bookmaker": 0,
+    "virtualSports": 0,
+    "cricket": 3.0,
+    "tennis": 2.0,
+    "soccer": 1.5
+  },
   "currency": "INR",
   "exposureLimit": 1000000000,
   "role": "user"
@@ -182,6 +220,7 @@ Content-Type: application/json
 
 **Note:** 
 - This endpoint requires authentication
+- Requires `adminPassword` field for password confirmation
 - Users cannot register themselves
 - The creator must have permission to create users with the specified role
 - See [User Creation Hierarchy](#user-creation-hierarchy) for role-based permissions
@@ -262,7 +301,7 @@ Content-Type: application/json
 }
 ```
 
-#### Change Password
+#### Change Password (Self)
 ```http
 PUT /api/auth/change-password
 Authorization: Bearer <accessToken>
@@ -273,6 +312,16 @@ Content-Type: application/json
   "newPassword": "NewPass123"
 }
 ```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+**Note:** This endpoint allows users to change their own password. The change is logged in password change history with `changeType: "self"`.
 
 #### Logout
 ```http
@@ -378,6 +427,126 @@ Authorization: Bearer <accessToken>
 }
 ```
 
+#### Admin Change Password for User
+```http
+PUT /api/auth/admin/change-password
+Authorization: Bearer <adminAccessToken>
+Content-Type: application/json
+
+{
+  "adminPassword": "AdminPassword123",
+  "userId": "507f1f77bcf86cd799439011",
+  "newPassword": "NewUserPassword123"
+}
+```
+
+**Note:**
+- Requires authentication and admin role (or higher)
+- Admin must provide their own password in `adminPassword` field for confirmation
+- Admin can only change passwords for users below them in the role hierarchy
+- The password change is logged in password change history with `changeType: "admin"`
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "targetuser",
+    "name": "Target User",
+    "email": "target@example.com",
+    "role": "user"
+  }
+}
+```
+
+**Error Response (Insufficient Permissions):**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to change password for this user. You can only change passwords for users with roles below yours."
+}
+```
+
+#### Get Password Change History
+```http
+GET /api/auth/password-change-history?userId=507f1f77bcf86cd799439011&page=1&limit=20&changeType=admin&startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer <accessToken>
+```
+
+**Query Parameters:**
+- `userId` - User ID to get history for (optional, defaults to current user)
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 20)
+- `changeType` - Filter by change type (`self` or `admin`)
+- `startDate` - Start date filter (ISO format, optional)
+- `endDate` - End date filter (ISO format, optional)
+
+**Note:**
+- Users can view their own password change history
+- Admins can view password change history for users below them in the role hierarchy
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "history": [
+      {
+        "_id": "...",
+        "user": "507f1f77bcf86cd799439011",
+        "changedBy": {
+          "_id": "...",
+          "username": "admin",
+          "name": "Admin User",
+          "role": "admin"
+        },
+        "changeType": "admin",
+        "ipAddress": "192.168.1.1",
+        "userAgent": "Mozilla/5.0...",
+        "device": "Desktop",
+        "browser": "Chrome",
+        "os": "Windows",
+        "metadata": {
+          "adminUsername": "admin",
+          "adminRole": "admin",
+          "targetUsername": "targetuser",
+          "targetRole": "user"
+        },
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "updatedAt": "2024-01-15T10:30:00.000Z"
+      },
+      {
+        "_id": "...",
+        "user": "507f1f77bcf86cd799439011",
+        "changedBy": {
+          "_id": "507f1f77bcf86cd799439011",
+          "username": "targetuser",
+          "name": "Target User",
+          "role": "user"
+        },
+        "changeType": "self",
+        "ipAddress": "192.168.1.2",
+        "userAgent": "Mozilla/5.0...",
+        "device": "Mobile",
+        "browser": "Safari",
+        "os": "iOS",
+        "metadata": {},
+        "createdAt": "2024-01-10T08:15:00.000Z",
+        "updatedAt": "2024-01-10T08:15:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 5,
+      "pages": 1
+    }
+  }
+}
+```
+
 ### Admin Endpoints (Require Admin Role or Higher)
 
 #### Get All Users
@@ -422,13 +591,39 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
+  "adminPassword": "AdminPassword123",
   "username": "newuser",
   "name": "New User",
   "email": "newuser@example.com",
   "password": "SecurePass123",
   "mobileNumber": "+919876543210",
   "commission": 3.0,
-  "rollingCommission": 1.5,
+  "rollingCommission": {
+    "fancy": 0,
+    "matka": 0,
+    "casino": 0,
+    "binary": 0,
+    "sportbook": 0,
+    "line": 0,
+    "bookmaker": 0,
+    "virtualSports": 0,
+    "cricket": 1.5,
+    "tennis": 1.0,
+    "soccer": 0.5
+  },
+  "agentRollingCommission": {
+    "fancy": 0,
+    "matka": 0,
+    "casino": 0,
+    "binary": 0,
+    "sportbook": 0,
+    "line": 0,
+    "bookmaker": 0,
+    "virtualSports": 0,
+    "cricket": 2.0,
+    "tennis": 1.5,
+    "soccer": 1.0
+  },
   "currency": "INR",
   "exposureLimit": 500000000,
   "role": "agent"
@@ -437,6 +632,7 @@ Content-Type: application/json
 
 **Note:**
 - Available to all authenticated users (not just Admin)
+- Requires `adminPassword` field for password confirmation
 - The creator must have permission to create users with the specified role
 - See [User Creation Hierarchy](#user-creation-hierarchy) for role-based permissions
 - Same functionality as `/api/auth/register` endpoint
@@ -448,12 +644,17 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
+  "adminPassword": "AdminPassword123",
   "username": "updateduser",
   "name": "Updated Name",
   "email": "updated@example.com",
   "mobileNumber": "+919876543211",
   "commission": 6.0,
-  "rollingCommission": 3.0,
+  "rollingCommission": {
+    "cricket": 3.0,
+    "tennis": 2.0,
+    "soccer": 1.5
+  },
   "currency": "USD",
   "exposureLimit": 2000000000,
   "role": "master",
@@ -461,11 +662,20 @@ Content-Type: application/json
 }
 ```
 
+**Note:** Requires `adminPassword` field for password confirmation
+
 #### Delete User
 ```http
 DELETE /api/user/:id
 Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{
+  "adminPassword": "AdminPassword123"
+}
 ```
+
+**Note:** Requires `adminPassword` field in request body for password confirmation
 
 #### Get User Statistics
 ```http
@@ -506,13 +716,39 @@ const response = await fetch('http://localhost:5000/api/auth/register', {
     'Authorization': `Bearer ${accessToken}`
   },
   body: JSON.stringify({
+    adminPassword: 'AdminPassword123', // Your password for confirmation
     username: 'newuser',
     name: 'John Doe',
     email: 'john@example.com',
-    password: 'SecurePass123',
+    password: 'SecurePass123', // New user's password
     mobileNumber: '+919876543210',
     commission: 5.5,
-    rollingCommission: 2.5,
+    rollingCommission: {
+      fancy: 0,
+      matka: 0,
+      casino: 0,
+      binary: 0,
+      sportbook: 0,
+      line: 0,
+      bookmaker: 0,
+      virtualSports: 0,
+      cricket: 2.5,
+      tennis: 1.5,
+      soccer: 1.0
+    },
+    agentRollingCommission: {
+      fancy: 0,
+      matka: 0,
+      casino: 0,
+      binary: 0,
+      sportbook: 0,
+      line: 0,
+      bookmaker: 0,
+      virtualSports: 0,
+      cricket: 3.0,
+      tennis: 2.0,
+      soccer: 1.5
+    },
     currency: 'INR',
     exposureLimit: 1000000000,
     role: 'user' // Must be a role you have permission to create
@@ -528,7 +764,7 @@ if (data.success) {
 }
 ```
 
-**Note:** Users cannot register themselves. All user creation requires authentication and proper role permissions.
+**Note:** Users cannot register themselves. All user creation requires authentication, proper role permissions, and password confirmation via `adminPassword` field.
 
 #### Login
 ```javascript
@@ -578,6 +814,55 @@ const response = await fetch('http://localhost:5000/api/auth/refresh-token', {
 const data = await response.json();
 localStorage.setItem('accessToken', data.data.accessToken);
 localStorage.setItem('refreshToken', data.data.refreshToken);
+```
+
+#### Admin Change Password for User
+```javascript
+const accessToken = localStorage.getItem('accessToken');
+
+const response = await fetch('http://localhost:5000/api/auth/admin/change-password', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}`
+  },
+  body: JSON.stringify({
+    adminPassword: 'AdminPassword123', // Admin's own password for confirmation
+    userId: '507f1f77bcf86cd799439011', // Target user ID
+    newPassword: 'NewUserPassword123' // New password for target user
+  })
+});
+
+const data = await response.json();
+if (data.success) {
+  console.log('Password changed successfully for user:', data.data);
+} else {
+  console.error('Error:', data.message);
+}
+```
+
+#### Get Password Change History
+```javascript
+const accessToken = localStorage.getItem('accessToken');
+
+// Get own password change history
+const response = await fetch('http://localhost:5000/api/auth/password-change-history?page=1&limit=20', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${accessToken}`
+  }
+});
+
+// Get password change history for a specific user (admin only)
+const adminResponse = await fetch('http://localhost:5000/api/auth/password-change-history?userId=507f1f77bcf86cd799439011&changeType=admin', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${accessToken}`
+  }
+});
+
+const data = await response.json();
+console.log('Password change history:', data.data.history);
 ```
 
 ## Field Validation Rules
@@ -723,6 +1008,9 @@ router.post('/create-user', authenticate, canCreateUserWithRole, handler);
 - ✅ Secure password requirements
 - ✅ Unique username validation
 - ✅ Commission and exposure limit validation
+- ✅ Password confirmation for sensitive operations
+- ✅ Password change history tracking
+- ✅ Admin password change with role hierarchy enforcement
 
 ## Troubleshooting
 
