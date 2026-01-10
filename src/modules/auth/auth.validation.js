@@ -248,11 +248,33 @@ const validateUpdateUser = [
     .withMessage('isActive must be a boolean')
 ];
 
+// Admin change password validation
+const validateAdminChangePassword = [
+  body('userId')
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('Invalid user ID format'),
+  
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  
+  body('adminPassword')
+    .notEmpty()
+    .withMessage('Admin password confirmation is required for this operation. Please provide your password in the "adminPassword" field.')
+];
+
 module.exports = {
   validatePasswordConfirmation,
   validateRegister,
   validateLogin,
   validateChangePassword,
   validateUpdateProfile,
-  validateUpdateUser
+  validateUpdateUser,
+  validateAdminChangePassword
 };

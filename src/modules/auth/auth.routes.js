@@ -6,6 +6,7 @@ const authValidation = require('./auth.validation');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
 const { authLimiter } = require('../../middlewares/security.middleware');
+const { canChangePasswordForUser } = require('../../middlewares/authorize.middleware');
 
 // Public routes
 router.post(
@@ -53,6 +54,21 @@ router.put(
   authController.handleValidationErrors,
   authController.changePassword
 );
+
+// Admin change password for user below them
+router.put(
+  '/admin/change-password',
+  authValidation.validatePasswordConfirmation,
+  authController.handleValidationErrors,
+  requirePasswordConfirmation,
+  authValidation.validateAdminChangePassword,
+  authController.handleValidationErrors,
+  canChangePasswordForUser,
+  authController.adminChangePassword
+);
+
+// Get password change history
+router.get('/password-change-history', authController.getPasswordChangeHistory);
 
 // Activity Log routes
 router.get('/activity-logs', activityLogController.getActivityLogs);

@@ -150,10 +150,65 @@ const canCreateUserWithRole = (req, res, next) => {
   next();
 };
 
+/**
+ * Check if admin can change password for target user
+ * Admin must have higher role than target user
+ */
+const canChangePasswordForUser = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required.'
+    });
+  }
+
+  const { userId } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: 'User ID is required.'
+    });
+  }
+
+  const { User, ROLE_HIERARCHY, ROLES } = require('../models/User');
+  
+  // Get target user
+  const targetUser = await User.findById(userId);
+  
+  if (!targetUser) {
+    return res.status(404).json({
+      success: false,
+      message: 'Target user not found.'
+    });
+  }
+
+  const adminRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
+  const targetRoleLevel = ROLE_HIERARCHY[targetUser.role] || 0;
+
+  // Super admin can change password for anyone
+  if (req.user.role === ROLES.SUPER_ADMIN) {
+    req.targetUser = targetUser;
+    return next();
+  }
+
+  // Admin must have higher role than target user
+  if (adminRoleLevel > targetRoleLevel) {
+    req.targetUser = targetUser;
+    return next();
+  }
+
+  return res.status(403).json({
+    success: false,
+    message: `You do not have permission to change password for this user. You can only change passwords for users with roles below yours.`
+  });
+};
+
 module.exports = {
   authorize,
   requireMinRole,
   canManageUser,
-  canCreateUserWithRole
+  canCreateUserWithRole,
+  canChangePasswordForUser
 };
 

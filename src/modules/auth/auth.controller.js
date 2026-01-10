@@ -166,7 +166,7 @@ const updateProfile = async (req, res, next) => {
 };
 
 /**
- * Change password
+ * Change password (self)
  */
 const changePassword = async (req, res, next) => {
   try {
@@ -185,6 +185,73 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+/**
+ * Admin change password for user below them
+ */
+const adminChangePassword = async (req, res, next) => {
+  try {
+    const { userId, newPassword } = req.body;
+    const result = await authService.adminChangePassword(userId, newPassword, req.userId, req);
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.user
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Password change failed'
+    });
+  }
+};
+
+/**
+ * Get password change history
+ * Users can view their own history, admins can view history of users below them
+ */
+const getPasswordChangeHistory = async (req, res, next) => {
+  try {
+    const targetUserId = req.query.userId || req.userId;
+    
+    // If requesting another user's history, check permissions
+    if (targetUserId !== req.userId.toString()) {
+      const { User, ROLE_HIERARCHY, ROLES } = require('../../models/User');
+      const targetUser = await User.findById(targetUserId);
+      
+      if (!targetUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const adminRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
+      const targetRoleLevel = ROLE_HIERARCHY[targetUser.role] || 0;
+
+      // Super admin can view anyone's history
+      if (req.user.role !== ROLES.SUPER_ADMIN && adminRoleLevel <= targetRoleLevel) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to view password change history for this user.'
+        });
+      }
+    }
+
+    const result = await authService.getPasswordChangeHistory(targetUserId, req.query);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to fetch password change history'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -193,6 +260,8 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
+  adminChangePassword,
+  getPasswordChangeHistory,
   handleValidationErrors
 };
 

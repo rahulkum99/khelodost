@@ -2,6 +2,8 @@ const { User, ROLES, CURRENCIES } = require('../../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../utils/jwt');
 const { createActivityLog } = require('../../services/activityLog.service');
 const Wallet = require('../../models/Wallet');
+const PasswordChangeHistory = require('../../models/PasswordChangeHistory');
+const { getClientIp, parseUserAgent } = require('../../utils/ipLocation');
 
 /**
  * Register a new user
@@ -317,7 +319,7 @@ const updateProfile = async (userId, updateData, req = null) => {
 };
 
 /**
- * Change password
+ * Change password (self)
  */
 const changePassword = async (userId, currentPassword, newPassword, req = null) => {
   const user = await User.findById(userId).select('+password');
@@ -335,8 +337,24 @@ const changePassword = async (userId, currentPassword, newPassword, req = null) 
   user.password = newPassword;
   await user.save();
 
-  // Log password change
+  // Log password change in history
   if (req) {
+    const ipAddress = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+    const { device, browser, os } = parseUserAgent(userAgent);
+
+    await PasswordChangeHistory.create({
+      user: user._id,
+      changedBy: user._id,
+      changeType: 'self',
+      ipAddress,
+      userAgent,
+      device,
+      browser,
+      os
+    });
+
+    // Also log in activity log
     await createActivityLog(
       user,
       'password_change',
@@ -350,6 +368,121 @@ const changePassword = async (userId, currentPassword, newPassword, req = null) 
   return { message: 'Password changed successfully' };
 };
 
+/**
+ * Admin change password for user below them
+ */
+const adminChangePassword = async (targetUserId, newPassword, adminId, req = null) => {
+  const targetUser = await User.findById(targetUserId).select('+password');
+  const admin = await User.findById(adminId);
+
+  if (!targetUser) {
+    throw new Error('Target user not found');
+  }
+
+  if (!admin) {
+    throw new Error('Admin not found');
+  }
+
+  // Change password
+  targetUser.password = newPassword;
+  await targetUser.save();
+
+  // Log password change in history
+  if (req) {
+    const ipAddress = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+    const { device, browser, os } = parseUserAgent(userAgent);
+
+    await PasswordChangeHistory.create({
+      user: targetUser._id,
+      changedBy: admin._id,
+      changeType: 'admin',
+      ipAddress,
+      userAgent,
+      device,
+      browser,
+      os,
+      metadata: {
+        adminUsername: admin.username,
+        adminRole: admin.role,
+        targetUsername: targetUser.username,
+        targetRole: targetUser.role
+      }
+    });
+
+    // Also log in activity log for target user
+    await createActivityLog(
+      targetUser,
+      'password_change',
+      req,
+      {
+        loginStatus: 'success',
+        changedBy: admin.username,
+        changeType: 'admin'
+      }
+    );
+  }
+
+  return { 
+    message: 'Password changed successfully',
+    user: {
+      _id: targetUser._id,
+      username: targetUser.username,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role
+    }
+  };
+};
+
+/**
+ * Get password change history for a user
+ */
+const getPasswordChangeHistory = async (userId, options = {}) => {
+  const {
+    page = 1,
+    limit = 20,
+    changeType,
+    startDate,
+    endDate
+  } = options;
+
+  const skip = (page - 1) * limit;
+  const filter = { user: userId };
+
+  if (changeType) {
+    filter.changeType = changeType;
+  }
+
+  if (startDate || endDate) {
+    filter.createdAt = {};
+    if (startDate) {
+      filter.createdAt.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      filter.createdAt.$lte = new Date(endDate);
+    }
+  }
+
+  const history = await PasswordChangeHistory.find(filter)
+    .populate('changedBy', 'username name role')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await PasswordChangeHistory.countDocuments(filter);
+
+  return {
+    history,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    }
+  };
+};
+
 module.exports = {
   register,
   login,
@@ -357,5 +490,7 @@ module.exports = {
   logout,
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  adminChangePassword,
+  getPasswordChangeHistory
 };
