@@ -28,6 +28,8 @@ const getBalance = async (userId) => {
   
   return {
     balance: wallet.balance,
+    availableBalance: wallet.availableBalance,
+    lockedBalance: wallet.lockedBalance,
     currency: wallet.currency,
     isActive: wallet.isActive,
     isLocked: wallet.isLocked
@@ -82,8 +84,10 @@ const addAmount = async (targetUserId, amount, performedBy, description, req = n
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore + amount;
 
-    // Update wallet balance
-    wallet.balance = balanceAfter;
+    // Update wallet balance (add to available balance)
+    wallet.availableBalance += amount;
+    wallet.balance = wallet.availableBalance + wallet.lockedBalance;
+    wallet.totalDeposit = (wallet.totalDeposit || 0) + amount;
     wallet.lastTransactionAt = new Date();
     await wallet.save({ session });
 
@@ -174,9 +178,9 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
     throw new Error(`Wallet is ${wallet.isLocked ? 'locked' : 'inactive'}. ${wallet.lockedReason || ''}`);
   }
 
-  // Check if sufficient balance
-  if (wallet.balance < amount) {
-    throw new Error('Insufficient wallet balance');
+  // Check if sufficient available balance
+  if (wallet.availableBalance < amount) {
+    throw new Error('Insufficient available balance');
   }
 
   // Start transaction
@@ -187,8 +191,10 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore - amount;
 
-    // Update wallet balance
-    wallet.balance = balanceAfter;
+    // Update wallet balance (deduct from available balance)
+    wallet.availableBalance -= amount;
+    wallet.balance = wallet.availableBalance + wallet.lockedBalance;
+    wallet.totalWithdrawal = (wallet.totalWithdrawal || 0) + amount;
     wallet.lastTransactionAt = new Date();
     await wallet.save({ session });
 
@@ -329,9 +335,9 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
     throw new Error(`Currency mismatch. Cannot transfer from ${fromWallet.currency} to ${toWallet.currency}`);
   }
 
-  // Check if sufficient balance in sender wallet
-  if (fromWallet.balance < amount) {
-    throw new Error('Insufficient balance in sender wallet');
+  // Check if sufficient available balance in sender wallet
+  if (fromWallet.availableBalance < amount) {
+    throw new Error('Insufficient available balance in sender wallet');
   }
 
   // Start transaction
@@ -340,19 +346,21 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
 
   try {
     const fromBalanceBefore = fromWallet.balance;
-    const fromBalanceAfter = fromBalanceBefore - amount;
-
-    const toBalanceBefore = toWallet.balance;
-    const toBalanceAfter = toBalanceBefore + amount;
-
-    // Update sender wallet balance
-    fromWallet.balance = fromBalanceAfter;
+    
+    // Update sender wallet balance (deduct from available)
+    fromWallet.availableBalance -= amount;
+    fromWallet.balance = fromWallet.availableBalance + fromWallet.lockedBalance;
     fromWallet.lastTransactionAt = new Date();
+    const fromBalanceAfter = fromWallet.balance;
     await fromWallet.save({ session });
 
-    // Update receiver wallet balance
-    toWallet.balance = toBalanceAfter;
+    const toBalanceBefore = toWallet.balance;
+    
+    // Update receiver wallet balance (add to available)
+    toWallet.availableBalance += amount;
+    toWallet.balance = toWallet.availableBalance + toWallet.lockedBalance;
     toWallet.lastTransactionAt = new Date();
+    const toBalanceAfter = toWallet.balance;
     await toWallet.save({ session });
 
     // Create debit transaction for sender

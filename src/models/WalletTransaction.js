@@ -7,7 +7,11 @@ const TRANSACTION_TYPES = {
   TRANSFER: 'transfer',       // Transfer between wallets
   REFUND: 'refund',           // Refund transaction
   COMMISSION: 'commission',   // Commission earned
-  ADJUSTMENT: 'adjustment'    // Manual adjustment by admin
+  ADJUSTMENT: 'adjustment',   // Manual adjustment by admin
+  BET_PLACED: 'bet_placed',   // Bet placed (balance locked)
+  BET_MATCHED: 'bet_matched', // Bet matched (balance unlocked)
+  BET_SETTLED: 'bet_settled', // Bet settled (profit/loss added)
+  BET_CANCELLED: 'bet_cancelled' // Bet cancelled (balance unlocked)
 };
 
 // Transaction status
@@ -89,6 +93,11 @@ const walletTransactionSchema = new mongoose.Schema({
   relatedTransaction: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'WalletTransaction',
+    default: null
+  },
+  betId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Bet',
     default: null
   },
   metadata: {

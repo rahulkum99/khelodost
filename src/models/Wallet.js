@@ -17,6 +17,42 @@ const walletSchema = new mongoose.Schema({
       return Math.round(value * 100) / 100;
     }
   },
+  availableBalance: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: [0, 'Available balance cannot be negative'],
+    get: function(value) {
+      return Math.round(value * 100) / 100;
+    }
+  },
+  lockedBalance: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: [0, 'Locked balance cannot be negative'],
+    get: function(value) {
+      return Math.round(value * 100) / 100;
+    }
+  },
+  totalDeposit: {
+    type: Number,
+    default: 0,
+    min: [0, 'Total deposit cannot be negative']
+  },
+  totalWithdrawal: {
+    type: Number,
+    default: 0,
+    min: [0, 'Total withdrawal cannot be negative']
+  },
+  totalProfit: {
+    type: Number,
+    default: 0
+  },
+  totalLoss: {
+    type: Number,
+    default: 0
+  },
   currency: {
     type: String,
     required: true,
@@ -82,6 +118,35 @@ walletSchema.methods.unlock = function() {
   this.lockedReason = null;
   return this.save();
 };
+
+// Method to lock balance for betting
+walletSchema.methods.lockBalance = function(amount) {
+  if (this.availableBalance < amount) {
+    throw new Error('Insufficient available balance');
+  }
+  this.availableBalance -= amount;
+  this.lockedBalance += amount;
+  this.balance = this.availableBalance + this.lockedBalance;
+  return this.save();
+};
+
+// Method to unlock balance
+walletSchema.methods.unlockBalance = function(amount) {
+  if (this.lockedBalance < amount) {
+    throw new Error('Insufficient locked balance');
+  }
+  this.lockedBalance -= amount;
+  this.availableBalance += amount;
+  this.balance = this.availableBalance + this.lockedBalance;
+  return this.save();
+};
+
+// Pre-save hook to ensure balance consistency
+walletSchema.pre('save', function(next) {
+  // Ensure balance = availableBalance + lockedBalance
+  this.balance = this.availableBalance + this.lockedBalance;
+  next();
+});
 
 // Static method to get or create wallet for user
 walletSchema.statics.getOrCreateWallet = async function(userId, currency = 'INR') {

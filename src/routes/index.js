@@ -5,6 +5,7 @@ const router = express.Router();
 const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/user/user.routes');
 const walletRoutes = require('../modules/wallet/wallet.routes');
+const betRoutes = require('../modules/bet/bet.routes');
 
 // Health check route
 router.get('/health', (req, res) => {
@@ -15,6 +16,7 @@ router.get('/health', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/user', userRoutes);
 router.use('/wallet', walletRoutes);
+router.use('/bets', betRoutes);
 
 module.exports = router;
 
