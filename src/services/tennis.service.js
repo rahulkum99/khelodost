@@ -1,6 +1,7 @@
 const axios = require('axios');
 
-const API_URL = 'https://marketsarket.qnsports.live/gettennismatches2';
+const API_URL = process.env.TENNIS_MATCHES_API_URL || 'https://marketsarket.qnsports.live/gettennismatches2';
+const API_TIMEOUT = parseInt(process.env.API_TIMEOUT) || 15000;
 
 let latestData = [];
 let isFetching = false; // Flag to prevent overlapping requests
@@ -14,7 +15,7 @@ const fetchTennisData = async () => {
   isFetching = true;
   try {
     const response = await axios.get(API_URL, {
-      timeout: 15000, // Increased to 15 seconds
+      timeout: API_TIMEOUT,
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0'

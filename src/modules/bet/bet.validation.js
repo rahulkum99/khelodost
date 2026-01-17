@@ -34,6 +34,10 @@ const validatePlaceBet = [
     .trim()
     .isLength({ min: 1, max: 200 })
     .withMessage('Section name must be between 1 and 200 characters'),
+  body('marketType')
+    .optional()
+    .isIn(['match_odds', 'bookmakers_fancy', 'line_market', 'meter_market', 'kado_market'])
+    .withMessage('Invalid market type'),
   body('type')
     .notEmpty()
     .withMessage('Bet type is required')
@@ -42,8 +46,13 @@ const validatePlaceBet = [
   body('odds')
     .notEmpty()
     .withMessage('Odds are required')
-    .isFloat({ min: 1.01, max: 1000 })
-    .withMessage('Odds must be between 1.01 and 1000'),
+    .custom((value) => {
+      const odds = parseFloat(value);
+      if (isNaN(odds) || odds <= 0) {
+        throw new Error('Odds must be a valid number greater than 0');
+      }
+      return true;
+    }),
   body('stake')
     .notEmpty()
     .withMessage('Stake is required')

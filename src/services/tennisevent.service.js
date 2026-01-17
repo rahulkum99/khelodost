@@ -1,6 +1,7 @@
 const axios = require('axios');
 
-const API_URL = 'http://172.232.74.157/getdata';
+const API_URL = process.env.TENNIS_EVENT_API_URL || 'http://172.232.74.157/getdata';
+const API_TIMEOUT = parseInt(process.env.API_TIMEOUT) || 15000;
 
 // Store data per event ID
 const tennisEventDataCache = new Map();
@@ -22,7 +23,7 @@ const fetchTennisEventData = async (eventId) => {
 
   try {
     const response = await axios.get(`${API_URL}?eventId=${eventId}`, {
-      timeout: 15000, // Increased to 15 seconds
+      timeout: API_TIMEOUT,
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0'

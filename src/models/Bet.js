@@ -52,6 +52,12 @@ const betSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  marketType: {
+    type: String,
+    enum: ['match_odds', 'bookmakers_fancy', 'line_market', 'meter_market', 'kado_market'],
+    default: 'match_odds',
+    index: true
+  },
   type: {
     type: String,
     enum: Object.values(BET_TYPES),
@@ -130,10 +136,11 @@ const betSchema = new mongoose.Schema({
 });
 
 // Compound indexes for efficient matching queries
-betSchema.index({ marketId: 1, sectionId: 1, type: 1, status: 1, odds: 1 });
-betSchema.index({ eventId: 1, status: 1 });
+betSchema.index({ marketId: 1, sectionId: 1, type: 1, status: 1, odds: 1, marketType: 1 });
+betSchema.index({ eventId: 1, status: 1, marketType: 1 });
 betSchema.index({ userId: 1, status: 1, createdAt: -1 });
 betSchema.index({ status: 1, createdAt: 1 }); // For matching priority
+betSchema.index({ marketType: 1, status: 1 }); // For market type queries
 
 // Virtual for total return if back bet wins
 betSchema.virtual('totalReturn').get(function() {

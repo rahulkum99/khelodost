@@ -1,6 +1,7 @@
 const Bet = require('../../models/Bet');
 const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
+const Market = require('../../models/Market');
 const mongoose = require('mongoose');
 
 /**
@@ -13,6 +14,7 @@ const placeBet = async (userId, betData, req = null) => {
     eventId,
     marketName,
     sectionName,
+    marketType,
     type,
     odds,
     stake
@@ -23,13 +25,40 @@ const placeBet = async (userId, betData, req = null) => {
     throw new Error('Market and section information is required');
   }
 
+  // Validate and verify market type
+  const validMarketTypes = Object.values(Market.MARKET_TYPES);
+  const finalMarketType = marketType || Market.MARKET_TYPES.MATCH_ODDS;
+
+  if (marketType && !validMarketTypes.includes(marketType)) {
+    throw new Error('Invalid market type');
+  }
+
+  // Verify market exists and is active (if marketType is provided)
+  if (marketType) {
+    const market = await Market.findOne({ marketId, isActive: true });
+    if (!market) {
+      throw new Error('Market not found or inactive');
+    }
+    if (market.marketType !== marketType) {
+      throw new Error('Market type mismatch');
+    }
+  }
+
   if (![Bet.BET_TYPES.BACK, Bet.BET_TYPES.LAY].includes(type)) {
     throw new Error('Invalid bet type. Must be "back" or "lay"');
   }
 
-  if (!odds || odds < 1.01 || odds > 1000) {
-    throw new Error('Odds must be between 1.01 and 1000');
+  // Auto-detect odds format and convert to decimal
+  // API format: 470 = 4.70 (values >= 101)
+  // Decimal format: 4.70 (values < 101)
+  let finalOdds;
+  
+  if (!odds || odds <= 0) {
+    throw new Error('Odds must be greater than 0');
   }
+  
+  finalOdds = odds;
+
 
   if (!stake || stake <= 0) {
     throw new Error('Stake must be greater than 0');
@@ -46,7 +75,7 @@ const placeBet = async (userId, betData, req = null) => {
   let liability = 0;
 
   if (type === Bet.BET_TYPES.LAY) {
-    liability = stake * (odds - 1);
+    liability = stake * (finalOdds - 1);
     requiredAmount = stake + liability;
   }
 
@@ -56,7 +85,7 @@ const placeBet = async (userId, betData, req = null) => {
   }
 
   // Calculate profit for back bet
-  const profit = type === Bet.BET_TYPES.BACK ? stake * (odds - 1) : 0;
+  const profit = type === Bet.BET_TYPES.BACK ? stake * (finalOdds - 1) : 0;
 
   // Start transaction
   const session = await mongoose.startSession();
@@ -79,8 +108,9 @@ const placeBet = async (userId, betData, req = null) => {
       eventId,
       marketName,
       sectionName,
+      marketType: finalMarketType,
       type,
-      odds,
+      odds: finalOdds, // Store decimal format in database
       stake,
       unmatchedAmount: stake,
       matchedAmount: 0,
@@ -101,7 +131,7 @@ const placeBet = async (userId, betData, req = null) => {
       balanceAfter: balanceBefore, // Balance unchanged, just locked
       currency: wallet.currency,
       status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
-      description: `Bet placed: ${type} ${stake} @ ${odds} on ${sectionName}`,
+      description: `Bet placed: ${type} ${stake} @ ${finalOdds} on ${sectionName}`,
       performedBy: userId,
       betId: bet._id,
       ipAddress: req ? req.ip : null,

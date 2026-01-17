@@ -6,6 +6,7 @@ const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/user/user.routes');
 const walletRoutes = require('../modules/wallet/wallet.routes');
 const betRoutes = require('../modules/bet/bet.routes');
+const marketRoutes = require('../modules/market/market.routes');
 
 // Health check route
 router.get('/health', (req, res) => {
@@ -17,6 +18,7 @@ router.use('/auth', authRoutes);
 router.use('/user', userRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/bets', betRoutes);
+router.use('/markets', marketRoutes);
 
 module.exports = router;
 
