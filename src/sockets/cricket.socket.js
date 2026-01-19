@@ -1,35 +1,35 @@
 const {
-    fetchCricketData,
-    getLatestCricketData,
-  } = require('../services/cricket.service');
-  
-  module.exports = (io) => {
-    console.log('⚡ Cricket socket initialized');
-  
-    // Poll API every 400ms - ensures only one call at a time
-    // If previous call is still in progress, it will be skipped
-    setInterval(async () => {
-      const data = await fetchCricketData();
-      if (data && data.length > 0) {
-        // Emit to ALL connected users instantly
-        io.emit('cricket_matches', data);
-        // console.log(`📡 Broadcasted cricket data to all users (${data.length} matches)`);
-      }
-    }, 400);
-  
-    io.on('connection', (socket) => {
-      console.log('User connected:', socket.id);
-  
-      // Send last cached data immediately to new user
-      const cached = getLatestCricketData();
-      if (cached && cached.length > 0) {
-        socket.emit('cricket_matches', cached);
-        console.log(`📤 Sent cached data to new user: ${socket.id}`);
-      }
-  
-      socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-      });
+  fetchCricketData,
+  getLatestCricketData,
+} = require('../services/cricket.service');
+const API_REFRESH_TIME = parseInt(process.env.API_REFRESH_TIME) || 400;
+
+module.exports = (io) => {
+  console.log('⚡ Cricket socket initialized');
+
+  // Poll API every 400ms - ensures only one call at a time
+  // If previous call is still in progress, it will be skipped
+  setInterval(async () => {
+    const data = await fetchCricketData();
+    if (data && data.length > 0) {
+      // Emit to ALL connected users instantly
+      io.emit('cricket_matches', data);
+      // console.log(`📡 Broadcasted cricket data to all users (${data.length} matches)`);
+    }
+  }, API_REFRESH_TIME);
+
+  io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    // Send last cached data immediately to new user
+    const cached = getLatestCricketData();
+    if (cached && cached.length > 0) {
+      socket.emit('cricket_matches', cached);
+      console.log(`📤 Sent cached data to new user: ${socket.id}`);
+    }
+
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
     });
-  };
-  
+  });
+};

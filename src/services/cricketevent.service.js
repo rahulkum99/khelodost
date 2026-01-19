@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://170.187.250.13/getbm';
+const API_URL = process.env.CRICKET_EVENT_API_URL;
 
 // Store data per event ID
 const eventDataCache = new Map();

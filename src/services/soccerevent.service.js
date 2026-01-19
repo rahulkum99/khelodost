@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://172.232.74.157/getdata';
+const API_URL = process.env.SOCCER_EVENT_API_URL;
 
 // Store data per event ID
 const soccerEventDataCache = new Map();

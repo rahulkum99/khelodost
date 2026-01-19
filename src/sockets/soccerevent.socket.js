@@ -2,6 +2,7 @@ const {
   fetchSoccerEventData,
   getLatestSoccerEventData,
 } = require('../services/soccerevent.service');
+const API_REFRESH_TIME = parseInt(process.env.API_REFRESH_TIME) || 400;
 
 module.exports = (io) => {
   console.log('⚡ Soccer event socket initialized');
@@ -74,7 +75,7 @@ module.exports = (io) => {
           console.log(`📡 Sent cached data for event ${eventId} due to error`);
         }
       }
-    }, 400);
+    }, API_REFRESH_TIME);
 
     activeEventIntervals.set(eventId, intervalId);
   };

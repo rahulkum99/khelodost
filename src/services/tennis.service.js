@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'https://marketsarket.qnsports.live/gettennismatches2';
+const API_URL = process.env.TENNIS_MATCHES_API_URL;
 
 let latestData = [];
 let isFetching = false; // Flag to prevent overlapping requests

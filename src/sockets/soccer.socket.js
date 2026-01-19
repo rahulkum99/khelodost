@@ -2,6 +2,7 @@ const {
   fetchSoccerData,
   getLatestSoccerData,
 } = require('../services/soccer.service');
+const API_REFRESH_TIME = parseInt(process.env.API_REFRESH_TIME) || 400;
 
 module.exports = (io) => {
   console.log('⚡ Soccer socket initialized');
@@ -15,7 +16,7 @@ module.exports = (io) => {
       io.emit('soccer_matches', data);
       // console.log(`📡 Broadcasted soccer data to all users (${data.length} matches)`);
     }
-  }, 400);
+  }, API_REFRESH_TIME);
 
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);

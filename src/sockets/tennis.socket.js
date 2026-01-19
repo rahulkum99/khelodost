@@ -2,6 +2,7 @@ const {
     fetchTennisData,
     getLatestTennisData,
   } = require('../services/tennis.service');
+  const API_REFRESH_TIME = parseInt(process.env.API_REFRESH_TIME) || 400;
   
   module.exports = (io) => {
     console.log('⚡ Tennis socket initialized');
@@ -14,7 +15,7 @@ const {
         io.emit('tennis_matches', data);
         // console.log(`📡 Broadcasted tennis data to all users (${data.length} matches)`);
       }
-    }, 400);
+    }, API_REFRESH_TIME);
   
     io.on('connection', (socket) => {
       console.log('User connected:', socket.id);
