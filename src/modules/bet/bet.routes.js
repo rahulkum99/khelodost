@@ -21,17 +21,9 @@ router.post('/place',
 );
 
 router.get('/my-bets',
-  betValidation.validateGetUserBets,
+  betValidation.validateGetMyBets,
   betController.handleValidationErrors,
-  betController.getUserBets
-);
-
-// This route must come after all specific routes (like /place, /my-bets)
-// to avoid matching them as betId parameters
-router.get('/:betId',
-  betValidation.validateBetIdParam,
-  betController.handleValidationErrors,
-  betController.getBetById
+  betController.getMyBets
 );
 
 router.post('/cancel/:betId',
@@ -40,21 +32,17 @@ router.post('/cancel/:betId',
   betController.cancelBet
 );
 
+// Get live markets (requires auth, but not admin)
+router.get('/markets/live', betController.getLiveMarkets);
+
 // Admin routes - require admin role or higher
 router.use(requireMinRole(ROLES.ADMIN));
 
-// Settle event
+// Settle market
 router.post('/settle',
-  betValidation.validateSettleEvent,
+  betValidation.validateSettleMarket,
   betController.handleValidationErrors,
-  betController.settleEvent
-);
-
-// Get bets for any user (admin only)
-router.get('/user/:userId',
-  betValidation.validateGetUserBets,
-  betController.handleValidationErrors,
-  betController.getUserBets
+  betController.settleMarket
 );
 
 module.exports = router;

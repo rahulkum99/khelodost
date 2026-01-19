@@ -7,6 +7,7 @@ const walletSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  // Available balance (free funds that are not locked in bets)
   balance: {
     type: Number,
     required: true,
@@ -14,6 +15,16 @@ const walletSchema = new mongoose.Schema({
     min: [0, 'Balance cannot be negative'],
     get: function(value) {
       // Round to 2 decimal places for display
+      return Math.round(value * 100) / 100;
+    }
+  },
+  // Amount locked as exposure in open bets across all markets
+  lockedBalance: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: [0, 'Locked balance cannot be negative'],
+    get: function (value) {
       return Math.round(value * 100) / 100;
     }
   },
@@ -59,9 +70,18 @@ walletSchema.index({ isActive: 1 });
 walletSchema.index({ balance: 1 });
 walletSchema.index({ createdAt: -1 });
 
-// Virtual for formatted balance
+// Virtual for formatted available balance
 walletSchema.virtual('formattedBalance').get(function() {
   return this.balance.toFixed(2);
+});
+
+// Virtuals for betting exchange semantics
+walletSchema.virtual('availableBalance').get(function () {
+  return this.balance;
+});
+
+walletSchema.virtual('totalBalance').get(function () {
+  return this.balance + this.lockedBalance;
 });
 
 // Method to check if wallet is active and not locked
