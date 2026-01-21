@@ -12,9 +12,6 @@ const MARKET_TYPES = {
 // Bet status
 const BET_STATUS = {
   OPEN: 'open',
-  PARTIALLY_MATCHED: 'partially_matched',
-  MATCHED: 'matched',
-  CANCELLED: 'cancelled',
   SETTLED: 'settled',
 };
 
@@ -24,27 +21,6 @@ const BET_RESULT = {
   LOST: 'lost',
   VOID: 'void',
 };
-
-const matchedWithSchema = new mongoose.Schema(
-  {
-    betId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Bet',
-      required: true,
-    },
-    amount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    odds: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-  },
-  { _id: false }
-);
 
 const betSchema = new mongoose.Schema(
   {
@@ -120,24 +96,6 @@ const betSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
-    },
-
-    matchedAmount: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-    },
-    unmatchedAmount: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-    },
-
-    matchedWith: {
-      type: [matchedWithSchema],
-      default: [],
     },
 
     status: {

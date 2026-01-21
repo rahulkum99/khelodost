@@ -1,4 +1,4 @@
-const { body, param, query } = require('express-validator');
+const { body, query } = require('express-validator');
 const Bet = require('../../models/Bet');
 
 const validMarketTypes = Object.values(Bet.MARKET_TYPES);
@@ -34,10 +34,6 @@ const validatePlaceBet = [
     .withMessage('lineValue must be a number'),
 ];
 
-const validateCancelBet = [
-  param('betId').isMongoId().withMessage('Invalid betId'),
-];
-
 const validateGetMyBets = [
   query('sport')
     .optional()
@@ -45,13 +41,7 @@ const validateGetMyBets = [
     .withMessage('Invalid sport'),
   query('status')
     .optional()
-    .isIn([
-      'open',
-      'partially_matched',
-      'matched',
-      'cancelled',
-      'settled',
-    ])
+    .isIn(['open', 'settled'])
     .withMessage('Invalid status'),
   query('marketType')
     .optional()
@@ -69,7 +59,6 @@ const validateSettleMarket = [
 
 module.exports = {
   validatePlaceBet,
-  validateCancelBet,
   validateGetMyBets,
   validateSettleMarket,
 };

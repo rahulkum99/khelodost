@@ -140,23 +140,20 @@ walletTransactionSchema.statics.generateReferenceId = function() {
   return `TXN${timestamp}${random}`;
 };
 
+// Method to generate unique reference ID (defined on schema, not model)
+const generateReferenceId = () => {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `TXN${timestamp}${random}`;
+};
+
 // Pre-save hook to generate reference ID if not provided
-walletTransactionSchema.pre('save', async function(next) {
+// Uses modern async pattern (no next parameter needed)
+walletTransactionSchema.pre('save', function () {
   if (!this.referenceId && this.status === TRANSACTION_STATUS.COMPLETED) {
-    let referenceId;
-    let isUnique = false;
-    
-    while (!isUnique) {
-      referenceId = WalletTransaction.generateReferenceId();
-      const existing = await WalletTransaction.findOne({ referenceId });
-      if (!existing) {
-        isUnique = true;
-      }
-    }
-    
-    this.referenceId = referenceId;
+    // Generate unique ID synchronously - timestamp + random is collision-resistant
+    this.referenceId = generateReferenceId();
   }
-  next();
 });
 
 const WalletTransaction = mongoose.model('WalletTransaction', walletTransactionSchema);

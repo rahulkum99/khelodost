@@ -15,21 +15,15 @@ router.use(authenticate);
 
 // User bet routes
 router.post('/place',
-  betValidation.validatePlaceBet,
+  ...betValidation.validatePlaceBet,
   betController.handleValidationErrors,
   betController.placeBet
 );
 
 router.get('/my-bets',
-  betValidation.validateGetMyBets,
+  ...betValidation.validateGetMyBets,
   betController.handleValidationErrors,
   betController.getMyBets
-);
-
-router.post('/cancel/:betId',
-  betValidation.validateCancelBet,
-  betController.handleValidationErrors,
-  betController.cancelBet
 );
 
 // Get live markets (requires auth, but not admin)
@@ -40,7 +34,7 @@ router.use(requireMinRole(ROLES.ADMIN));
 
 // Settle market
 router.post('/settle',
-  betValidation.validateSettleMarket,
+  ...betValidation.validateSettleMarket,
   betController.handleValidationErrors,
   betController.settleMarket
 );

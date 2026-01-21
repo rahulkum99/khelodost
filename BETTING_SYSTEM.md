@@ -10,13 +10,12 @@ This is a multi-market betting exchange backend system that supports **5 differe
 
 ### 1. **MATCH_ODDS** (Exchange Market)
 - **Bet Types**: `back` | `lay`
-- **Matching**: User vs User (Back ↔ Lay matching)
+- **Matching**: ❌ No matching (each user places own bet separately)
 - **Odds**: Decimal odds required
 - **Exposure**:
   - `back`: Exposure = `stake`
   - `lay`: Exposure = `(odds - 1) × stake`
 - **Settlement**: Based on winner selection
-- **Partial Matching**: ✅ Supported
 
 ### 2. **BOOKMAKERS_FANCY** (Fancy/Session Market)
 - **Bet Types**: `yes` | `no`
@@ -80,7 +79,6 @@ This is a multi-market betting exchange backend system that supports **5 differe
 ### Transaction Types
 - `bet_exposure_lock`: Lock exposure when placing bet
 - `bet_settlement`: Unlock + credit/debit net win/loss
-- `bet_cancellation`: Unlock exposure (void bet)
 
 ---
 
@@ -133,8 +131,6 @@ All endpoints require authentication via `authenticate` middleware.
     "odds": 4.7,
     "stake": 100,
     "exposure": 100,
-    "matchedAmount": 0,
-    "unmatchedAmount": 100,
     "status": "open",
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
@@ -157,74 +153,36 @@ All endpoints require authentication via `authenticate` middleware.
 
 **Query Parameters**:
 - `sport` (optional): `cricket` | `soccer` | `tennis`
-- `status` (optional): `open` | `partially_matched` | `matched` | `cancelled` | `settled`
+- `status` (optional): `open` | `settled`
 - `marketType` (optional): Market type filter
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 20)
+- `limit` (optional): Items per page (default: 50)
 
 **Response**:
 ```json
 {
   "success": true,
-  "data": {
-    "bets": [
-      {
-        "_id": "bet_id",
-        "sport": "cricket",
-        "eventId": "550226920",
-        "marketId": "9101697825652",
-        "marketType": "match_odds",
-        "selectionName": "Japan U19",
-        "betType": "back",
-        "odds": 4.7,
-        "stake": 100,
-        "exposure": 100,
-        "matchedAmount": 50,
-        "unmatchedAmount": 50,
-        "status": "partially_matched",
-        "createdAt": "2024-01-01T00:00:00.000Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 1,
-      "pages": 1
+  "data": [
+    {
+      "_id": "bet_id",
+      "sport": "cricket",
+      "eventId": "550226920",
+      "marketId": "9101697825652",
+      "marketType": "match_odds",
+      "selectionName": "Japan U19",
+      "betType": "back",
+      "odds": 4.7,
+      "stake": 100,
+      "exposure": 100,
+      "status": "open",
+      "createdAt": "2024-01-01T00:00:00.000Z"
     }
-  }
+  ]
 }
 ```
 
 ---
 
-### 3. Cancel Bet
-
-**Endpoint**: `POST /api/bets/cancel/:betId`
-
-**Path Parameters**:
-- `betId`: MongoDB ObjectId of the bet
-
-**Response** (Success):
-```json
-{
-  "success": true,
-  "message": "Bet cancelled successfully",
-  "data": {
-    "_id": "bet_id",
-    "status": "cancelled",
-    "cancelledAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-**Rules**:
-- Only **own bets** can be cancelled
-- Only **open** and **fully unmatched** bets can be cancelled
-- Exposure is unlocked and returned to wallet
-
----
-
-### 4. Settle Market (Admin Only)
+### 3. Settle Market (Admin Only)
 
 **Endpoint**: `POST /api/bets/settle`
 
@@ -293,7 +251,7 @@ All endpoints require authentication via `authenticate` middleware.
 
 ---
 
-### 5. Get Live Markets
+### 4. Get Live Markets
 
 **Endpoint**: `GET /api/bets/markets/live`
 
@@ -315,17 +273,12 @@ All endpoints require authentication via `authenticate` middleware.
 
 ### 1. Place Bet
 ```
-User Request → Validate → Calculate Exposure → Lock Wallet → Create Bet → (Optional: Match) → Response
+User Request → Validate → Calculate Exposure → Lock Wallet → Create Bet → Response
 ```
 
 ### 2. Settlement Flow
 ```
-Admin Request → Validate → Fetch All Bets → Market-Specific Settlement → Unlock + Credit/Debit → Update Bet Status
-```
-
-### 3. Cancellation Flow
-```
-User Request → Validate Ownership → Check Status → Unlock Exposure → Update Bet Status → Response
+Admin Request → Validate → Fetch All Open Bets → Market-Specific Settlement → Unlock + Credit/Debit → Update Bet Status
 ```
 
 ---
@@ -407,11 +360,8 @@ Similar to LINE_MARKET, but settles when meter crosses the line value.
   lineValue: Number,          // For LINE_MARKET, METER_MARKET
   stake: Number,
   exposure: Number,           // Locked amount
-  matchedAmount: Number,
-  unmatchedAmount: Number,
-  matchedWith: [ObjectId],     // Array of matched bet IDs
-  status: String,             // open | partially_matched | matched | cancelled | settled
-  settlementResult: String,   // win | lose | void
+  status: String,             // open | settled
+  settlementResult: String,   // won | lost | void
   createdAt: Date,
   settledAt: Date
 }
@@ -487,7 +437,7 @@ curl -X POST http://localhost:5000/api/bets/settle \
 
 ## ⚠️ Important Notes
 
-1. **Matching Engine**: Currently, MATCH_ODDS matching is a placeholder. Full order-book matching (best price + FIFO) needs to be implemented.
+1. **No Bet Matching**: Each user places their own bet separately. There is no user-to-user bet matching.
 
 2. **Market Type Validation**: Each market type has specific requirements:
    - MATCH_ODDS requires `odds`
@@ -496,7 +446,7 @@ curl -X POST http://localhost:5000/api/bets/settle \
 
 3. **Settlement Idempotency**: The system prevents double settlement by checking if a market has already been settled.
 
-4. **Wallet Locking**: Exposure is locked immediately on bet placement and only unlocked on settlement or cancellation.
+4. **Wallet Locking**: Exposure is locked immediately on bet placement and only unlocked on settlement.
 
 5. **Decimal Precision**: All monetary calculations use integer arithmetic (paise) to avoid floating-point errors.
 
@@ -516,23 +466,27 @@ curl -X POST http://localhost:5000/api/bets/settle \
 
 ## 📝 Changelog
 
+### Version 1.1.0
+- Removed bet matching functionality (each user places own bet)
+- Removed bet cancellation feature
+- Simplified bet statuses to `open` and `settled`
+
 ### Version 1.0.0
 - Initial implementation
 - Support for 5 market types
 - Wallet exposure locking
 - Market-specific settlement logic
-- Basic bet placement and cancellation
+- Basic bet placement
 
 ---
 
 ## 🤝 Contributing
 
 When adding new market types or modifying settlement logic:
-1. Update `Bet.MARKET_TYPES` enum
-2. Add exposure calculation in `calculateExposure()`
+1. Update `Bet.MARKET_TYPES` enum in `src/models/Bet.js`
+2. Add exposure calculation in `calculateExposure()` in `src/modules/bet/bet.service.js`
 3. Implement settlement function in `settleMarket()`
-4. Update validation rules
-5. Add tests
+4. Update validation rules in `src/modules/bet/bet.validation.js`
 
 ---
 

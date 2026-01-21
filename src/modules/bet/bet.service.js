@@ -2,6 +2,17 @@ const mongoose = require('mongoose');
 const Bet = require('../../models/Bet');
 const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
+const { withTransaction, getSession, commitSession, abortSession } = require('../../utils/transaction.helper');
+
+// Helper to conditionally apply session to queries
+const withSession = (query, session) => {
+  return session ? query.session(session) : query;
+};
+
+// Helper to conditionally include session in options
+const sessionOpts = (session) => {
+  return session ? { session } : {};
+};
 
 // Helper: decimal-safe add/sub using integers (paise)
 const toInt = (amount) => Math.round(amount * 100);
@@ -51,7 +62,7 @@ const lockExposure = async ({ session, userId, exposure, description, req }) => 
     throw new Error('Exposure must be positive');
   }
 
-  const wallet = await Wallet.findOne({ user: userId }).session(session).exec();
+  const wallet = await withSession(Wallet.findOne({ user: userId }), session).exec();
   if (!wallet) {
     throw new Error('Wallet not found');
   }
@@ -75,7 +86,7 @@ const lockExposure = async ({ session, userId, exposure, description, req }) => 
   wallet.balance = balanceAfter;
   wallet.lockedBalance = lockedAfter;
   wallet.lastTransactionAt = new Date();
-  await wallet.save({ session });
+  await wallet.save(sessionOpts(session));
 
   await WalletTransaction.create(
     [
@@ -97,7 +108,7 @@ const lockExposure = async ({ session, userId, exposure, description, req }) => 
         userAgent: req ? req.get('user-agent') : null,
       },
     ],
-    { session }
+    sessionOpts(session)
   );
 
   return { wallet };
@@ -114,7 +125,7 @@ const settleExposure = async ({
   description,
   req,
 }) => {
-  const wallet = await Wallet.findOne({ user: userId }).session(session).exec();
+  const wallet = await withSession(Wallet.findOne({ user: userId }), session).exec();
   if (!wallet) {
     throw new Error('Wallet not found');
   }
@@ -136,7 +147,7 @@ const settleExposure = async ({
   wallet.balance = balanceAfter;
   wallet.lockedBalance = lockedAfter;
   wallet.lastTransactionAt = new Date();
-  await wallet.save({ session });
+  await wallet.save(sessionOpts(session));
 
   // Always create at least one transaction to unlock exposure
   const txs = [];
@@ -189,11 +200,11 @@ const settleExposure = async ({
 
     wallet.balance = balanceAfter;
     wallet.lastTransactionAt = new Date();
-    await wallet.save({ session });
+    await wallet.save(sessionOpts(session));
   }
 
   if (txs.length) {
-    await WalletTransaction.create(txs, { session });
+    await WalletTransaction.create(txs, sessionOpts(session));
   }
 
   return { wallet };
@@ -203,10 +214,7 @@ const settleExposure = async ({
  * Place bet (market-aware)
  */
 const placeBet = async (userId, payload, req) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  return await withTransaction(async (session) => {
     const {
       sport,
       eventId,
@@ -241,8 +249,6 @@ const placeBet = async (userId, payload, req) => {
       req,
     });
 
-    // For now, bets start as fully unmatched; matching engine (for MATCH_ODDS)
-    // can update matchedAmount/unmatchedAmount later.
     const bet = await Bet.create(
       [
         {
@@ -259,27 +265,14 @@ const placeBet = async (userId, payload, req) => {
           lineValue: lineValue || null,
           stake,
           exposure,
-          matchedAmount: 0,
-          unmatchedAmount: stake,
-          matchedWith: [],
           status: Bet.BET_STATUS.OPEN,
         },
       ],
-      { session }
+      sessionOpts(session)
     );
 
-    // Basic stub: if MATCH_ODDS, here is where matching engine would be invoked.
-    // To keep it simple and safe, we skip automatic matching in this first version.
-
-    await session.commitTransaction();
-    session.endSession();
-
     return bet[0];
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    throw err;
-  }
+  });
 };
 
 /**
@@ -301,55 +294,6 @@ const getUserBets = async (userId, query = {}) => {
 };
 
 /**
- * Cancel bet (only if still open/unmatched and no matching done)
- */
-const cancelBet = async (userId, betId, req) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const bet = await Bet.findOne({ _id: betId, userId })
-      .session(session)
-      .exec();
-
-    if (!bet) {
-      throw new Error('Bet not found');
-    }
-
-    if (
-      bet.status !== Bet.BET_STATUS.OPEN ||
-      bet.matchedAmount > 0
-    ) {
-      throw new Error('Only fully unmatched open bets can be cancelled');
-    }
-
-    // Unlock full exposure
-    await settleExposure({
-      session,
-      userId,
-      exposure: bet.exposure,
-      netWinAmount: 0,
-      description: 'Exposure unlocked on bet cancel',
-      req,
-    });
-
-    bet.status = Bet.BET_STATUS.CANCELLED;
-    bet.settlementResult = Bet.BET_RESULT.VOID;
-    bet.settledAt = new Date();
-    await bet.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return bet;
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    throw err;
-  }
-};
-
-/**
  * Settlement helpers per market type
  * All of these expect you to pass the final outcome / winner info.
  */
@@ -359,7 +303,7 @@ const settleMatchOdds = async ({ session, marketId, eventId, winnerSelectionId, 
     marketId,
     eventId,
     marketType: Bet.MARKET_TYPES.MATCH_ODDS,
-    status: { $in: [Bet.BET_STATUS.OPEN, Bet.BET_STATUS.PARTIALLY_MATCHED, Bet.BET_STATUS.MATCHED] },
+    status: Bet.BET_STATUS.OPEN,
   })
     .session(session)
     .exec();
@@ -401,7 +345,7 @@ const settleMatchOdds = async ({ session, marketId, eventId, winnerSelectionId, 
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settledAt = new Date();
-    await bet.save({ session });
+    await bet.save(sessionOpts(session));
   }
 };
 
@@ -411,7 +355,7 @@ const settleBookmakersFancy = async ({ session, marketId, eventId, resultMap, re
     marketId,
     eventId,
     marketType: Bet.MARKET_TYPES.BOOKMAKERS_FANCY,
-    status: { $in: [Bet.BET_STATUS.OPEN, Bet.BET_STATUS.MATCHED] },
+    status: Bet.BET_STATUS.OPEN,
   })
     .session(session)
     .exec();
@@ -431,7 +375,7 @@ const settleBookmakersFancy = async ({ session, marketId, eventId, resultMap, re
       bet.status = Bet.BET_STATUS.SETTLED;
       bet.settlementResult = Bet.BET_RESULT.VOID;
       bet.settledAt = new Date();
-      await bet.save({ session });
+      await bet.save(sessionOpts(session));
       continue;
     }
 
@@ -470,7 +414,7 @@ const settleBookmakersFancy = async ({ session, marketId, eventId, resultMap, re
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settledAt = new Date();
-    await bet.save({ session });
+    await bet.save(sessionOpts(session));
   }
 };
 
@@ -479,7 +423,7 @@ const settleLineMarket = async ({ session, marketId, eventId, finalValue, req })
     marketId,
     eventId,
     marketType: Bet.MARKET_TYPES.LINE_MARKET,
-    status: { $in: [Bet.BET_STATUS.OPEN, Bet.BET_STATUS.MATCHED] },
+    status: Bet.BET_STATUS.OPEN,
   })
     .session(session)
     .exec();
@@ -508,7 +452,7 @@ const settleLineMarket = async ({ session, marketId, eventId, finalValue, req })
       ? Bet.BET_RESULT.WON
       : Bet.BET_RESULT.LOST;
     bet.settledAt = new Date();
-    await bet.save({ session });
+    await bet.save(sessionOpts(session));
   }
 };
 
@@ -517,7 +461,7 @@ const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }
     marketId,
     eventId,
     marketType: Bet.MARKET_TYPES.METER_MARKET,
-    status: { $in: [Bet.BET_STATUS.OPEN, Bet.BET_STATUS.MATCHED] },
+    status: Bet.BET_STATUS.OPEN,
   })
     .session(session)
     .exec();
@@ -541,7 +485,7 @@ const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }
       ? Bet.BET_RESULT.WON
       : Bet.BET_RESULT.LOST;
     bet.settledAt = new Date();
-    await bet.save({ session });
+    await bet.save(sessionOpts(session));
   }
 };
 
@@ -550,7 +494,7 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
     marketId,
     eventId,
     marketType: Bet.MARKET_TYPES.KADO_MARKET,
-    status: { $in: [Bet.BET_STATUS.OPEN, Bet.BET_STATUS.MATCHED] },
+    status: Bet.BET_STATUS.OPEN,
   })
     .session(session)
     .exec();
@@ -576,7 +520,7 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
       ? Bet.BET_RESULT.WON
       : Bet.BET_RESULT.LOST;
     bet.settledAt = new Date();
-    await bet.save({ session });
+    await bet.save(sessionOpts(session));
   }
 };
 
@@ -584,10 +528,7 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
  * Admin settlement entrypoint
  */
 const settleMarket = async (payload, req) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  return await withTransaction(async (session) => {
     const { marketType, marketId, eventId } = payload;
 
     switch (marketType) {
@@ -639,20 +580,12 @@ const settleMarket = async (payload, req) => {
       default:
         throw new Error('Unsupported market type for settlement');
     }
-
-    await session.commitTransaction();
-    session.endSession();
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    throw err;
-  }
+  });
 };
 
 module.exports = {
   placeBet,
   getUserBets,
-  cancelBet,
   settleMarket,
 };
 

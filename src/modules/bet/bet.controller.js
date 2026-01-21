@@ -23,6 +23,7 @@ const placeBet = async (req, res) => {
       data: bet,
     });
   } catch (err) {
+    console.error('placeBet error:', err);
     res.status(400).json({
       success: false,
       message: err.message || 'Failed to place bet',
@@ -41,22 +42,6 @@ const getMyBets = async (req, res) => {
     res.status(400).json({
       success: false,
       message: err.message || 'Failed to fetch bets',
-    });
-  }
-};
-
-const cancelBet = async (req, res) => {
-  try {
-    const bet = await betService.cancelBet(req.userId, req.params.betId, req);
-    res.json({
-      success: true,
-      message: 'Bet cancelled successfully',
-      data: bet,
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message || 'Failed to cancel bet',
     });
   }
 };
@@ -113,7 +98,6 @@ module.exports = {
   handleValidationErrors,
   placeBet,
   getMyBets,
-  cancelBet,
   settleMarket,
   getLiveMarkets,
 };
