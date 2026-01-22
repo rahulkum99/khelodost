@@ -212,13 +212,14 @@ const adminChangePassword = async (req, res, next) => {
  */
 const getPasswordChangeHistory = async (req, res, next) => {
   try {
-    const targetUserId = req.query.userId || req.userId;
-    
-    // If requesting another user's history, check permissions
-    if (targetUserId !== req.userId.toString()) {
-      const { User, ROLE_HIERARCHY, ROLES } = require('../../models/User');
-      const targetUser = await User.findById(targetUserId);
-      
+    const { User, ROLE_HIERARCHY, ROLES } = require('../../models/User');
+    const requestedUserId = req.query.userId;
+    let targetUserId = req.userId; // default to self
+
+    // Allow overriding the target user only if requester has sufficient privilege
+    if (requestedUserId && requestedUserId !== String(req.userId)) {
+      const targetUser = await User.findById(requestedUserId);
+
       if (!targetUser) {
         return res.status(404).json({
           success: false,
@@ -236,6 +237,8 @@ const getPasswordChangeHistory = async (req, res, next) => {
           message: 'You do not have permission to view password change history for this user.'
         });
       }
+
+      targetUserId = requestedUserId;
     }
 
     const result = await authService.getPasswordChangeHistory(targetUserId, req.query);
