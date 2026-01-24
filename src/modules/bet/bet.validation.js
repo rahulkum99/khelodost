@@ -8,6 +8,8 @@ const validatePlaceBet = [
     .isIn(['cricket', 'soccer', 'tennis'])
     .withMessage('sport must be one of cricket, soccer, tennis'),
   body('eventId').notEmpty().withMessage('eventId is required'),
+  body('eventName').notEmpty().withMessage('eventName is required'),
+  // eventJsonStamp is fetched server-side from cached socket data, not from frontend
   body('marketId').notEmpty().withMessage('marketId is required'),
   body('marketType')
     .isIn(validMarketTypes)

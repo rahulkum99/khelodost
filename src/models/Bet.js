@@ -41,6 +41,14 @@ const betSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    eventName: {
+      type: String,
+      required: true,
+    },
+    eventJsonStamp: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+    },
     marketId: {
       type: String,
       required: true,

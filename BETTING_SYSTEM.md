@@ -182,7 +182,80 @@ All endpoints require authentication via `authenticate` middleware.
 
 ---
 
-### 3. Settle Market (Admin Only)
+### 3. Get Today's Bets
+
+**Endpoint**: `GET /api/bets/today-bets`
+
+**Query Parameters**:
+- `sport` (optional): `cricket` | `soccer` | `tennis`
+- `status` (optional): `open` | `settled`
+- `marketType` (optional): Market type filter
+- `limit` (optional): Items per page (default: 100)
+
+**Description**: Returns all bets placed today by the authenticated user (any status).
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "bet_id",
+      "sport": "cricket",
+      "eventId": "550226920",
+      "marketId": "9101697825652",
+      "marketType": "match_odds",
+      "selectionName": "Japan U19",
+      "betType": "back",
+      "odds": 4.7,
+      "stake": 100,
+      "exposure": 100,
+      "status": "open",
+      "createdAt": "2024-01-21T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 4. Get Today's Open Bets
+
+**Endpoint**: `GET /api/bets/today-open-bets`
+
+**Query Parameters**:
+- `sport` (optional): `cricket` | `soccer` | `tennis`
+- `marketType` (optional): Market type filter
+- `limit` (optional): Items per page (default: 100)
+
+**Description**: Returns only open bets placed today by the authenticated user.
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "bet_id",
+      "sport": "cricket",
+      "eventId": "550226920",
+      "marketId": "9101697825652",
+      "marketType": "match_odds",
+      "selectionName": "Japan U19",
+      "betType": "back",
+      "odds": 4.7,
+      "stake": 100,
+      "exposure": 100,
+      "status": "open",
+      "createdAt": "2024-01-21T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 5. Settle Market (Admin Only)
 
 **Endpoint**: `POST /api/bets/settle`
 
@@ -251,7 +324,7 @@ All endpoints require authentication via `authenticate` middleware.
 
 ---
 
-### 4. Get Live Markets
+### 6. Get Live Markets
 
 **Endpoint**: `GET /api/bets/markets/live`
 

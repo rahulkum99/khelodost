@@ -46,6 +46,36 @@ const getMyBets = async (req, res) => {
   }
 };
 
+const getTodayBets = async (req, res) => {
+  try {
+    const bets = await betService.getTodayBets(req.userId, req.query);
+    res.json({
+      success: true,
+      data: bets,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to fetch today\'s bets',
+    });
+  }
+};
+
+const getTodayOpenBets = async (req, res) => {
+  try {
+    const bets = await betService.getTodayOpenBets(req.userId, req.query);
+    res.json({
+      success: true,
+      data: bets,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to fetch today\'s open bets',
+    });
+  }
+};
+
 const settleMarket = async (req, res) => {
   try {
     await betService.settleMarket(req.body, req);
@@ -98,6 +128,8 @@ module.exports = {
   handleValidationErrors,
   placeBet,
   getMyBets,
+  getTodayBets,
+  getTodayOpenBets,
   settleMarket,
   getLiveMarkets,
 };

@@ -26,6 +26,18 @@ router.get('/my-bets',
   betController.getMyBets
 );
 
+router.get('/today-bets',
+  ...betValidation.validateGetMyBets,
+  betController.handleValidationErrors,
+  betController.getTodayBets
+);
+
+router.get('/today-open-bets',
+  ...betValidation.validateGetMyBets,
+  betController.handleValidationErrors,
+  betController.getTodayOpenBets
+);
+
 // Get live markets (requires auth, but not admin)
 router.get('/markets/live', betController.getLiveMarkets);
 

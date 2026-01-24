@@ -4,6 +4,11 @@ const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
 const { withTransaction, getSession, commitSession, abortSession } = require('../../utils/transaction.helper');
 
+// Event services - cached data from socket polling
+const { getLatestCricketEventData } = require('../../services/cricketevent.service');
+const { getLatestSoccerEventData } = require('../../services/soccerevent.service');
+const { getLatestTennisEventData } = require('../../services/tennisevent.service');
+
 // Helper to conditionally apply session to queries
 const withSession = (query, session) => {
   return session ? query.session(session) : query;
@@ -17,6 +22,23 @@ const sessionOpts = (session) => {
 // Helper: decimal-safe add/sub using integers (paise)
 const toInt = (amount) => Math.round(amount * 100);
 const fromInt = (val) => Math.round(val) / 100;
+
+/**
+ * Get event data from cached socket data based on sport
+ * This data is updated every ~400ms by socket polling
+ */
+const getEventDataFromCache = (sport, eventId) => {
+  switch (sport) {
+    case 'cricket':
+      return getLatestCricketEventData(eventId);
+    case 'soccer':
+      return getLatestSoccerEventData(eventId);
+    case 'tennis':
+      return getLatestTennisEventData(eventId);
+    default:
+      return null;
+  }
+};
 
 /**
  * Calculate exposure for a bet based on market type and bet type
@@ -218,6 +240,7 @@ const placeBet = async (userId, payload, req) => {
     const {
       sport,
       eventId,
+      eventName,
       marketId,
       marketType,
       selectionId,
@@ -231,6 +254,12 @@ const placeBet = async (userId, payload, req) => {
 
     if (!sport || !['cricket', 'soccer', 'tennis'].includes(sport)) {
       throw new Error('Invalid or missing sport');
+    }
+
+    // Fetch current event data from socket cache (updated every ~400ms)
+    const eventJsonStamp = getEventDataFromCache(sport, eventId);
+    if (!eventJsonStamp) {
+      throw new Error(`Event data not available for ${sport} event ${eventId}. Please ensure you are subscribed to this event.`);
     }
 
     const exposure = calculateExposure({
@@ -255,6 +284,8 @@ const placeBet = async (userId, payload, req) => {
           userId,
           sport,
           eventId,
+          eventName,
+          eventJsonStamp,
           marketId,
           marketType,
           selectionId,
@@ -284,6 +315,68 @@ const getUserBets = async (userId, query = {}) => {
   const filter = { userId };
   if (sport) filter.sport = sport;
   if (status) filter.status = status;
+  if (marketType) filter.marketType = marketType;
+
+  const bets = await Bet.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
+
+  return bets;
+};
+
+/**
+ * Get all bets placed today by user
+ */
+const getTodayBets = async (userId, query = {}) => {
+  const { sport, status, marketType, limit = 100 } = query;
+
+  // Get start and end of today in UTC
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+  const filter = {
+    userId,
+    createdAt: {
+      $gte: today,
+      $lt: tomorrow,
+    },
+  };
+
+  if (sport) filter.sport = sport;
+  if (status) filter.status = status;
+  if (marketType) filter.marketType = marketType;
+
+  const bets = await Bet.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
+
+  return bets;
+};
+
+/**
+ * Get all open bets placed today by user
+ */
+const getTodayOpenBets = async (userId, query = {}) => {
+  const { sport, marketType, limit = 100 } = query;
+
+  // Get start and end of today in UTC
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+  const filter = {
+    userId,
+    status: Bet.BET_STATUS.OPEN,
+    createdAt: {
+      $gte: today,
+      $lt: tomorrow,
+    },
+  };
+
+  if (sport) filter.sport = sport;
   if (marketType) filter.marketType = marketType;
 
   const bets = await Bet.find(filter)
@@ -586,6 +679,8 @@ const settleMarket = async (payload, req) => {
 module.exports = {
   placeBet,
   getUserBets,
+  getTodayBets,
+  getTodayOpenBets,
   settleMarket,
 };
 

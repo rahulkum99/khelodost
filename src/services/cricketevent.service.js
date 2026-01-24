@@ -29,7 +29,9 @@ const fetchCricketEventData = async (eventId) => {
       }
     });
 
-    const data = response.data;
+    // Extract only the data array from API response { success, msg, status, data }
+    const apiResponse = response.data;
+    const data = apiResponse?.data || apiResponse;
     eventDataCache.set(eventId, data);
     return data;
   } catch (error) {
