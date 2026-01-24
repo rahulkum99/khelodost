@@ -318,6 +318,7 @@ const getUserBets = async (userId, query = {}) => {
   if (marketType) filter.marketType = marketType;
 
   const bets = await Bet.find(filter)
+    .select('-eventJsonStamp')
     .sort({ createdAt: -1 })
     .limit(Number(limit));
 
@@ -349,6 +350,7 @@ const getTodayBets = async (userId, query = {}) => {
   if (marketType) filter.marketType = marketType;
 
   const bets = await Bet.find(filter)
+    .select('-eventJsonStamp')
     .sort({ createdAt: -1 })
     .limit(Number(limit));
 
@@ -380,6 +382,7 @@ const getTodayOpenBets = async (userId, query = {}) => {
   if (marketType) filter.marketType = marketType;
 
   const bets = await Bet.find(filter)
+    .select('-eventJsonStamp')
     .sort({ createdAt: -1 })
     .limit(Number(limit));
 
