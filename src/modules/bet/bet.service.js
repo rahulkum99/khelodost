@@ -271,17 +271,28 @@ const placeBet = async (userId, payload, req) => {
         : null;
 
     if (!matchedMarket) {
-      throw new Error(`Market ${marketId} not found in event data for event ${eventId}`);
+      throw new Error('value change try again');
+    }
+
+    // Verify marketId matches mid in event data
+    if (String(matchedMarket.mid) !== String(marketId)) {
+      throw new Error('value change try again');
+    }
+
+    // Check market status - must be OPEN to place bets
+    const marketStatus = (matchedMarket.status || '').toUpperCase();
+    if (marketStatus !== 'OPEN') {
+      throw new Error('Market is not open');
     }
 
     const marketName = matchedMarket.mname || null;
     if (!marketName) {
-      throw new Error(`Market name not available for market ${marketId} in event ${eventId}`);
+      throw new Error('value change try again');
     }
 
     /**
-     * Price integrity check for MATCH_ODDS:
-     * - Ensure eventId + marketId + selectionId + betType + odds still match
+     * Price integrity checks per market type:
+     * - Ensure eventId + marketId + selectionId + betType + price still match
      *   the latest provider data from event snapshot.
      * - If anything changed (odds moved, selection status changed, etc.),
      *   reject with a generic message so frontend can re-fetch and retry.
@@ -295,6 +306,12 @@ const placeBet = async (userId, payload, req) => {
         sections.find((s) => s.nat === selectionName);
 
       if (!matchedSection || !Array.isArray(matchedSection.odds)) {
+        throw new Error('value change try again');
+      }
+
+      // Check selection status - must be ACTIVE for MATCH_ODDS
+      const selectionStatus = (matchedSection.gstatus || '').toUpperCase();
+      if (selectionStatus !== 'ACTIVE') {
         throw new Error('value change try again');
       }
 
@@ -325,6 +342,53 @@ const placeBet = async (userId, payload, req) => {
           : Math.min(...prices); // best lay = lowest price
 
       if (Number(odds) !== Number(currentPrice)) {
+        throw new Error('value change try again');
+      }
+    } else if (marketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
+      // Bookmaker / fancy-style markets: validate section + current rate
+      const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
+
+      const matchedSection =
+        sections.find((s) => String(s.sid) === String(selectionId)) ||
+        sections.find((s) => s.nat === selectionName);
+
+      if (!matchedSection || !Array.isArray(matchedSection.odds)) {
+        throw new Error('value change try again');
+      }
+
+      // For fancy/bookmaker, treat any explicit SUSPENDED as not allowed
+      const selectionStatus = (matchedSection.gstatus || '').toUpperCase();
+      if (selectionStatus === 'SUSPENDED') {
+        throw new Error('value change try again');
+      }
+
+      const ladder = matchedSection.odds;
+      const priceType =
+        betType === 'yes'
+          ? 'back'
+          : betType === 'no'
+          ? 'lay'
+          : null;
+
+      if (!priceType) {
+        throw new Error('Invalid betType for BOOKMAKERS_FANCY');
+      }
+
+      const prices = ladder
+        .filter((p) => p.otype === priceType)
+        .map((p) => Number(p.odds))
+        .filter((v) => !Number.isNaN(v));
+
+      if (!prices.length) {
+        throw new Error('value change try again');
+      }
+
+      const currentRate =
+        priceType === 'back'
+          ? Math.max(...prices)
+          : Math.min(...prices);
+
+      if (Number(rate) !== Number(currentRate)) {
         throw new Error('value change try again');
       }
     }
