@@ -279,6 +279,56 @@ const placeBet = async (userId, payload, req) => {
       throw new Error(`Market name not available for market ${marketId} in event ${eventId}`);
     }
 
+    /**
+     * Price integrity check for MATCH_ODDS:
+     * - Ensure eventId + marketId + selectionId + betType + odds still match
+     *   the latest provider data from event snapshot.
+     * - If anything changed (odds moved, selection status changed, etc.),
+     *   reject with a generic message so frontend can re-fetch and retry.
+     */
+    if (marketType === Bet.MARKET_TYPES.MATCH_ODDS) {
+      const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
+
+      // Try to match by sid first, fall back to nat (name)
+      const matchedSection =
+        sections.find((s) => String(s.sid) === String(selectionId)) ||
+        sections.find((s) => s.nat === selectionName);
+
+      if (!matchedSection || !Array.isArray(matchedSection.odds)) {
+        throw new Error('value change try again');
+      }
+
+      const ladder = matchedSection.odds;
+      const priceType =
+        betType === 'back'
+          ? 'back'
+          : betType === 'lay'
+          ? 'lay'
+          : null;
+
+      if (!priceType) {
+        throw new Error('Invalid betType for MATCH_ODDS');
+      }
+
+      const prices = ladder
+        .filter((p) => p.otype === priceType)
+        .map((p) => Number(p.odds))
+        .filter((v) => !Number.isNaN(v));
+
+      if (!prices.length) {
+        throw new Error('value change try again');
+      }
+
+      const currentPrice =
+        priceType === 'back'
+          ? Math.max(...prices) // best back = highest price
+          : Math.min(...prices); // best lay = lowest price
+
+      if (Number(odds) !== Number(currentPrice)) {
+        throw new Error('value change try again');
+      }
+    }
+
     const exposure = calculateExposure({
       marketType,
       betType,
