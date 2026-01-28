@@ -422,9 +422,14 @@ Similar to LINE_MARKET, but settles when meter crosses the line value.
 {
   userId: ObjectId,
   sport: String,              // cricket | soccer | tennis
-  eventId: String,
-  marketId: String,
-  marketType: String,         // match_odds | bookmakers_fancy | line_market | meter_market | kado_market
+  eventId: String,            // Provider event ID
+  eventName: String,          // Human-readable event name (e.g. "India vs New Zealand")
+  // Full snapshot of provider event markets at bet time,
+  // taken from cached socket data (NOT from frontend)
+  eventJsonStamp: Mixed,
+  marketId: String,           // Provider market ID (mid)
+  marketName: String,         // Provider market name (mname) at bet time, e.g. "MATCH_ODDS", "Bookmaker"
+  marketType: String,         // Internal market type: match_odds | bookmakers_fancy | line_market | meter_market | kado_market
   selectionId: String,
   selectionName: String,
   betType: String,            // back | lay | yes | no | over | under
@@ -465,6 +470,7 @@ curl -X POST http://localhost:5000/api/bets/place \
   -d '{
     "sport": "cricket",
     "eventId": "550226920",
+    "eventName": "Japan U19 vs Korea U19",
     "marketId": "9101697825652",
     "marketType": "match_odds",
     "selectionId": "560180",
@@ -483,6 +489,7 @@ curl -X POST http://localhost:5000/api/bets/place \
   -d '{
     "sport": "cricket",
     "eventId": "913074777",
+    "eventName": "BBL 2024/25 Winner",
     "marketId": "309257272418",
     "marketType": "bookmakers_fancy",
     "selectionId": "9",
@@ -517,11 +524,17 @@ curl -X POST http://localhost:5000/api/bets/settle \
    - BOOKMAKERS_FANCY requires `rate`
    - LINE_MARKET/METER_MARKET require `lineValue`
 
-3. **Settlement Idempotency**: The system prevents double settlement by checking if a market has already been settled.
+3. **Event Snapshot Storage**:
+   - On bet placement, the backend fetches the latest event data from the in-memory socket cache using `eventId`
+   - The full provider payload (`data` array) is stored in `eventJsonStamp` on the bet for audit/settlement reference
+   - The market display name (`mname`) for the chosen `marketId` is stored as `marketName`
+   - Frontend **must NOT** send `eventJsonStamp`; it is resolved server-side.
 
-4. **Wallet Locking**: Exposure is locked immediately on bet placement and only unlocked on settlement.
+4. **Settlement Idempotency**: The system prevents double settlement by checking if a market has already been settled.
 
-5. **Decimal Precision**: All monetary calculations use integer arithmetic (paise) to avoid floating-point errors.
+5. **Wallet Locking**: Exposure is locked immediately on bet placement and only unlocked on settlement.
+
+6. **Decimal Precision**: All monetary calculations use integer arithmetic (paise) to avoid floating-point errors.
 
 ---
 
@@ -538,6 +551,12 @@ curl -X POST http://localhost:5000/api/bets/settle \
 ---
 
 ## 📝 Changelog
+
+### Version 1.2.0
+- Added `eventJsonStamp` to `Bet` to store full provider event snapshot at bet time
+- Added `marketName` to `Bet` to persist provider `mname` for the selected `marketId`
+- Updated bet placement to resolve event and market details from socket-backed event caches (cricket/soccer/tennis)
+- Updated `/my-bets`, `/today-bets`, `/today-open-bets` responses to exclude heavy `eventJsonStamp` field
 
 ### Version 1.1.0
 - Removed bet matching functionality (each user places own bet)

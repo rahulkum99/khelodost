@@ -16,7 +16,7 @@ app.use(securityHeaders);
 
 // Enable CORS for all routes
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173','https://khelodost.live'],
   credentials: true
 }));
 

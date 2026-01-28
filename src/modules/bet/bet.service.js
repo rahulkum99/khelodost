@@ -262,6 +262,23 @@ const placeBet = async (userId, payload, req) => {
       throw new Error(`Event data not available for ${sport} event ${eventId}. Please ensure you are subscribed to this event.`);
     }
 
+    // Derive market name (mname) for this bet from current event snapshot
+    // eventJsonStamp is an array of markets as returned by provider
+    const marketsArray = Array.isArray(eventJsonStamp) ? eventJsonStamp : eventJsonStamp.data || [];
+    const matchedMarket =
+      Array.isArray(marketsArray) && marketsArray.length
+        ? marketsArray.find((m) => String(m.mid) === String(marketId))
+        : null;
+
+    if (!matchedMarket) {
+      throw new Error(`Market ${marketId} not found in event data for event ${eventId}`);
+    }
+
+    const marketName = matchedMarket.mname || null;
+    if (!marketName) {
+      throw new Error(`Market name not available for market ${marketId} in event ${eventId}`);
+    }
+
     const exposure = calculateExposure({
       marketType,
       betType,
@@ -285,6 +302,7 @@ const placeBet = async (userId, payload, req) => {
           sport,
           eventId,
           eventName,
+          marketName,
           eventJsonStamp,
           marketId,
           marketType,

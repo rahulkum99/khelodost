@@ -54,6 +54,11 @@ const betSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Snapshot of provider market name (mname) at bet time
+    marketName: {
+      type: String,
+      required: true,
+    },
     marketType: {
       type: String,
       enum: Object.values(MARKET_TYPES),
