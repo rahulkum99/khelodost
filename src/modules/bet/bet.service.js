@@ -77,7 +77,6 @@ const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
 
     case Bet.MARKET_TYPES.BOOKMAKERS_FANCY: {
       if (!rate) throw new Error('Rate required for BOOKMAKERS_FANCY');
-      // Fancy: lock full stake for YES/NO
       return stake;
     }
 
@@ -262,6 +261,7 @@ const settleExposure = async ({
  * - odds: to verify the odds value matches
  */
 const placeBet = async (userId, payload, req) => {
+  console.log('placeBet payload', payload);
   return await withTransaction(async (session) => {
     const {
       sport,
@@ -273,7 +273,8 @@ const placeBet = async (userId, payload, req) => {
       selectionName,
       betType,
       odds,
-      rate,
+      // rate is optional in payload; for BOOKMAKERS_FANCY we treat odds as rate
+      rate: rawRate,
       priceOname: clientPriceOname,
       lineValue,
       stake,
@@ -369,12 +370,18 @@ const placeBet = async (userId, payload, req) => {
     const priceSize = typeof chosenRow.size === 'number' ? chosenRow.size : null;
     const priceTno = typeof chosenRow.tno === 'number' ? chosenRow.tno : null;
 
+    // For BOOKMAKERS_FANCY we conceptually treat "odds" as "rate"
+    const effectiveRate =
+      marketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY
+        ? odds
+        : rawRate;
+
     const exposure = calculateExposure({
       marketType,
       betType,
       stake,
       odds,
-      rate,
+      rate: effectiveRate,
     });
 
     await lockExposure({
@@ -400,7 +407,7 @@ const placeBet = async (userId, payload, req) => {
           selectionName,
           betType,
           odds: odds || null,
-          rate: rate || null,
+          rate: effectiveRate || null,
           priceType: priceTypeForBet,
           priceOname,
           priceSize,

@@ -22,24 +22,15 @@ const validatePlaceBet = [
   body('stake')
     .isFloat({ gt: 0 })
     .withMessage('stake must be greater than 0'),
+  // Odds are required for matching (both match_odds and bookmakers_fancy)
   body('odds')
-    .optional()
-    .isFloat({ gt: 1 })
-    .withMessage('odds must be greater than 1'),
-  body('rate')
-    .optional()
     .isFloat({ gt: 0 })
-    .withMessage('rate must be greater than 0'),
-  // Provider quote verification inputs (sent by frontend)
-  body('priceType')
-    .optional()
-    .isIn(['back', 'lay'])
-    .withMessage('priceType must be back or lay'),
+    .withMessage('odds must be greater than 0'),
+  // priceOname is required for exact quote matching
   body('priceOname')
-    .optional()
     .isString()
     .notEmpty()
-    .withMessage('priceOname is required when provided'),
+    .withMessage('priceOname is required'),
   body('lineValue')
     .optional()
     .isFloat()
