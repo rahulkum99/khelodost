@@ -93,6 +93,25 @@ const betSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Provider quote snapshot at bet time (which ladder/row user matched)
+    priceType: {
+      type: String,
+      enum: ['back', 'lay'],
+      default: null,
+    },
+    priceOname: {
+      type: String,
+      default: null,
+    },
+    priceSize: {
+      type: Number,
+      default: null,
+    },
+    priceTno: {
+      type: Number,
+      default: null,
+    },
+
     // Line / meter numeric value
     lineValue: {
       type: Number,

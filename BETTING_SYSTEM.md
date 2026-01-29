@@ -435,6 +435,11 @@ Similar to LINE_MARKET, but settles when meter crosses the line value.
   betType: String,            // back | lay | yes | no | over | under
   odds: Number,               // For MATCH_ODDS
   rate: Number,               // For BOOKMAKERS_FANCY, KADO_MARKET
+  // Provider price row snapshot (from eventJsonStamp.section[].odds[])
+  priceType: String,          // back | lay
+  priceOname: String,         // e.g. back1/back2/back3 or lay1/lay2/lay3
+  priceSize: Number,          // Provider available size at that quote
+  priceTno: Number,           // Provider ladder level index
   lineValue: Number,          // For LINE_MARKET, METER_MARKET
   stake: Number,
   exposure: Number,           // Locked amount

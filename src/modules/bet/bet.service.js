@@ -23,6 +23,23 @@ const sessionOpts = (session) => {
 const toInt = (amount) => Math.round(amount * 100);
 const fromInt = (val) => Math.round(val) / 100;
 
+// Helper: float comparison with tolerance
+const FLOAT_EPSILON = 0.0001;
+const floatEquals = (a, b) => Math.abs(Number(a) - Number(b)) < FLOAT_EPSILON;
+
+// Helper: normalize oname for comparison (remove spaces, lowercase)
+// Provider: "back2", Frontend may send: "back 2" or "Back2"
+const normalizeOname = (oname) => String(oname || '').replace(/\s+/g, '').toLowerCase();
+
+// Standardized service errors (controller will format response)
+const betError = (code, message, status = 400) => {
+  const err = new Error(message);
+  err.code = code;
+  err.status = status;
+  return err;
+};
+const betConflict = (code, message) => betError(code, message, 409);
+
 /**
  * Get event data from cached socket data based on sport
  * This data is updated every ~400ms by socket polling
@@ -234,6 +251,15 @@ const settleExposure = async ({
 
 /**
  * Place bet (market-aware)
+ * 
+ * Matching conditions:
+ * - eventId: to fetch event data from cache
+ * - marketId: to find the market
+ * - marketType: to determine bet validation
+ * - selectionId: to find the section
+ * - betType: back/lay (maps to otype)
+ * - priceOname: to find exact odds row
+ * - odds: to verify the odds value matches
  */
 const placeBet = async (userId, payload, req) => {
   return await withTransaction(async (session) => {
@@ -248,22 +274,25 @@ const placeBet = async (userId, payload, req) => {
       betType,
       odds,
       rate,
+      priceOname: clientPriceOname,
       lineValue,
       stake,
     } = payload;
 
     if (!sport || !['cricket', 'soccer', 'tennis'].includes(sport)) {
-      throw new Error('Invalid or missing sport');
+      throw betError('INVALID_SPORT', 'Invalid sport', 400);
     }
 
-    // Fetch current event data from socket cache (updated every ~400ms)
+    // 1. Fetch event data from cache by eventId
     const eventJsonStamp = getEventDataFromCache(sport, eventId);
     if (!eventJsonStamp) {
-      throw new Error(`Event data not available for ${sport} event ${eventId}. Please ensure you are subscribed to this event.`);
+      throw betConflict(
+        'EVENT_DATA_NOT_AVAILABLE',
+        'Event data not available. Please refresh and try again.'
+      );
     }
 
-    // Derive market name (mname) for this bet from current event snapshot
-    // eventJsonStamp is an array of markets as returned by provider
+    // 2. Find market by marketId
     const marketsArray = Array.isArray(eventJsonStamp) ? eventJsonStamp : eventJsonStamp.data || [];
     const matchedMarket =
       Array.isArray(marketsArray) && marketsArray.length
@@ -271,127 +300,74 @@ const placeBet = async (userId, payload, req) => {
         : null;
 
     if (!matchedMarket) {
-      throw new Error('value change try again');
-    }
-
-    // Verify marketId matches mid in event data
-    if (String(matchedMarket.mid) !== String(marketId)) {
-      throw new Error('value change try again');
-    }
-
-    // Check market status - must be OPEN to place bets
-    const marketStatus = (matchedMarket.status || '').toUpperCase();
-    if (marketStatus !== 'OPEN') {
-      throw new Error('Market is not open');
+      throw betConflict(
+        'MARKET_NOT_FOUND',
+        'Market not available. Please refresh and try again.'
+      );
     }
 
     const marketName = matchedMarket.mname || null;
-    if (!marketName) {
-      throw new Error('value change try again');
+
+    // 3. Find section by selectionId
+    const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
+    const matchedSection = sections.find((s) => String(s.sid) === String(selectionId));
+
+    if (!matchedSection || !Array.isArray(matchedSection.odds)) {
+      throw betConflict(
+        'SELECTION_NOT_AVAILABLE',
+        'Selection not available. Please refresh and try again.'
+      );
     }
 
-    /**
-     * Price integrity checks per market type:
-     * - Ensure eventId + marketId + selectionId + betType + price still match
-     *   the latest provider data from event snapshot.
-     * - If anything changed (odds moved, selection status changed, etc.),
-     *   reject with a generic message so frontend can re-fetch and retry.
-     */
+    // 4. Map betType to otype (back/lay)
+    let otype;
     if (marketType === Bet.MARKET_TYPES.MATCH_ODDS) {
-      const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
-
-      // Try to match by sid first, fall back to nat (name)
-      const matchedSection =
-        sections.find((s) => String(s.sid) === String(selectionId)) ||
-        sections.find((s) => s.nat === selectionName);
-
-      if (!matchedSection || !Array.isArray(matchedSection.odds)) {
-        throw new Error('value change try again');
+      if (!['back', 'lay'].includes(betType)) {
+        throw betError('INVALID_BET_TYPE', 'betType must be back or lay for MATCH_ODDS', 400);
       }
-
-      // Check selection status - must be ACTIVE for MATCH_ODDS
-      const selectionStatus = (matchedSection.gstatus || '').toUpperCase();
-      if (selectionStatus !== 'ACTIVE') {
-        throw new Error('value change try again');
-      }
-
-      const ladder = matchedSection.odds;
-      const priceType =
-        betType === 'back'
-          ? 'back'
-          : betType === 'lay'
-          ? 'lay'
-          : null;
-
-      if (!priceType) {
-        throw new Error('Invalid betType for MATCH_ODDS');
-      }
-
-      const prices = ladder
-        .filter((p) => p.otype === priceType)
-        .map((p) => Number(p.odds))
-        .filter((v) => !Number.isNaN(v));
-
-      if (!prices.length) {
-        throw new Error('value change try again');
-      }
-
-      const currentPrice =
-        priceType === 'back'
-          ? Math.max(...prices) // best back = highest price
-          : Math.min(...prices); // best lay = lowest price
-
-      if (Number(odds) !== Number(currentPrice)) {
-        throw new Error('value change try again');
-      }
+      otype = betType;
     } else if (marketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
-      // Bookmaker / fancy-style markets: validate section + current rate
-      const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
-
-      const matchedSection =
-        sections.find((s) => String(s.sid) === String(selectionId)) ||
-        sections.find((s) => s.nat === selectionName);
-
-      if (!matchedSection || !Array.isArray(matchedSection.odds)) {
-        throw new Error('value change try again');
+      if (!['yes', 'no'].includes(betType)) {
+        throw betError('INVALID_BET_TYPE', 'betType must be yes or no for BOOKMAKERS_FANCY', 400);
       }
-
-      // For fancy/bookmaker, treat any explicit SUSPENDED as not allowed
-      const selectionStatus = (matchedSection.gstatus || '').toUpperCase();
-      if (selectionStatus === 'SUSPENDED') {
-        throw new Error('value change try again');
-      }
-
-      const ladder = matchedSection.odds;
-      const priceType =
-        betType === 'yes'
-          ? 'back'
-          : betType === 'no'
-          ? 'lay'
-          : null;
-
-      if (!priceType) {
-        throw new Error('Invalid betType for BOOKMAKERS_FANCY');
-      }
-
-      const prices = ladder
-        .filter((p) => p.otype === priceType)
-        .map((p) => Number(p.odds))
-        .filter((v) => !Number.isNaN(v));
-
-      if (!prices.length) {
-        throw new Error('value change try again');
-      }
-
-      const currentRate =
-        priceType === 'back'
-          ? Math.max(...prices)
-          : Math.min(...prices);
-
-      if (Number(rate) !== Number(currentRate)) {
-        throw new Error('value change try again');
-      }
+      otype = betType === 'yes' ? 'back' : 'lay';
+    } else {
+      throw betError('UNSUPPORTED_MARKET_TYPE', `Market type ${marketType} is not supported`, 400);
     }
+
+    // 5. Validate odds is provided
+    if (odds === undefined || odds === null) {
+      throw betError('ODDS_REQUIRED', 'Odds are required', 400);
+    }
+
+    // 6. Validate priceOname is provided
+    if (!clientPriceOname) {
+      throw betError('PRICE_ONAME_REQUIRED', 'priceOname is required', 400);
+    }
+
+    // 7. Find exact odds row by priceOname (normalized) and verify odds match
+    const ladder = matchedSection.odds;
+    const normalizedClientOname = normalizeOname(clientPriceOname);
+    
+    const chosenRow = ladder.find(
+      (p) =>
+        String(p.otype).toLowerCase() === otype &&
+        normalizeOname(p.oname) === normalizedClientOname &&
+        floatEquals(p.odds, odds)
+    );
+
+    if (!chosenRow) {
+      throw betConflict(
+        'ODDS_NOT_MATCHED',
+        'Odds not matched. Please refresh and try again.'
+      );
+    }
+
+    // Provider quote snapshot to persist
+    const priceTypeForBet = otype;
+    const priceOname = chosenRow.oname || null;
+    const priceSize = typeof chosenRow.size === 'number' ? chosenRow.size : null;
+    const priceTno = typeof chosenRow.tno === 'number' ? chosenRow.tno : null;
 
     const exposure = calculateExposure({
       marketType,
@@ -425,6 +401,10 @@ const placeBet = async (userId, payload, req) => {
           betType,
           odds: odds || null,
           rate: rate || null,
+          priceType: priceTypeForBet,
+          priceOname,
+          priceSize,
+          priceTno,
           lineValue: lineValue || null,
           stake,
           exposure,

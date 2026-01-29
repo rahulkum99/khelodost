@@ -24,8 +24,9 @@ const placeBet = async (req, res) => {
     });
   } catch (err) {
     console.error('placeBet error:', err);
-    res.status(400).json({
+    res.status(err.status || 400).json({
       success: false,
+      code: err.code || 'BET_PLACE_FAILED',
       message: err.message || 'Failed to place bet',
     });
   }

@@ -30,6 +30,16 @@ const validatePlaceBet = [
     .optional()
     .isFloat({ gt: 0 })
     .withMessage('rate must be greater than 0'),
+  // Provider quote verification inputs (sent by frontend)
+  body('priceType')
+    .optional()
+    .isIn(['back', 'lay'])
+    .withMessage('priceType must be back or lay'),
+  body('priceOname')
+    .optional()
+    .isString()
+    .notEmpty()
+    .withMessage('priceOname is required when provided'),
   body('lineValue')
     .optional()
     .isFloat()
