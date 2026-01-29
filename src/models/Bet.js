@@ -7,6 +7,7 @@ const MARKET_TYPES = {
   LINE_MARKET: 'line_market',
   METER_MARKET: 'meter_market',
   KADO_MARKET: 'kado_market',
+  TOS_MARKET: 'tos_market',
 };
 
 // Bet status

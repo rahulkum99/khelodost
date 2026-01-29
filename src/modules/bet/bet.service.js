@@ -62,8 +62,9 @@ const getEventDataFromCache = (sport, eventId) => {
  */
 const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
   switch (marketType) {
-    case Bet.MARKET_TYPES.MATCH_ODDS: {
-      if (!odds) throw new Error('Odds required for MATCH_ODDS');
+    case Bet.MARKET_TYPES.MATCH_ODDS:
+    case Bet.MARKET_TYPES.TOS_MARKET: {
+      if (!odds) throw new Error('Odds required for MATCH_ODDS / TOS_MARKET');
       if (betType === 'back') {
         // Back exposure is stake
         return stake;
@@ -72,7 +73,7 @@ const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
         // Lay exposure = (odds - 1) * stake
         return (odds - 1) * stake;
       }
-      throw new Error('Invalid betType for MATCH_ODDS');
+      throw new Error('Invalid betType for MATCH_ODDS / TOS_MARKET');
     }
 
     case Bet.MARKET_TYPES.BOOKMAKERS_FANCY: {
@@ -280,6 +281,10 @@ const placeBet = async (userId, payload, req) => {
       stake,
     } = payload;
 
+    // Normalize marketType alias from frontend
+    const effectiveMarketType =
+      marketType === 'tos_maket' ? Bet.MARKET_TYPES.TOS_MARKET : marketType;
+
     if (!sport || !['cricket', 'soccer', 'tennis'].includes(sport)) {
       throw betError('INVALID_SPORT', 'Invalid sport', 400);
     }
@@ -322,18 +327,18 @@ const placeBet = async (userId, payload, req) => {
 
     // 4. Map betType to otype (back/lay)
     let otype;
-    if (marketType === Bet.MARKET_TYPES.MATCH_ODDS) {
+    if (effectiveMarketType === Bet.MARKET_TYPES.MATCH_ODDS || effectiveMarketType === Bet.MARKET_TYPES.TOS_MARKET) {
       if (!['back', 'lay'].includes(betType)) {
-        throw betError('INVALID_BET_TYPE', 'betType must be back or lay for MATCH_ODDS', 400);
+        throw betError('INVALID_BET_TYPE', 'betType must be back or lay for MATCH_ODDS/TOS_MARKET', 400);
       }
       otype = betType;
-    } else if (marketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
+    } else if (effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
       if (!['yes', 'no'].includes(betType)) {
         throw betError('INVALID_BET_TYPE', 'betType must be yes or no for BOOKMAKERS_FANCY', 400);
       }
       otype = betType === 'yes' ? 'back' : 'lay';
     } else {
-      throw betError('UNSUPPORTED_MARKET_TYPE', `Market type ${marketType} is not supported`, 400);
+      throw betError('UNSUPPORTED_MARKET_TYPE', `Market type ${effectiveMarketType} is not supported`, 400);
     }
 
     // 5. Validate odds is provided
@@ -372,12 +377,12 @@ const placeBet = async (userId, payload, req) => {
 
     // For BOOKMAKERS_FANCY we conceptually treat "odds" as "rate"
     const effectiveRate =
-      marketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY
+      effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY
         ? odds
         : rawRate;
 
     const exposure = calculateExposure({
-      marketType,
+      marketType: effectiveMarketType,
       betType,
       stake,
       odds,
@@ -388,7 +393,7 @@ const placeBet = async (userId, payload, req) => {
       session,
       userId,
       exposure,
-      description: `Exposure locked for ${marketType} bet`,
+      description: `Exposure locked for ${effectiveMarketType} bet`,
       req,
     });
 
@@ -402,7 +407,7 @@ const placeBet = async (userId, payload, req) => {
           marketName,
           eventJsonStamp,
           marketId,
-          marketType,
+          marketType: effectiveMarketType,
           selectionId,
           selectionName,
           betType,

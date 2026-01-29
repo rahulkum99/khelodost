@@ -11,8 +11,11 @@ const validatePlaceBet = [
   body('eventName').notEmpty().withMessage('eventName is required'),
   // eventJsonStamp is fetched server-side from cached socket data, not from frontend
   body('marketId').notEmpty().withMessage('marketId is required'),
+  // Accept all defined market types plus legacy/frontend alias "tos_maket"
   body('marketType')
-    .isIn(validMarketTypes)
+    .custom((value) => {
+      return validMarketTypes.includes(value) || value === 'tos_maket';
+    })
     .withMessage('Invalid marketType'),
   body('selectionId').notEmpty().withMessage('selectionId is required'),
   body('selectionName').notEmpty().withMessage('selectionName is required'),
