@@ -62,18 +62,18 @@ const getEventDataFromCache = (sport, eventId) => {
  */
 const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
   switch (marketType) {
+    // match: MATCH_ODDS, TIED_MATCH | fancy1: toss | fancy: Normal, Over By Over | oddeven | cricket_casino
     case Bet.MARKET_TYPES.MATCH_ODDS:
-    case Bet.MARKET_TYPES.TOS_MARKET: {
-      if (!odds) throw new Error('Odds required for MATCH_ODDS / TOS_MARKET');
-      if (betType === 'back') {
-        // Back exposure is stake
-        return stake;
-      }
-      if (betType === 'lay') {
-        // Lay exposure = (odds - 1) * stake
-        return (odds - 1) * stake;
-      }
-      throw new Error('Invalid betType for MATCH_ODDS / TOS_MARKET');
+    case Bet.MARKET_TYPES.TIED_MATCH:
+    case Bet.MARKET_TYPES.TOS_MARKET:
+    case Bet.MARKET_TYPES.FANCY:
+    case Bet.MARKET_TYPES.OVER_BY_OVER:
+    case Bet.MARKET_TYPES.ODDEVEN:
+    case Bet.MARKET_TYPES.CRICKET_CASINO: {
+      if (!odds) throw new Error('Odds required');
+      if (betType === 'back') return stake;
+      if (betType === 'lay') return (odds - 1) * stake;
+      throw new Error('Invalid betType (back/lay)');
     }
 
     case Bet.MARKET_TYPES.BOOKMAKERS_FANCY: {
@@ -84,7 +84,6 @@ const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
     case Bet.MARKET_TYPES.LINE_MARKET:
     case Bet.MARKET_TYPES.METER_MARKET:
     case Bet.MARKET_TYPES.KADO_MARKET: {
-      // For now: lock full stake
       return stake;
     }
 
@@ -325,11 +324,20 @@ const placeBet = async (userId, payload, req) => {
       );
     }
 
-    // 4. Map betType to otype (back/lay)
+    // 4. Map betType to otype (back/lay or yes->back, no->lay)
     let otype;
-    if (effectiveMarketType === Bet.MARKET_TYPES.MATCH_ODDS || effectiveMarketType === Bet.MARKET_TYPES.TOS_MARKET) {
+    const backLayMarketTypes = [
+      Bet.MARKET_TYPES.MATCH_ODDS,
+      Bet.MARKET_TYPES.TIED_MATCH,
+      Bet.MARKET_TYPES.TOS_MARKET,
+      Bet.MARKET_TYPES.FANCY,
+      Bet.MARKET_TYPES.OVER_BY_OVER,
+      Bet.MARKET_TYPES.ODDEVEN,
+      Bet.MARKET_TYPES.CRICKET_CASINO,
+    ];
+    if (backLayMarketTypes.includes(effectiveMarketType)) {
       if (!['back', 'lay'].includes(betType)) {
-        throw betError('INVALID_BET_TYPE', 'betType must be back or lay for MATCH_ODDS/TOS_MARKET', 400);
+        throw betError('INVALID_BET_TYPE', 'betType must be back or lay', 400);
       }
       otype = betType;
     } else if (effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {

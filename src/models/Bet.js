@@ -1,13 +1,19 @@
 const mongoose = require('mongoose');
 
 // Market types supported by the exchange
+// gtype -> mname examples: match=MATCH_ODDS,TIED_MATCH | match1=Bookmaker | fancy1=fancy1(toss) | fancy=Normal,Over By Over | oddeven=oddeven | cricketcasino=2ND INN 25 OVER...
 const MARKET_TYPES = {
   MATCH_ODDS: 'match_odds',
+  TIED_MATCH: 'tied_match',
   BOOKMAKERS_FANCY: 'bookmakers_fancy',
+  TOS_MARKET: 'tos_market',
+  FANCY: 'fancy',                   // Normal fancy (overs, player runs, etc.)
+  OVER_BY_OVER: 'over_by_over',     // Over-by-over fancy
+  ODDEVEN: 'oddeven',               // Odd/even run markets
+  CRICKET_CASINO: 'cricket_casino', // Cricket casino
   LINE_MARKET: 'line_market',
   METER_MARKET: 'meter_market',
   KADO_MARKET: 'kado_market',
-  TOS_MARKET: 'tos_market',
 };
 
 // Bet status
