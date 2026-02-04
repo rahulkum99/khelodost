@@ -62,18 +62,22 @@ const getEventDataFromCache = (sport, eventId) => {
  */
 const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
   switch (marketType) {
-    // match: MATCH_ODDS, TIED_MATCH | fancy1: toss | fancy: Normal, Over By Over | oddeven | cricket_casino
+    // match-style back/lay with odds-based liability
     case Bet.MARKET_TYPES.MATCH_ODDS:
     case Bet.MARKET_TYPES.TIED_MATCH:
     case Bet.MARKET_TYPES.TOS_MARKET:
-    case Bet.MARKET_TYPES.FANCY:
     case Bet.MARKET_TYPES.OVER_BY_OVER:
-    case Bet.MARKET_TYPES.ODDEVEN:
-    case Bet.MARKET_TYPES.CRICKET_CASINO: {
+    case Bet.MARKET_TYPES.ODDEVEN: {
       if (!odds) throw new Error('Odds required');
       if (betType === 'back') return stake;
       if (betType === 'lay') return (odds - 1) * stake;
       throw new Error('Invalid betType (back/lay)');
+    }
+
+    // Fancy: fixed ±stake P/L (both sides lock full stake)
+    case Bet.MARKET_TYPES.FANCY: {
+      if (!stake) throw new Error('Stake required for FANCY');
+      return stake;
     }
 
     case Bet.MARKET_TYPES.BOOKMAKERS_FANCY: {
@@ -333,7 +337,6 @@ const placeBet = async (userId, payload, req) => {
       Bet.MARKET_TYPES.FANCY,
       Bet.MARKET_TYPES.OVER_BY_OVER,
       Bet.MARKET_TYPES.ODDEVEN,
-      Bet.MARKET_TYPES.CRICKET_CASINO,
     ];
     if (backLayMarketTypes.includes(effectiveMarketType)) {
       if (!['back', 'lay'].includes(betType)) {
@@ -717,6 +720,66 @@ const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }
   }
 };
 
+// Fancy market (marketType = fancy): fixed ±stake P/L based on final run vs line
+// line = bet.lineValue (preferred) or bet.odds (fallback)
+const settleFancyMarket = async ({ session, marketId, eventId, finalValue, req }) => {
+  const bets = await Bet.find({
+    marketId,
+    eventId,
+    marketType: Bet.MARKET_TYPES.FANCY,
+    status: Bet.BET_STATUS.OPEN,
+  })
+    .session(session)
+    .exec();
+
+  for (const bet of bets) {
+    const line = bet.lineValue != null ? bet.lineValue : bet.odds;
+    if (line == null) {
+      // Cannot settle without a line, treat as void
+      await settleExposure({
+        session,
+        userId: bet.userId,
+        exposure: bet.exposure,
+        netWinAmount: 0,
+        description: 'FANCY void settlement (no line)',
+        req,
+      });
+      bet.status = Bet.BET_STATUS.SETTLED;
+      bet.settlementResult = Bet.BET_RESULT.VOID;
+      bet.settledAt = new Date();
+      await bet.save(sessionOpts(session));
+      continue;
+    }
+
+    let isWinner = false;
+    if (bet.betType === 'back') {
+      // back = YES / Over → win if actual >= line
+      isWinner = finalValue >= line;
+    } else if (bet.betType === 'lay') {
+      // lay = NO / Under → win if actual < line
+      isWinner = finalValue < line;
+    }
+
+    const netWinAmount = isWinner ? bet.stake : -bet.exposure;
+
+    await settleExposure({
+      session,
+      userId: bet.userId,
+      exposure: bet.exposure,
+      netWinAmount,
+      description: 'FANCY settlement',
+      req,
+    });
+
+    bet.status = Bet.BET_STATUS.SETTLED;
+    bet.settlementResult = isWinner
+      ? Bet.BET_RESULT.WON
+      : Bet.BET_RESULT.LOST;
+    bet.settledAt = new Date();
+    await bet.save(sessionOpts(session));
+  }
+};
+
 const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }) => {
   const bets = await Bet.find({
     marketId,
@@ -793,6 +856,15 @@ const settleMarket = async (payload, req) => {
           marketId,
           eventId,
           finalValue: payload.finalValue,
+          req,
+        });
+        break;
+      case Bet.MARKET_TYPES.FANCY:
+        await settleFancyMarket({
+          session,
+          marketId,
+          eventId,
+          finalValue: payload.finalValue ?? payload.resultRun,
           req,
         });
         break;
