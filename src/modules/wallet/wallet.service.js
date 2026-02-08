@@ -2,6 +2,9 @@ const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
 const { User, ROLE_HIERARCHY } = require('../../models/User');
 const mongoose = require('mongoose');
+const { withTransaction } = require('../../utils/transaction.helper');
+
+const sessionOpts = (session) => (session ? { session } : {});
 
 /**
  * Get wallet for a user
@@ -35,9 +38,9 @@ const getBalance = async (userId) => {
 };
 
 /**
- * Add amount to wallet (Credit)
- * ONLY Super Admin can add amount to wallets
- * This creates money from nothing (system credit)
+ * Add amount to wallet (Credit) - Super Admin only, to own wallet
+ * Creates money (system credit) into the super admin's wallet.
+ * To give balance to lower admin/user, super admin uses transfer (from own wallet to target).
  */
 const addAmount = async (targetUserId, amount, performedBy, description, req = null) => {
   // Validate amount
@@ -49,24 +52,24 @@ const addAmount = async (targetUserId, amount, performedBy, description, req = n
     throw new Error('Amount exceeds maximum limit');
   }
 
-  // Get performer user
+  // Get performer user (must be Super Admin)
   const performer = await User.findById(performedBy);
   if (!performer) {
     throw new Error('Performer not found');
   }
 
-  // ONLY Super Admin can add amount
+  // ONLY Super Admin can add amount, and only to own wallet
   if (performer.role !== 'super_admin') {
     throw new Error('Only Super Admin can add amount to wallets. Use transfer to move funds between wallets.');
   }
-
-  // Get target user
-  const targetUser = await User.findById(targetUserId);
-  if (!targetUser) {
-    throw new Error('Target user not found');
+  if (targetUserId.toString() !== performedBy.toString()) {
+    throw new Error('Super Admin can only add amount to their own wallet. Use transfer to send funds to others.');
   }
 
-  // Get or create wallet
+  // Target user is the performer (super admin)
+  const targetUser = performer;
+
+  // Get or create wallet (super admin's own)
   const wallet = await Wallet.getOrCreateWallet(targetUserId, targetUser.currency);
 
   // Check if wallet is available
@@ -74,20 +77,14 @@ const addAmount = async (targetUserId, amount, performedBy, description, req = n
     throw new Error(`Wallet is ${wallet.isLocked ? 'locked' : 'inactive'}. ${wallet.lockedReason || ''}`);
   }
 
-  // Start transaction
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  return await withTransaction(async (session) => {
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore + amount;
 
-    // Update wallet balance
     wallet.balance = balanceAfter;
     wallet.lastTransactionAt = new Date();
-    await wallet.save({ session });
+    await wallet.save(sessionOpts(session));
 
-    // Create transaction record
     const transaction = await WalletTransaction.create([{
       wallet: wallet._id,
       user: targetUserId,
@@ -105,10 +102,7 @@ const addAmount = async (targetUserId, amount, performedBy, description, req = n
         addedBy: performer.username,
         targetUser: targetUser.username
       }
-    }], { session });
-
-    await session.commitTransaction();
-    session.endSession();
+    }], sessionOpts(session));
 
     return {
       wallet: wallet.toJSON(),
@@ -116,11 +110,7 @@ const addAmount = async (targetUserId, amount, performedBy, description, req = n
       balanceBefore,
       balanceAfter
     };
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
+  });
 };
 
 /**
@@ -179,20 +169,14 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
     throw new Error('Insufficient wallet balance');
   }
 
-  // Start transaction
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  return await withTransaction(async (session) => {
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore - amount;
 
-    // Update wallet balance
     wallet.balance = balanceAfter;
     wallet.lastTransactionAt = new Date();
-    await wallet.save({ session });
+    await wallet.save(sessionOpts(session));
 
-    // Create transaction record
     const transaction = await WalletTransaction.create([{
       wallet: wallet._id,
       user: targetUserId,
@@ -210,10 +194,7 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
         deductedBy: performer.username,
         targetUser: targetUser.username
       }
-    }], { session });
-
-    await session.commitTransaction();
-    session.endSession();
+    }], sessionOpts(session));
 
     return {
       wallet: wallet.toJSON(),
@@ -221,11 +202,7 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
       balanceBefore,
       balanceAfter
     };
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
+  });
 };
 
 /**
@@ -334,28 +311,21 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
     throw new Error('Insufficient balance in sender wallet');
   }
 
-  // Start transaction
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+  return await withTransaction(async (session) => {
     const fromBalanceBefore = fromWallet.balance;
     const fromBalanceAfter = fromBalanceBefore - amount;
 
     const toBalanceBefore = toWallet.balance;
     const toBalanceAfter = toBalanceBefore + amount;
 
-    // Update sender wallet balance
     fromWallet.balance = fromBalanceAfter;
     fromWallet.lastTransactionAt = new Date();
-    await fromWallet.save({ session });
+    await fromWallet.save(sessionOpts(session));
 
-    // Update receiver wallet balance
     toWallet.balance = toBalanceAfter;
     toWallet.lastTransactionAt = new Date();
-    await toWallet.save({ session });
+    await toWallet.save(sessionOpts(session));
 
-    // Create debit transaction for sender
     const debitTransaction = await WalletTransaction.create([{
       wallet: fromWallet._id,
       user: fromUserId,
@@ -374,9 +344,8 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
         toUser: toUser.username,
         toUserId: toUserId.toString()
       }
-    }], { session });
+    }], sessionOpts(session));
 
-    // Create credit transaction for receiver
     const creditTransaction = await WalletTransaction.create([{
       wallet: toWallet._id,
       user: toUserId,
@@ -396,14 +365,10 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
         fromUser: fromUser.username,
         fromUserId: fromUserId.toString()
       }
-    }], { session });
+    }], sessionOpts(session));
 
-    // Link transactions
     debitTransaction[0].relatedTransaction = creditTransaction[0]._id;
-    await debitTransaction[0].save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await debitTransaction[0].save(sessionOpts(session));
 
     return {
       fromWallet: fromWallet.toJSON(),
@@ -415,11 +380,7 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
       toBalanceBefore,
       toBalanceAfter
     };
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
+  });
 };
 
 /**

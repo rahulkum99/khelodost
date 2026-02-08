@@ -75,7 +75,7 @@ const getWallet = async (req, res, next) => {
 };
 
 /**
- * Add amount to wallet
+ * Add amount to wallet (Super Admin only; adds to own wallet, then transfer to others)
  */
 const addAmount = async (req, res, next) => {
   try {
