@@ -44,6 +44,13 @@ router.get('/markets/live', betController.getLiveMarkets);
 // Admin routes - require admin role or higher
 router.use(requireMinRole(ROLES.ADMIN));
 
+// Admin bet list (filtered by hierarchy)
+router.get('/admin/bet-list',
+  ...betValidation.validateAdminBetList,
+  betController.handleValidationErrors,
+  betController.getAdminBetList
+);
+
 // Settle market
 router.post('/settle',
   ...betValidation.validateSettleMarket,

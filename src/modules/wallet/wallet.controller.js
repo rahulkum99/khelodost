@@ -79,9 +79,9 @@ const getWallet = async (req, res, next) => {
  */
 const addAmount = async (req, res, next) => {
   try {
-    const { userId, amount, description } = req.body;
+    const { amount, description } = req.body;
     const result = await walletService.addAmount(
-      userId,
+      req.userId,
       amount,
       req.userId,
       description,

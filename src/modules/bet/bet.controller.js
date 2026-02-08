@@ -92,6 +92,22 @@ const settleMarket = async (req, res) => {
   }
 };
 
+const getAdminBetList = async (req, res) => {
+  try {
+    const data = await betService.getAdminBetList(req.userId, req.user.role, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      message: err.message || 'Failed to fetch bet list',
+    });
+  }
+};
+
 // Simple live markets composition from cached sports data
 const {
   getLatestCricketData,
@@ -132,6 +148,7 @@ module.exports = {
   getTodayBets,
   getTodayOpenBets,
   settleMarket,
+  getAdminBetList,
   getLiveMarkets,
 };
 

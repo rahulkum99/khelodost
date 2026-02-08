@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Bet = require('../../models/Bet');
 const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
+const { User, ROLES } = require('../../models/User');
 const { withTransaction, getSession, commitSession, abortSession } = require('../../utils/transaction.helper');
 
 // Event services - cached data from socket polling
@@ -439,6 +440,86 @@ const placeBet = async (userId, payload, req) => {
 
     return bet[0];
   });
+};
+
+/**
+ * Get all user IDs under admin in hierarchy (users created by admin or by someone in their tree).
+ * Uses createdBy chain: descendants = users whose createdBy eventually points to admin.
+ */
+const getDescendantUserIds = async (adminId) => {
+  const result = await User.aggregate([
+    { $match: { _id: new mongoose.Types.ObjectId(adminId) } },
+    {
+      $graphLookup: {
+        from: 'users',
+        startWith: '$_id',
+        connectFromField: 'createdBy',
+        connectToField: '_id',
+        as: 'descendants',
+      },
+    },
+    { $unwind: { path: '$descendants', preserveNullAndEmptyArrays: false } },
+    { $group: { _id: null, userIds: { $addToSet: '$descendants._id' } } },
+    { $project: { userIds: 1, _id: 0 } },
+  ]);
+  return result[0]?.userIds || [];
+};
+
+/**
+ * Get bet list for admin filtered by hierarchy.
+ * Admin sees bets only for users under them (createdBy chain).
+ * Super_admin sees bets for all users.
+ * Optional query.userId: restrict to that user (must be in hierarchy).
+ */
+const getAdminBetList = async (adminUserId, adminRole, query = {}) => {
+  const { sport, status, marketType, userId: filterUserId, limit = 50, page = 1 } = query;
+  const limitNum = Math.min(Number(limit) || 50, 100);
+  const skip = (Math.max(1, Number(page)) - 1) * limitNum;
+
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  if (!allowedUserIds.length) {
+    return { bets: [], total: 0, page: 1, limit: limitNum, totalPages: 0 };
+  }
+
+  let targetUserIds = allowedUserIds;
+  if (filterUserId) {
+    const requestedId = mongoose.Types.ObjectId.isValid(filterUserId) ? new mongoose.Types.ObjectId(filterUserId) : null;
+    if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+      throw betError('FORBIDDEN', 'You can only view bets for users in your hierarchy', 403);
+    }
+    targetUserIds = [requestedId];
+  }
+
+  const filter = { userId: { $in: targetUserIds } };
+  if (sport) filter.sport = sport;
+  if (status) filter.status = status;
+  if (marketType) filter.marketType = marketType;
+
+  const [bets, total] = await Promise.all([
+    Bet.find(filter)
+      .select('-eventJsonStamp')
+      .populate('userId', 'username name role')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    Bet.countDocuments(filter),
+  ]);
+
+  return {
+    bets,
+    total,
+    page: Math.max(1, Number(page)),
+    limit: limitNum,
+    totalPages: Math.ceil(total / limitNum) || 0,
+  };
 };
 
 /**
@@ -885,6 +966,8 @@ const settleMarket = async (payload, req) => {
 
 module.exports = {
   placeBet,
+  getDescendantUserIds,
+  getAdminBetList,
   getUserBets,
   getTodayBets,
   getTodayOpenBets,

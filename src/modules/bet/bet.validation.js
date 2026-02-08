@@ -63,9 +63,37 @@ const validateSettleMarket = [
   body('eventId').notEmpty().withMessage('eventId is required'),
 ];
 
+const validateAdminBetList = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('status')
+    .optional()
+    .isIn(['open', 'settled'])
+    .withMessage('Invalid status'),
+  query('marketType')
+    .optional()
+    .isIn(validMarketTypes)
+    .withMessage('Invalid marketType'),
+  query('userId')
+    .optional()
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('limit must be between 1 and 100'),
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('page must be a positive integer'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
   validateSettleMarket,
+  validateAdminBetList,
 };
 

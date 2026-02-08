@@ -4,11 +4,11 @@ const { body, param, query } = require('express-validator');
  * Validation for adding amount to wallet
  */
 const validateAddAmount = [
-  body('userId')
-    .notEmpty()
-    .withMessage('User ID is required')
-    .isMongoId()
-    .withMessage('Invalid user ID format'),
+  // body('userId')
+  //   .notEmpty()
+  //   .withMessage('User ID is required')
+  //   .isMongoId()
+  //   .withMessage('Invalid user ID format'),
   body('amount')
     .notEmpty()
     .withMessage('Amount is required')
