@@ -246,6 +246,14 @@ const validateUpdateUser = [
     .optional()
     .isBoolean()
     .withMessage('isActive must be a boolean')
+    ,
+
+  // Optional opening balance when creating a new user.
+  // This will be used to fund the new user's wallet from the creator's wallet.
+  body('openingBalance')
+    .optional()
+    .isFloat({ min: 0, max: 9999999999 })
+    .withMessage('openingBalance must be a number between 0 and 9999999999')
 ];
 
 // Admin change password validation

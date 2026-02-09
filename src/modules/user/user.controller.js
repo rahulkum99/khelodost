@@ -122,6 +122,32 @@ const createUser = async (req, res) => {
   try {
     const result = await authService.register(req.body, req.userId);
 
+    const openingBalanceRaw = req.body.openingBalance;
+    const openingBalance = openingBalanceRaw !== undefined ? Number(openingBalanceRaw) : 0;
+
+    // If openingBalance is provided and > 0, transfer it from creator's wallet to new user's wallet
+    if (openingBalance > 0) {
+      try {
+        await walletService.transferAmount(
+          req.userId,                 // from creator (admin) wallet
+          result.user._id,            // to new user's wallet
+          openingBalance,
+          req.userId,                 // performedBy
+          'Opening balance at user creation',
+          req
+        );
+      } catch (walletError) {
+        // User is created but opening balance transfer failed (e.g. insufficient balance)
+        return res.status(400).json({
+          success: false,
+          message: walletError.message || 'User created but failed to transfer opening balance from admin wallet',
+          data: {
+            user: result.user,
+          },
+        });
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'User created successfully',
