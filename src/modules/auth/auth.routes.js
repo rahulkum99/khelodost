@@ -72,6 +72,7 @@ router.get('/password-change-history', authController.getPasswordChangeHistory);
 
 // Activity Log routes
 router.get('/activity-logs', activityLogController.getActivityLogs);
+router.get('/activity-logs/user', activityLogController.getUserActivityLogsForAdmin);
 router.get('/account-statement', activityLogController.getAccountStatement);
 
 module.exports = router;

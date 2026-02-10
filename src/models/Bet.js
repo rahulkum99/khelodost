@@ -161,6 +161,95 @@ const betSchema = new mongoose.Schema(
 betSchema.index({ eventId: 1, marketId: 1, marketType: 1 });
 betSchema.index({ userId: 1, createdAt: -1 });
 
+/**
+ * User-wise bet list (filters + pagination)
+ *
+ * @param {string|mongoose.Types.ObjectId} userId
+ * @param {object} query
+ * @returns {Promise<{bets: any[], total: number, page: number, limit: number, totalPages: number}>}
+ */
+betSchema.statics.getUserWiseBetList = async function getUserWiseBetList(userId, query = {}) {
+  const BetModel = this;
+
+  const {
+    sport,
+    status,
+    marketType,
+    eventId,
+    marketId,
+    settlementResult,
+    from, // ISO date string
+    to,   // ISO date string
+    page = 1,
+    limit = 50,
+    includeEventJsonStamp = false,
+    populateUser = false,
+  } = query || {};
+
+  const userObjectId =
+    userId && mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId instanceof mongoose.Types.ObjectId
+        ? userId
+        : null;
+
+  if (!userObjectId) {
+    throw new Error('Invalid userId');
+  }
+
+  const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const pageNum = Math.max(Number(page) || 1, 1);
+  const skip = (pageNum - 1) * limitNum;
+
+  const filter = { userId: userObjectId };
+  if (sport) filter.sport = sport;
+  if (status) filter.status = status;
+  if (marketType) filter.marketType = marketType;
+  if (eventId) filter.eventId = String(eventId);
+  if (marketId) filter.marketId = String(marketId);
+  if (settlementResult) filter.settlementResult = settlementResult;
+
+  if (from || to) {
+    const createdAt = {};
+    if (from) {
+      const fromDate = new Date(from);
+      if (!Number.isNaN(fromDate.getTime())) createdAt.$gte = fromDate;
+    }
+    if (to) {
+      const toDate = new Date(to);
+      if (!Number.isNaN(toDate.getTime())) createdAt.$lte = toDate;
+    }
+    if (Object.keys(createdAt).length) {
+      filter.createdAt = createdAt;
+    }
+  }
+
+  const projection = includeEventJsonStamp ? undefined : '-eventJsonStamp';
+
+  let findQuery = BetModel.find(filter)
+    .select(projection)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNum);
+
+  if (populateUser) {
+    findQuery = findQuery.populate('userId', 'username name role');
+  }
+
+  const [bets, total] = await Promise.all([
+    findQuery.lean(),
+    BetModel.countDocuments(filter),
+  ]);
+
+  return {
+    bets,
+    total,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.ceil(total / limitNum) || 0,
+  };
+};
+
 const Bet = mongoose.model('Bet', betSchema);
 
 Bet.MARKET_TYPES = MARKET_TYPES;
