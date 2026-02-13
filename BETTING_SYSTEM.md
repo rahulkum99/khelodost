@@ -508,7 +508,7 @@ curl -X POST http://localhost:5000/api/bets/place \
 ### Example 3: Admin Settle MATCH_ODDS Market
 ```bash
 curl -X POST http://localhost:5000/api/bets/settle \
-  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "X-Api-Key: YOUR_INTERNAL_SETTLEMENT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "marketType": "match_odds",

@@ -6,9 +6,18 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireMinRole } = require('../../middlewares/authorize.middleware');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
+const { settlementInternalAuth } = require('../../middlewares/settlementAuth.middleware');
 
 // Apply rate limiting to all routes
 router.use(apiLimiter);
+
+// Settlement endpoint (server-to-server): protected by internal API key/IP only
+router.post('/settle',
+  settlementInternalAuth,
+  ...betValidation.validateSettleMarket,
+  betController.handleValidationErrors,
+  betController.settleMarket
+);
 
 // All bet routes require authentication
 router.use(authenticate);
@@ -56,13 +65,6 @@ router.get('/admin/users/:userId/bets',
   ...betValidation.validateAdminUserBetList,
   betController.handleValidationErrors,
   betController.getAdminUserBets
-);
-
-// Settle market
-router.post('/settle',
-  ...betValidation.validateSettleMarket,
-  betController.handleValidationErrors,
-  betController.settleMarket
 );
 
 module.exports = router;
