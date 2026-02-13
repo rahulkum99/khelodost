@@ -1,4 +1,4 @@
-const { body, query } = require('express-validator');
+const { body, query, param } = require('express-validator');
 const Bet = require('../../models/Bet');
 
 const validMarketTypes = Object.values(Bet.MARKET_TYPES);
@@ -90,10 +90,38 @@ const validateAdminBetList = [
     .withMessage('page must be a positive integer'),
 ];
 
+// Admin: get bets for a specific userId (path param), plus optional filters + pagination
+const validateAdminUserBetList = [
+  param('userId')
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('status')
+    .optional()
+    .isIn(['open', 'settled'])
+    .withMessage('Invalid status'),
+  query('marketType')
+    .optional()
+    .isIn(validMarketTypes)
+    .withMessage('Invalid marketType'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('limit must be between 1 and 100'),
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('page must be a positive integer'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
   validateSettleMarket,
   validateAdminBetList,
+  validateAdminUserBetList,
 };
 

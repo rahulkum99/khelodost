@@ -108,6 +108,26 @@ const getAdminBetList = async (req, res) => {
   }
 };
 
+// Admin: fetch bets for a specific user (hierarchy enforced in service)
+const getAdminUserBets = async (req, res) => {
+  try {
+    const data = await betService.getAdminBetList(req.userId, req.user.role, {
+      ...req.query,
+      userId: req.params.userId,
+    });
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      message: err.message || 'Failed to fetch user bets',
+    });
+  }
+};
+
 // Simple live markets composition from cached sports data
 const {
   getLatestCricketData,
@@ -149,6 +169,7 @@ module.exports = {
   getTodayOpenBets,
   settleMarket,
   getAdminBetList,
+  getAdminUserBets,
   getLiveMarkets,
 };
 

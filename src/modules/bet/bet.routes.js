@@ -51,6 +51,13 @@ router.get('/admin/bet-list',
   betController.getAdminBetList
 );
 
+// Admin: user-wise bet list (filtered by hierarchy)
+router.get('/admin/users/:userId/bets',
+  ...betValidation.validateAdminUserBetList,
+  betController.handleValidationErrors,
+  betController.getAdminUserBets
+);
+
 // Settle market
 router.post('/settle',
   ...betValidation.validateSettleMarket,
