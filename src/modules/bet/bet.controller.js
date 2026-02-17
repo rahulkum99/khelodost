@@ -77,6 +77,36 @@ const getTodayOpenBets = async (req, res) => {
   }
 };
 
+const getMyProfitLoss = async (req, res) => {
+  try {
+    const data = await betService.getUserProfitLossByEvent(req.userId, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to fetch profit/loss',
+    });
+  }
+};
+
+const getMyEventProfitLoss = async (req, res) => {
+  try {
+    const data = await betService.getUserProfitLossByEventMarkets(req.userId, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to fetch event profit/loss',
+    });
+  }
+};
+
 const settleMarket = async (req, res) => {
   try {
     await betService.settleMarket(req.body, req);
@@ -167,6 +197,8 @@ module.exports = {
   getMyBets,
   getTodayBets,
   getTodayOpenBets,
+  getMyProfitLoss,
+  getMyEventProfitLoss,
   settleMarket,
   getAdminBetList,
   getAdminUserBets,

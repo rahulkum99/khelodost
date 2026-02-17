@@ -35,6 +35,18 @@ router.get('/my-bets',
   betController.getMyBets
 );
 
+router.get('/my-profit-loss',
+  ...betValidation.validateGetMyProfitLoss,
+  betController.handleValidationErrors,
+  betController.getMyProfitLoss
+);
+
+router.get('/my-event-profit-loss',
+  ...betValidation.validateGetMyEventProfitLoss,
+  betController.handleValidationErrors,
+  betController.getMyEventProfitLoss
+);
+
 router.get('/today-bets',
   ...betValidation.validateGetMyBets,
   betController.handleValidationErrors,

@@ -192,6 +192,9 @@ const settleExposure = async ({
   wallet.lastTransactionAt = new Date();
   await wallet.save(sessionOpts(session));
 
+  // Base description for ledger (e.g. "MATCH_ODDS settlement", "BOOKMAKERS_FANCY settlement")
+  const baseDesc = description || 'Bet settlement';
+
   // Always create at least one transaction to unlock exposure
   const txs = [];
 
@@ -204,7 +207,7 @@ const settleExposure = async ({
     balanceAfter,
     currency: wallet.currency,
     status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
-    description: description || 'Exposure unlocked on bet settlement',
+    description: `${baseDesc} — exposure returned`,
     performedBy: userId,
     metadata: {
       type: 'bet_exposure_unlock',
@@ -230,9 +233,7 @@ const settleExposure = async ({
       balanceAfter,
       currency: wallet.currency,
       status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
-      description:
-        description ||
-        (isWin ? 'Bet winnings credited' : 'Bet loss debited'),
+      description: isWin ? `${baseDesc} — win` : `${baseDesc} — loss`,
       performedBy: userId,
       metadata: {
         type: 'bet_settlement',
@@ -539,6 +540,360 @@ const getUserBets = async (userId, query = {}) => {
     .limit(Number(limit));
 
   return bets;
+};
+
+/**
+ * User P/L grouped by event (settled bets only)
+ * Returns: [{ sport, eventId, eventName, profitLoss, result, display, bets, lastSettledAt }]
+ */
+const getUserProfitLossByEvent = async (userId, query = {}) => {
+  const { sport, from, to, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  const match = {
+    userId: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+    status: Bet.BET_STATUS.SETTLED,
+  };
+
+  if (sport) match.sport = sport;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+
+  if (fromDate || toDate) {
+    match.settledAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
+    // If both were invalid, remove filter
+    if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+  }
+
+  const matchOddsLike = [
+    Bet.MARKET_TYPES.MATCH_ODDS,
+    Bet.MARKET_TYPES.TIED_MATCH,
+    Bet.MARKET_TYPES.TOS_MARKET,
+    Bet.MARKET_TYPES.OVER_BY_OVER,
+    Bet.MARKET_TYPES.ODDEVEN,
+  ];
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketType: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        settlementResult: 1,
+        settledAt: 1,
+      },
+    },
+    {
+      $addFields: {
+        netWinAmount: {
+          $switch: {
+            branches: [
+              // VOID (or missing) => 0
+              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.VOID] }, then: 0 },
+              { case: { $eq: ['$settlementResult', null] }, then: 0 },
+              // LOST => -exposure
+              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.LOST] }, then: { $multiply: ['$exposure', -1] } },
+              // WON => compute per marketType
+              {
+                case: { $eq: ['$settlementResult', Bet.BET_RESULT.WON] },
+                then: {
+                  $switch: {
+                    branches: [
+                      // MATCH_ODDS-like: back => (odds-1)*stake, lay => stake
+                      {
+                        case: { $in: ['$marketType', matchOddsLike] },
+                        then: {
+                          $switch: {
+                            branches: [
+                              {
+                                case: { $eq: ['$betType', 'back'] },
+                                then: {
+                                  $multiply: [
+                                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                                    '$stake',
+                                  ],
+                                },
+                              },
+                              { case: { $eq: ['$betType', 'lay'] }, then: '$stake' },
+                            ],
+                            default: '$stake',
+                          },
+                        },
+                      },
+                      // BOOKMAKERS_FANCY: yes => stake*rate/100, no => 0
+                      {
+                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                        then: {
+                          $switch: {
+                            branches: [
+                              {
+                                case: { $eq: ['$betType', 'yes'] },
+                                then: {
+                                  $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100],
+                                },
+                              },
+                              { case: { $eq: ['$betType', 'no'] }, then: 0 },
+                            ],
+                            default: 0,
+                          },
+                        },
+                      },
+                      // KADO: stake*(multiplier-1), multiplier defaults to 2 (rate used as multiplier)
+                      {
+                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
+                        then: {
+                          $let: {
+                            vars: { multiplier: { $ifNull: ['$rate', 2] } },
+                            in: { $multiply: ['$stake', { $subtract: ['$$multiplier', 1] }] },
+                          },
+                        },
+                      },
+                      // LINE / METER / FANCY: winner profit = stake
+                      {
+                        case: {
+                          $in: [
+                            '$marketType',
+                            [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
+                          ],
+                        },
+                        then: '$stake',
+                      },
+                    ],
+                    default: '$stake',
+                  },
+                },
+              },
+            ],
+            default: 0,
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: { sport: '$sport', eventId: '$eventId', eventName: '$eventName' },
+        profitLoss: { $sum: '$netWinAmount' },
+        bets: { $sum: 1 },
+        lastSettledAt: { $max: '$settledAt' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        profitLoss: { $round: ['$profitLoss', 2] },
+        bets: 1,
+        lastSettledAt: 1,
+      },
+    },
+    { $sort: { lastSettledAt: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows.map((r) => {
+    const profitLoss = Number(r.profitLoss || 0);
+    const settlementResult =
+      profitLoss > 0 ? Bet.BET_RESULT.WON : profitLoss < 0 ? Bet.BET_RESULT.LOST : Bet.BET_RESULT.VOID;
+    const absAmount = Math.abs(profitLoss);
+    return {
+      ...r,
+      result: settlementResult,
+      display: `${absAmount} ${settlementResult}`,
+    };
+  });
+};
+
+/**
+ * User P/L by market within a single event
+ * Returns: [{ sport, eventId, eventName, marketId, marketName, profitLoss, result, display, bets, lastSettledAt }]
+ */
+const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
+  const { sport, eventId, from, to, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  if (!eventId) {
+    throw betError('VALIDATION_ERROR', 'eventId is required');
+  }
+
+  const match = {
+    userId: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+    status: Bet.BET_STATUS.SETTLED,
+    eventId: String(eventId),
+  };
+
+  if (sport) match.sport = sport;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+
+  if (fromDate || toDate) {
+    match.settledAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
+    if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+  }
+
+  const matchOddsLike = [
+    Bet.MARKET_TYPES.MATCH_ODDS,
+    Bet.MARKET_TYPES.TIED_MATCH,
+    Bet.MARKET_TYPES.TOS_MARKET,
+    Bet.MARKET_TYPES.OVER_BY_OVER,
+    Bet.MARKET_TYPES.ODDEVEN,
+  ];
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketId: 1,
+        marketName: 1,
+        marketType: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        settlementResult: 1,
+        settledAt: 1,
+      },
+    },
+    {
+      $addFields: {
+        netWinAmount: {
+          $switch: {
+            branches: [
+              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.VOID] }, then: 0 },
+              { case: { $eq: ['$settlementResult', null] }, then: 0 },
+              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.LOST] }, then: { $multiply: ['$exposure', -1] } },
+              {
+                case: { $eq: ['$settlementResult', Bet.BET_RESULT.WON] },
+                then: {
+                  $switch: {
+                    branches: [
+                      {
+                        case: { $in: ['$marketType', matchOddsLike] },
+                        then: {
+                          $switch: {
+                            branches: [
+                              {
+                                case: { $eq: ['$betType', 'back'] },
+                                then: {
+                                  $multiply: [
+                                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                                    '$stake',
+                                  ],
+                                },
+                              },
+                              { case: { $eq: ['$betType', 'lay'] }, then: '$stake' },
+                            ],
+                            default: '$stake',
+                          },
+                        },
+                      },
+                      {
+                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                        then: {
+                          $switch: {
+                            branches: [
+                              {
+                                case: { $eq: ['$betType', 'yes'] },
+                                then: {
+                                  $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100],
+                                },
+                              },
+                              { case: { $eq: ['$betType', 'no'] }, then: 0 },
+                            ],
+                            default: 0,
+                          },
+                        },
+                      },
+                      {
+                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
+                        then: {
+                          $let: {
+                            vars: { multiplier: { $ifNull: ['$rate', 2] } },
+                            in: { $multiply: ['$stake', { $subtract: ['$$multiplier', 1] }] },
+                          },
+                        },
+                      },
+                      {
+                        case: {
+                          $in: [
+                            '$marketType',
+                            [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
+                          ],
+                        },
+                        then: '$stake',
+                      },
+                    ],
+                    default: '$stake',
+                  },
+                },
+              },
+            ],
+            default: 0,
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          sport: '$sport',
+          eventId: '$eventId',
+          eventName: '$eventName',
+          marketId: '$marketId',
+          marketName: '$marketName',
+        },
+        profitLoss: { $sum: '$netWinAmount' },
+        bets: { $sum: 1 },
+        lastSettledAt: { $max: '$settledAt' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        marketId: '$_id.marketId',
+        marketName: '$_id.marketName',
+        profitLoss: { $round: ['$profitLoss', 2] },
+        bets: 1,
+        lastSettledAt: 1,
+      },
+    },
+    { $sort: { lastSettledAt: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows.map((r) => {
+    const profitLoss = Number(r.profitLoss || 0);
+    const settlementResult =
+      profitLoss > 0 ? Bet.BET_RESULT.WON : profitLoss < 0 ? Bet.BET_RESULT.LOST : Bet.BET_RESULT.VOID;
+    const absAmount = Math.abs(profitLoss);
+    return {
+      ...r,
+      result: settlementResult,
+      display: `${absAmount} ${settlementResult}`,
+      settlementtime: r.lastSettledAt,
+    };
+  });
 };
 
 /**
@@ -969,6 +1324,8 @@ module.exports = {
   getDescendantUserIds,
   getAdminBetList,
   getUserBets,
+  getUserProfitLossByEvent,
+  getUserProfitLossByEventMarkets,
   getTodayBets,
   getTodayOpenBets,
   settleMarket,

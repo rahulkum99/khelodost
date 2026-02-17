@@ -55,6 +55,52 @@ const validateGetMyBets = [
     .withMessage('Invalid marketType'),
 ];
 
+const validateGetMyProfitLoss = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  // ISO dates, e.g. 2026-02-17 or 2026-02-17T12:00:00Z
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
+const validateGetMyEventProfitLoss = [
+  query('eventId')
+    .notEmpty()
+    .withMessage('eventId is required'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
 const validateSettleMarket = [
   body('marketType')
     .isIn(validMarketTypes)
@@ -120,6 +166,8 @@ const validateAdminUserBetList = [
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
+  validateGetMyProfitLoss,
+  validateGetMyEventProfitLoss,
   validateSettleMarket,
   validateAdminBetList,
   validateAdminUserBetList,
