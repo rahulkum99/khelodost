@@ -527,12 +527,14 @@ const getAdminBetList = async (adminUserId, adminRole, query = {}) => {
  * Get bets for current user
  */
 const getUserBets = async (userId, query = {}) => {
-  const { sport, status, marketType, limit = 50 } = query;
+  const { sport, status, marketType, eventId, marketId, limit = 50 } = query;
 
   const filter = { userId };
   if (sport) filter.sport = sport;
   if (status) filter.status = status;
   if (marketType) filter.marketType = marketType;
+  if (eventId) filter.eventId = String(eventId);
+  if (marketId) filter.marketId = String(marketId);
 
   const bets = await Bet.find(filter)
     .select('-eventJsonStamp')
@@ -764,12 +766,14 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
         marketName: 1,
         marketType: 1,
         betType: 1,
+        selectionName: 1,
         stake: 1,
         exposure: 1,
         odds: 1,
         rate: 1,
         settlementResult: 1,
         settledAt: 1,
+        createdAt: 1,
       },
     },
     {
@@ -863,6 +867,11 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
         profitLoss: { $sum: '$netWinAmount' },
         bets: { $sum: 1 },
         lastSettledAt: { $max: '$settledAt' },
+        firstSelectionName: { $first: '$selectionName' },
+        firstBetType: { $first: '$betType' },
+        firstOdds: { $first: '$odds' },
+        firstStake: { $first: '$stake' },
+        firstPlacedAt: { $first: '$createdAt' },
       },
     },
     {
@@ -876,6 +885,11 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
         profitLoss: { $round: ['$profitLoss', 2] },
         bets: 1,
         lastSettledAt: 1,
+        selectionName: '$firstSelectionName',
+        betType: '$firstBetType',
+        odd: '$firstOdds',
+        stake: '$firstStake',
+        placedDate: '$firstPlacedAt',
       },
     },
     { $sort: { lastSettledAt: -1 } },
