@@ -171,6 +171,67 @@ const validateAdminUserBetList = [
     .withMessage('page must be a positive integer'),
 ];
 
+// Admin: get user profit/loss grouped by event
+const validateAdminUserProfitLoss = [
+  query('userId')
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
+// Admin: get user profit/loss by markets/bets within an event
+const validateAdminUserEventProfitLoss = [
+  query('userId')
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('eventId')
+    .notEmpty()
+    .withMessage('eventId is required'),
+  query('marketId')
+    .optional()
+    .notEmpty()
+    .withMessage('marketId must be non-empty if provided'),
+  query('by')
+    .optional()
+    .isIn(['market', 'bet'])
+    .withMessage('by must be market or bet'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
@@ -179,5 +240,7 @@ module.exports = {
   validateSettleMarket,
   validateAdminBetList,
   validateAdminUserBetList,
+  validateAdminUserProfitLoss,
+  validateAdminUserEventProfitLoss,
 };
 

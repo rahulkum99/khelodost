@@ -158,6 +158,40 @@ const getAdminUserBets = async (req, res) => {
   }
 };
 
+// Admin: get user profit/loss grouped by event
+const getAdminUserProfitLoss = async (req, res) => {
+  try {
+    const data = await betService.getAdminUserProfitLoss(req.userId, req.user.role, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      message: err.message || 'Failed to fetch user profit/loss',
+    });
+  }
+};
+
+// Admin: get user profit/loss by markets/bets within an event
+const getAdminUserEventProfitLoss = async (req, res) => {
+  try {
+    const data = await betService.getAdminUserEventProfitLoss(req.userId, req.user.role, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      message: err.message || 'Failed to fetch user event profit/loss',
+    });
+  }
+};
+
 // Simple live markets composition from cached sports data
 const {
   getLatestCricketData,
@@ -202,6 +236,8 @@ module.exports = {
   settleMarket,
   getAdminBetList,
   getAdminUserBets,
+  getAdminUserProfitLoss,
+  getAdminUserEventProfitLoss,
   getLiveMarkets,
 };
 

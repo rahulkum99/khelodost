@@ -79,4 +79,18 @@ router.get('/admin/users/:userId/bets',
   betController.getAdminUserBets
 );
 
+// Admin: get user profit/loss grouped by event
+router.get('/admin/user-profit-loss',
+  ...betValidation.validateAdminUserProfitLoss,
+  betController.handleValidationErrors,
+  betController.getAdminUserProfitLoss
+);
+
+// Admin: get user profit/loss by markets/bets within an event
+router.get('/admin/user-event-profit-loss',
+  ...betValidation.validateAdminUserEventProfitLoss,
+  betController.handleValidationErrors,
+  betController.getAdminUserEventProfitLoss
+);
+
 module.exports = router;

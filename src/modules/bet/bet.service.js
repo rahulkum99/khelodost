@@ -1411,6 +1411,70 @@ const settleMarket = async (payload, req) => {
   });
 };
 
+/**
+ * Admin: Get user profit/loss grouped by event (hierarchy enforced)
+ * Similar to getUserProfitLossByEvent but admin can specify userId
+ */
+const getAdminUserProfitLoss = async (adminUserId, adminRole, query = {}) => {
+  const { userId, sport, from, to, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  if (!userId) {
+    throw betError('VALIDATION_ERROR', 'userId is required');
+  }
+
+  // Check hierarchy
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  const requestedId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+  if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+    throw betError('FORBIDDEN', 'You can only view profit/loss for users in your hierarchy', 403);
+  }
+
+  // Use the same logic as getUserProfitLossByEvent but with the requested userId
+  return await getUserProfitLossByEvent(requestedId, { sport, from, to, limit: limitNum });
+};
+
+/**
+ * Admin: Get user profit/loss by markets/bets within an event (hierarchy enforced)
+ * Similar to getUserProfitLossByEventMarkets but admin can specify userId
+ */
+const getAdminUserEventProfitLoss = async (adminUserId, adminRole, query = {}) => {
+  const { userId, sport, eventId, marketId, from, to, limit = 200, by } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  if (!userId) {
+    throw betError('VALIDATION_ERROR', 'userId is required');
+  }
+
+  if (!eventId) {
+    throw betError('VALIDATION_ERROR', 'eventId is required');
+  }
+
+  // Check hierarchy
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  const requestedId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+  if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+    throw betError('FORBIDDEN', 'You can only view profit/loss for users in your hierarchy', 403);
+  }
+
+  // Use the same logic as getUserProfitLossByEventMarkets but with the requested userId
+  return await getUserProfitLossByEventMarkets(requestedId, { sport, eventId, marketId, from, to, limit: limitNum, by });
+};
+
 module.exports = {
   placeBet,
   getDescendantUserIds,
@@ -1418,6 +1482,8 @@ module.exports = {
   getUserBets,
   getUserProfitLossByEvent,
   getUserProfitLossByEventMarkets,
+  getAdminUserProfitLoss,
+  getAdminUserEventProfitLoss,
   getTodayBets,
   getTodayOpenBets,
   settleMarket,
