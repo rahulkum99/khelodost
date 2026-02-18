@@ -717,12 +717,102 @@ const getUserProfitLossByEvent = async (userId, query = {}) => {
   });
 };
 
+const matchOddsLikeForPl = () => [
+  Bet.MARKET_TYPES.MATCH_ODDS,
+  Bet.MARKET_TYPES.TIED_MATCH,
+  Bet.MARKET_TYPES.TOS_MARKET,
+  Bet.MARKET_TYPES.OVER_BY_OVER,
+  Bet.MARKET_TYPES.ODDEVEN,
+];
+
+/** Add netWinAmount per bet (for aggregation pipelines) */
+const netWinAmountAddFields = (matchOddsLike) => ({
+  $addFields: {
+    netWinAmount: {
+      $switch: {
+        branches: [
+          { case: { $eq: ['$settlementResult', Bet.BET_RESULT.VOID] }, then: 0 },
+          { case: { $eq: ['$settlementResult', null] }, then: 0 },
+          { case: { $eq: ['$settlementResult', Bet.BET_RESULT.LOST] }, then: { $multiply: ['$exposure', -1] } },
+          {
+            case: { $eq: ['$settlementResult', Bet.BET_RESULT.WON] },
+            then: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $in: ['$marketType', matchOddsLike] },
+                    then: {
+                      $switch: {
+                        branches: [
+                          {
+                            case: { $eq: ['$betType', 'back'] },
+                            then: {
+                              $multiply: [
+                                { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                                '$stake',
+                              ],
+                            },
+                          },
+                          { case: { $eq: ['$betType', 'lay'] }, then: '$stake' },
+                        ],
+                        default: '$stake',
+                      },
+                    },
+                  },
+                  {
+                    case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                    then: {
+                      $switch: {
+                        branches: [
+                          {
+                            case: { $eq: ['$betType', 'yes'] },
+                            then: {
+                              $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100],
+                            },
+                          },
+                          { case: { $eq: ['$betType', 'no'] }, then: 0 },
+                        ],
+                        default: 0,
+                      },
+                    },
+                  },
+                  {
+                    case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
+                    then: {
+                      $let: {
+                        vars: { multiplier: { $ifNull: ['$rate', 2] } },
+                        in: { $multiply: ['$stake', { $subtract: ['$$multiplier', 1] }] },
+                      },
+                    },
+                  },
+                  {
+                    case: {
+                      $in: [
+                        '$marketType',
+                        [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
+                      ],
+                    },
+                    then: '$stake',
+                  },
+                ],
+                default: '$stake',
+              },
+            },
+          },
+        ],
+        default: 0,
+      },
+    },
+  },
+});
+
 /**
- * User P/L by market within a single event
- * Returns: [{ sport, eventId, eventName, marketId, marketName, profitLoss, result, display, bets, lastSettledAt }]
+ * User P/L by market within a single event.
+ * Query.by === 'bet' → one row per bet (selectionName, betType, odd, stake, placedDate, profitLoss, result, display, settlementtime).
+ * Otherwise → one row per market (aggregated profitLoss, bets count, first selection/betType/odd/stake/placedDate).
  */
 const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
-  const { sport, eventId, from, to, limit = 200 } = query;
+  const { sport, eventId, from, to, limit = 200, by } = query;
   const limitNum = Math.min(Number(limit) || 200, 500);
 
   if (!eventId) {
@@ -736,6 +826,7 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
   };
 
   if (sport) match.sport = sport;
+  if (query.marketId) match.marketId = String(query.marketId);
 
   const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
   const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
@@ -747,13 +838,78 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
     if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
   }
 
-  const matchOddsLike = [
-    Bet.MARKET_TYPES.MATCH_ODDS,
-    Bet.MARKET_TYPES.TIED_MATCH,
-    Bet.MARKET_TYPES.TOS_MARKET,
-    Bet.MARKET_TYPES.OVER_BY_OVER,
-    Bet.MARKET_TYPES.ODDEVEN,
-  ];
+  const matchOddsLike = matchOddsLikeForPl();
+
+  // Default: one row per bet (separate each bet settlement). Use by=market for aggregated per market.
+  if (by !== 'market') {
+    const rows = await Bet.aggregate([
+      { $match: match },
+      {
+        $project: {
+          sport: 1,
+          eventId: 1,
+          eventName: 1,
+          marketId: 1,
+          marketName: 1,
+          selectionName: 1,
+          betType: 1,
+          stake: 1,
+          exposure: 1,
+          odds: 1,
+          rate: 1,
+          settlementResult: 1,
+          settledAt: 1,
+          createdAt: 1,
+          marketType: 1,
+        },
+      },
+      netWinAmountAddFields(matchOddsLike),
+      {
+        $project: {
+          _id: 0,
+          sport: 1,
+          eventId: 1,
+          eventName: 1,
+          marketId: 1,
+          marketName: 1,
+          selectionName: 1,
+          betType: 1,
+          odd: '$odds',
+          stake: 1,
+          placedDate: '$createdAt',
+          profitLoss: { $round: ['$netWinAmount', 2] },
+          result: '$settlementResult',
+          lastSettledAt: '$settledAt',
+        },
+      },
+      { $sort: { lastSettledAt: -1 } },
+      { $limit: limitNum },
+    ]);
+
+    return rows.map((r) => {
+      const profitLoss = Number(r.profitLoss != null ? r.profitLoss : 0);
+      const result = r.result || (profitLoss > 0 ? Bet.BET_RESULT.WON : profitLoss < 0 ? Bet.BET_RESULT.LOST : Bet.BET_RESULT.VOID);
+      const absAmount = Math.abs(profitLoss);
+      return {
+        sport: r.sport,
+        eventId: r.eventId,
+        eventName: r.eventName,
+        marketId: r.marketId,
+        marketName: r.marketName,
+        selectionName: r.selectionName,
+        betType: (r.betType || '').toLowerCase(),
+        odd: r.odd,
+        stake: r.stake,
+        placedDate: r.placedDate,
+        bets: 1,
+        lastSettledAt: r.lastSettledAt,
+        profitLoss,
+        result,
+        display: `${absAmount} ${result}`,
+        settlementtime: r.lastSettledAt,
+      };
+    });
+  }
 
   const rows = await Bet.aggregate([
     { $match: match },
@@ -776,85 +932,7 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
         createdAt: 1,
       },
     },
-    {
-      $addFields: {
-        netWinAmount: {
-          $switch: {
-            branches: [
-              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.VOID] }, then: 0 },
-              { case: { $eq: ['$settlementResult', null] }, then: 0 },
-              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.LOST] }, then: { $multiply: ['$exposure', -1] } },
-              {
-                case: { $eq: ['$settlementResult', Bet.BET_RESULT.WON] },
-                then: {
-                  $switch: {
-                    branches: [
-                      {
-                        case: { $in: ['$marketType', matchOddsLike] },
-                        then: {
-                          $switch: {
-                            branches: [
-                              {
-                                case: { $eq: ['$betType', 'back'] },
-                                then: {
-                                  $multiply: [
-                                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
-                                    '$stake',
-                                  ],
-                                },
-                              },
-                              { case: { $eq: ['$betType', 'lay'] }, then: '$stake' },
-                            ],
-                            default: '$stake',
-                          },
-                        },
-                      },
-                      {
-                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
-                        then: {
-                          $switch: {
-                            branches: [
-                              {
-                                case: { $eq: ['$betType', 'yes'] },
-                                then: {
-                                  $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100],
-                                },
-                              },
-                              { case: { $eq: ['$betType', 'no'] }, then: 0 },
-                            ],
-                            default: 0,
-                          },
-                        },
-                      },
-                      {
-                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
-                        then: {
-                          $let: {
-                            vars: { multiplier: { $ifNull: ['$rate', 2] } },
-                            in: { $multiply: ['$stake', { $subtract: ['$$multiplier', 1] }] },
-                          },
-                        },
-                      },
-                      {
-                        case: {
-                          $in: [
-                            '$marketType',
-                            [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
-                          ],
-                        },
-                        then: '$stake',
-                      },
-                    ],
-                    default: '$stake',
-                  },
-                },
-              },
-            ],
-            default: 0,
-          },
-        },
-      },
-    },
+    netWinAmountAddFields(matchOddsLike),
     {
       $group: {
         _id: {

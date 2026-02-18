@@ -81,6 +81,14 @@ const validateGetMyEventProfitLoss = [
   query('eventId')
     .notEmpty()
     .withMessage('eventId is required'),
+  query('marketId')
+    .optional()
+    .notEmpty()
+    .withMessage('marketId must be non-empty if provided'),
+  query('by')
+    .optional()
+    .isIn(['market', 'bet'])
+    .withMessage('by must be market or bet'),
   query('sport')
     .optional()
     .isIn(['cricket', 'soccer', 'tennis'])
