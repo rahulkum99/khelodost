@@ -93,4 +93,18 @@ router.get('/admin/user-event-profit-loss',
   betController.getAdminUserEventProfitLoss
 );
 
+// Admin: hierarchy-wide profit/loss by event (all users under admin)
+router.get('/admin/hierarchy-profit-loss',
+  ...betValidation.validateAdminHierarchyProfitLossByEvent,
+  betController.handleValidationErrors,
+  betController.getAdminHierarchyProfitLossByEvent
+);
+
+// Admin: hierarchy-wide settled bets (per bet rows, includes username)
+router.get('/admin/hierarchy-settled-bets',
+  ...betValidation.validateAdminHierarchySettledBets,
+  betController.handleValidationErrors,
+  betController.getAdminHierarchySettledBets
+);
+
 module.exports = router;

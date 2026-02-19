@@ -1475,6 +1475,220 @@ const getAdminUserEventProfitLoss = async (adminUserId, adminRole, query = {}) =
   return await getUserProfitLossByEventMarkets(requestedId, { sport, eventId, marketId, from, to, limit: limitNum, by });
 };
 
+/**
+ * Admin: Get profit/loss by event for ALL users in admin's hierarchy
+ * Filters: optional sport, from, to, limit
+ * Returns array like:
+ * [{ bets, lastSettledAt, sport, eventId, eventName, profitLoss }]
+ */
+const getAdminHierarchyProfitLossByEvent = async (adminUserId, adminRole, query = {}) => {
+  const { sport, from, to, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  // Determine which users this admin can see
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  if (!allowedUserIds || !allowedUserIds.length) {
+    return [];
+  }
+
+  const match = {
+    userId: { $in: allowedUserIds },
+    status: Bet.BET_STATUS.SETTLED,
+  };
+
+  if (sport) match.sport = sport;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+
+  if (fromDate || toDate) {
+    match.settledAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
+    if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+  }
+
+  const matchOddsLike = matchOddsLikeForPl();
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketType: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        settlementResult: 1,
+        settledAt: 1,
+      },
+    },
+    netWinAmountAddFields(matchOddsLike),
+    {
+      $group: {
+        _id: {
+          sport: '$sport',
+          eventId: '$eventId',
+          eventName: '$eventName',
+        },
+        profitLoss: { $sum: '$netWinAmount' },
+        bets: { $sum: 1 },
+        lastSettledAt: { $max: '$settledAt' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        profitLoss: { $round: ['$profitLoss', 2] },
+        bets: 1,
+        lastSettledAt: 1,
+      },
+    },
+    { $sort: { lastSettledAt: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows;
+};
+
+/**
+ * Admin: Settled bets list for ALL users in admin's hierarchy (per bet rows)
+ * Filters: optional sport, from, to, eventId, marketId, userId, limit
+ * Returns rows like:
+ * [{ sport, username, eventId, eventName, marketId, marketName, selectionName, betType, odd, stake,
+ *    placedDate, bets:1, lastSettledAt, profitLoss, result, display, settlementtime }]
+ */
+const getAdminHierarchySettledBets = async (adminUserId, adminRole, query = {}) => {
+  const { sport, from, to, eventId, marketId, userId, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  // Determine which users this admin can see
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  if (!allowedUserIds || !allowedUserIds.length) {
+    return [];
+  }
+
+  let targetUserIds = allowedUserIds;
+  if (userId) {
+    const requestedId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+    if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+      throw betError('FORBIDDEN', 'You can only view bets for users in your hierarchy', 403);
+    }
+    targetUserIds = [requestedId];
+  }
+
+  const match = {
+    userId: { $in: targetUserIds },
+    status: Bet.BET_STATUS.SETTLED,
+  };
+
+  if (sport) match.sport = sport;
+  if (eventId) match.eventId = String(eventId);
+  if (marketId) match.marketId = String(marketId);
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+  if (fromDate || toDate) {
+    match.settledAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
+    if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+  }
+
+  const matchOddsLike = matchOddsLikeForPl();
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketId: 1,
+        marketName: 1,
+        marketType: 1,
+        selectionName: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        settlementResult: 1,
+        settledAt: 1,
+        createdAt: 1,
+        username: '$user.username',
+      },
+    },
+    netWinAmountAddFields(matchOddsLike),
+    {
+      $project: {
+        _id: 0,
+        sport: 1,
+        username: 1,
+        eventId: 1,
+        eventName: 1,
+        marketId: 1,
+        marketName: 1,
+        selectionName: 1,
+        betType: 1,
+        odd: '$odds',
+        stake: 1,
+        placedDate: '$createdAt',
+        bets: { $literal: 1 },
+        lastSettledAt: '$settledAt',
+        profitLoss: { $round: ['$netWinAmount', 2] },
+        result: '$settlementResult',
+      },
+    },
+    { $sort: { lastSettledAt: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows.map((r) => {
+    const profitLoss = Number(r.profitLoss != null ? r.profitLoss : 0);
+    const result =
+      r.result || (profitLoss > 0 ? Bet.BET_RESULT.WON : profitLoss < 0 ? Bet.BET_RESULT.LOST : Bet.BET_RESULT.VOID);
+    const absAmount = Math.abs(profitLoss);
+    return {
+      ...r,
+      betType: (r.betType || '').toLowerCase(),
+      result,
+      display: `${absAmount} ${result}`,
+      settlementtime: r.lastSettledAt,
+    };
+  });
+};
+
 module.exports = {
   placeBet,
   getDescendantUserIds,
@@ -1484,6 +1698,8 @@ module.exports = {
   getUserProfitLossByEventMarkets,
   getAdminUserProfitLoss,
   getAdminUserEventProfitLoss,
+  getAdminHierarchyProfitLossByEvent,
+  getAdminHierarchySettledBets,
   getTodayBets,
   getTodayOpenBets,
   settleMarket,

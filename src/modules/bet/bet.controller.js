@@ -192,6 +192,40 @@ const getAdminUserEventProfitLoss = async (req, res) => {
   }
 };
 
+// Admin: get hierarchy-wide profit/loss by event (all users under admin)
+const getAdminHierarchyProfitLossByEvent = async (req, res) => {
+  try {
+    const data = await betService.getAdminHierarchyProfitLossByEvent(req.userId, req.user.role, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      message: err.message || 'Failed to fetch hierarchy profit/loss',
+    });
+  }
+};
+
+// Admin: hierarchy-wide settled bets list (per bet rows, includes username)
+const getAdminHierarchySettledBets = async (req, res) => {
+  try {
+    const data = await betService.getAdminHierarchySettledBets(req.userId, req.user.role, req.query);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      message: err.message || 'Failed to fetch hierarchy settled bets',
+    });
+  }
+};
+
 // Simple live markets composition from cached sports data
 const {
   getLatestCricketData,
@@ -238,6 +272,8 @@ module.exports = {
   getAdminUserBets,
   getAdminUserProfitLoss,
   getAdminUserEventProfitLoss,
+  getAdminHierarchyProfitLossByEvent,
+  getAdminHierarchySettledBets,
   getLiveMarkets,
 };
 

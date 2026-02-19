@@ -232,6 +232,62 @@ const validateAdminUserEventProfitLoss = [
     .withMessage('limit must be between 1 and 500'),
 ];
 
+// Admin: hierarchy-wide profit/loss by event (all users under admin)
+const validateAdminHierarchyProfitLossByEvent = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
+// Admin: hierarchy-wide settled bets list (per bet rows, includes username)
+const validateAdminHierarchySettledBets = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('eventId')
+    .optional()
+    .notEmpty()
+    .withMessage('eventId must be non-empty if provided'),
+  query('marketId')
+    .optional()
+    .notEmpty()
+    .withMessage('marketId must be non-empty if provided'),
+  query('userId')
+    .optional()
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
@@ -242,5 +298,7 @@ module.exports = {
   validateAdminUserBetList,
   validateAdminUserProfitLoss,
   validateAdminUserEventProfitLoss,
+  validateAdminHierarchyProfitLossByEvent,
+  validateAdminHierarchySettledBets,
 };
 
