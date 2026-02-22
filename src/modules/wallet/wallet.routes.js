@@ -5,6 +5,7 @@ const walletValidation = require('./wallet.validation');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireMinRole } = require('../../middlewares/authorize.middleware');
 const { canManageWallet } = require('../../middlewares/wallet.middleware');
+const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
 
