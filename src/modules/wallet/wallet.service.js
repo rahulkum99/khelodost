@@ -1,6 +1,6 @@
 const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
-const { User, ROLE_HIERARCHY } = require('../../models/User');
+const { User, ROLES, ROLE_HIERARCHY } = require('../../models/User');
 const mongoose = require('mongoose');
 const { withTransaction } = require('../../utils/transaction.helper');
 
@@ -531,6 +531,141 @@ const getWalletStats = async (userId) => {
   };
 };
 
+/**
+ * Get banking list for users created by the given admin: username, balance, exposer
+ * exposer = lockedBalance (amount locked in open bets)
+ */
+const getBankingUserList = async (createdByUserId) => {
+  const match = { role: ROLES.USER };
+  if (createdByUserId) {
+    match.createdBy = typeof createdByUserId === 'string' ? new mongoose.Types.ObjectId(createdByUserId) : createdByUserId;
+  }
+  const list = await User.aggregate([
+    { $match },
+    {
+      $lookup: {
+        from: 'wallets',
+        localField: '_id',
+        foreignField: 'user',
+        as: 'wallet',
+        pipeline: [{ $limit: 1 }]
+      }
+    },
+    {
+      $project: {
+        username: 1,
+        balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] },
+        exposer: { $ifNull: [{ $arrayElemAt: ['$wallet.lockedBalance', 0] }, 0] }
+      }
+    },
+    { $sort: { username: 1 } }
+  ]);
+  return list.map(({ username, balance, exposer }) => ({
+    username,
+    balance: Math.round((balance || 0) * 100) / 100,
+    exposer: Math.round((exposer || 0) * 100) / 100
+  }));
+};
+
+/**
+ * Get banking list for all admins (role != user): username, balance, exposer
+ */
+const getBankingAdminList = async () => {
+  const adminRoles = [ROLES.AGENT, ROLES.MASTER, ROLES.SUPER_MASTER, ROLES.ADMIN, ROLES.SUPER_ADMIN];
+  const list = await User.aggregate([
+    { $match: { role: { $in: adminRoles } } },
+    {
+      $lookup: {
+        from: 'wallets',
+        localField: '_id',
+        foreignField: 'user',
+        as: 'wallet',
+        pipeline: [{ $limit: 1 }]
+      }
+    },
+    {
+      $project: {
+        username: 1,
+        balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] },
+        exposer: { $ifNull: [{ $arrayElemAt: ['$wallet.lockedBalance', 0] }, 0] }
+      }
+    },
+    { $sort: { username: 1 } }
+  ]);
+  return list.map(({ username, balance, exposer }) => ({
+    username,
+    balance: Math.round((balance || 0) * 100) / 100,
+    exposer: Math.round((exposer || 0) * 100) / 100
+  }));
+};
+
+const BULK_ACTION = { DEPOSIT: 'deposit', WITHDRAW: 'withdraw' };
+
+/**
+ * Bulk deposit and withdraw in one request. Each entry: { userId, amount, action: 'deposit'|'withdraw', description? }
+ * deposit = transfer from admin to user; withdraw = deduct from user.
+ * Returns { succeeded: [..., { action }], failed: [..., { action }] }
+ */
+const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
+  if (!entries || !Array.isArray(entries) || entries.length === 0) {
+    throw new Error('At least one entry (userId, amount, action) is required');
+  }
+  if (entries.length > 100) {
+    throw new Error('Maximum 100 entries per bulk action');
+  }
+  const succeeded = [];
+  const failed = [];
+  for (const entry of entries) {
+    const { userId, amount, action, description } = entry;
+    const actionNorm = action && action.toLowerCase();
+    if (!userId || amount == null || amount <= 0) {
+      failed.push({ userId: userId || 'unknown', amount: amount ?? 0, action: actionNorm || 'deposit', reason: 'Invalid userId or amount' });
+      continue;
+    }
+    if (actionNorm !== BULK_ACTION.DEPOSIT && actionNorm !== BULK_ACTION.WITHDRAW) {
+      failed.push({ userId, amount: Number(amount), action: actionNorm || 'deposit', reason: 'action must be "deposit" or "withdraw"' });
+      continue;
+    }
+    try {
+      if (actionNorm === BULK_ACTION.DEPOSIT) {
+        const result = await transferAmount(
+          performedBy,
+          userId,
+          Number(amount),
+          performedBy,
+          description || 'Bulk deposit by admin',
+          req
+        );
+        succeeded.push({
+          userId,
+          amount: Number(amount),
+          balanceAfter: result.toBalanceAfter,
+          description: description || null,
+          action: BULK_ACTION.DEPOSIT
+        });
+      } else {
+        const result = await deductAmount(
+          userId,
+          Number(amount),
+          performedBy,
+          description || 'Bulk withdrawal by admin',
+          req
+        );
+        succeeded.push({
+          userId,
+          amount: Number(amount),
+          balanceAfter: result.balanceAfter,
+          description: description || null,
+          action: BULK_ACTION.WITHDRAW
+        });
+      }
+    } catch (err) {
+      failed.push({ userId, amount: Number(amount), action: actionNorm, reason: err.message || 'Failed' });
+    }
+  }
+  return { succeeded, failed };
+};
+
 module.exports = {
   getWallet,
   getBalance,
@@ -540,6 +675,9 @@ module.exports = {
   getTransactions,
   lockWallet,
   unlockWallet,
-  getWalletStats
+  getWalletStats,
+  getBankingUserList,
+  getBankingAdminList,
+  bulkDepositAndWithdraw
 };
 

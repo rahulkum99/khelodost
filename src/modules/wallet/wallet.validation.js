@@ -128,6 +128,39 @@ const validateUserIdParam = [
     .withMessage('Invalid user ID format')
 ];
 
+/**
+ * Validation for bulk deposit + withdraw in one request
+ * Body: { adminPassword, entries: [ { userId, amount, action: 'deposit'|'withdraw', description? } ] }
+ */
+const validateBulkAction = [
+  body('adminPassword')
+    .notEmpty()
+    .withMessage('Admin password is required for bulk action'),
+  body('entries')
+    .isArray({ min: 1, max: 100 })
+    .withMessage('entries must be a non-empty array (max 100 items)'),
+  body('entries.*.userId')
+    .notEmpty()
+    .withMessage('userId is required in each entry')
+    .isMongoId()
+    .withMessage('Invalid userId in entry'),
+  body('entries.*.amount')
+    .notEmpty()
+    .withMessage('amount is required in each entry')
+    .isFloat({ min: 0.01, max: 9999999999 })
+    .withMessage('amount must be between 0.01 and 9999999999'),
+  body('entries.*.action')
+    .notEmpty()
+    .withMessage('action is required in each entry')
+    .isIn(['deposit', 'withdraw'])
+    .withMessage('action must be "deposit" or "withdraw"'),
+  body('entries.*.description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters')
+];
+
 module.exports = {
   validateAddAmount,
   validateDeductAmount,
@@ -135,6 +168,7 @@ module.exports = {
   validateGetTransactions,
   validateLockWallet,
   validateUnlockWallet,
-  validateUserIdParam
+  validateUserIdParam,
+  validateBulkAction
 };
 

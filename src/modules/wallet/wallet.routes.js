@@ -34,6 +34,18 @@ router.post('/transfer',
 // Admin routes - require admin role or higher
 router.use(requireMinRole(ROLES.ADMIN));
 
+// Banking lists (username, balance, exposer)
+router.get('/banking/users', walletController.getBankingUsers);
+router.get('/banking/admins', walletController.getBankingAdmins);
+
+// Bulk deposit and withdraw in one request - require admin password
+router.post('/bulk/action',
+  walletValidation.validateBulkAction,
+  walletController.handleValidationErrors,
+  requirePasswordConfirmation,
+  walletController.bulkDepositAndWithdraw
+);
+
 // Add amount to wallet - ONLY Super Admin
 router.post('/add',
   walletValidation.validateAddAmount,

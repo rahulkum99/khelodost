@@ -241,6 +241,64 @@ const getWalletStats = async (req, res, next) => {
   }
 };
 
+/**
+ * Get banking user list: users created by this admin, with username, balance, exposer (JSON)
+ */
+const getBankingUsers = async (req, res, next) => {
+  try {
+    const list = await walletService.getBankingUserList(req.userId);
+    res.json({
+      success: true,
+      data: list
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch banking user list'
+    });
+  }
+};
+
+/**
+ * Get banking admin list: all admins with username, balance, exposer (JSON)
+ */
+const getBankingAdmins = async (req, res, next) => {
+  try {
+    const list = await walletService.getBankingAdminList();
+    res.json({
+      success: true,
+      data: list
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch banking admin list'
+    });
+  }
+};
+
+/**
+ * Bulk deposit and withdraw in one request. Requires admin password.
+ * Each entry has action: 'deposit' or 'withdraw'. Response includes action in each succeeded item.
+ */
+const bulkDepositAndWithdraw = async (req, res, next) => {
+  try {
+    const { entries } = req.body;
+    const result = await walletService.bulkDepositAndWithdraw(req.userId, entries, req);
+    const total = result.succeeded.length + result.failed.length;
+    res.json({
+      success: true,
+      message: `Processed ${result.succeeded.length} of ${total} (${result.failed.length} failed)`,
+      data: result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Bulk action failed'
+    });
+  }
+};
+
 module.exports = {
   handleValidationErrors,
   getMyWallet,
@@ -252,6 +310,9 @@ module.exports = {
   getTransactions,
   lockWallet,
   unlockWallet,
-  getWalletStats
+  getWalletStats,
+  getBankingUsers,
+  getBankingAdmins,
+  bulkDepositAndWithdraw
 };
 
