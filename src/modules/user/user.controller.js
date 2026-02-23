@@ -1,4 +1,5 @@
 const { User, ROLES } = require('../../models/User');
+const Wallet = require('../../models/Wallet');
 const authService = require('../auth/auth.service');
 const { getLatestCricketData } = require('../../services/cricket.service');
 const walletService = require('../wallet/wallet.service');
@@ -33,7 +34,24 @@ const getAllUsers = async (req, res) => {
 
     // Build filter
     const filter = {};
-    if (role) filter.role = role;
+
+    // Support filtering by multiple roles:
+    // - ?role=admin,user (comma separated)
+    // - ?role=admin&role=user (repeated params -> array)
+    if (role) {
+      const roleValues = Array.isArray(role)
+        ? role
+        : String(role)
+            .split(',')
+            .map(r => r.trim())
+            .filter(Boolean);
+
+      if (roleValues.length === 1) {
+        filter.role = roleValues[0];
+      } else if (roleValues.length > 1) {
+        filter.role = { $in: roleValues };
+      }
+    }
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (search) {
       filter.$or = [
@@ -44,11 +62,29 @@ const getAllUsers = async (req, res) => {
       ];
     }
 
-    const users = await User.find(filter)
+    const userDocs = await User.find(filter)
       .select('-password -refreshToken')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    // Attach wallet balance and exposer (lockedBalance) for each user
+    const userIds = userDocs.map(u => u._id);
+    const wallets = await Wallet.find({ user: { $in: userIds } });
+    const walletMap = new Map(
+      wallets.map(w => [w.user.toString(), w])
+    );
+
+    const users = userDocs.map(doc => {
+      const user = doc.toObject();
+      const wallet = walletMap.get(user._id.toString());
+
+      return {
+        ...user,
+        balance: wallet ? wallet.balance : 0,
+        exposer: wallet ? wallet.lockedBalance : 0
+      };
+    });
 
     const total = await User.countDocuments(filter);
 
