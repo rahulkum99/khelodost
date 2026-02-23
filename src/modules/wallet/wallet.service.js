@@ -541,7 +541,7 @@ const getBankingUserList = async (createdByUserId) => {
     match.createdBy = typeof createdByUserId === 'string' ? new mongoose.Types.ObjectId(createdByUserId) : createdByUserId;
   }
   const list = await User.aggregate([
-    { $match },
+    { $match: match },
     {
       $lookup: {
         from: 'wallets',
@@ -568,12 +568,15 @@ const getBankingUserList = async (createdByUserId) => {
 };
 
 /**
- * Get banking list for all admins (role != user): username, balance, exposer
+ * Get banking list for admins added by the given user (createdBy). Excludes super_admin.
  */
-const getBankingAdminList = async () => {
-  const adminRoles = [ROLES.AGENT, ROLES.MASTER, ROLES.SUPER_MASTER, ROLES.ADMIN, ROLES.SUPER_ADMIN];
+const getBankingAdminList = async (createdByUserId) => {
+  const match = { role: { $in: [ROLES.AGENT, ROLES.MASTER, ROLES.SUPER_MASTER, ROLES.ADMIN] } };
+  if (createdByUserId) {
+    match.createdBy = typeof createdByUserId === 'string' ? new mongoose.Types.ObjectId(createdByUserId) : createdByUserId;
+  }
   const list = await User.aggregate([
-    { $match: { role: { $in: adminRoles } } },
+    { $match: match },
     {
       $lookup: {
         from: 'wallets',

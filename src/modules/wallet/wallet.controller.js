@@ -260,11 +260,11 @@ const getBankingUsers = async (req, res, next) => {
 };
 
 /**
- * Get banking admin list: all admins with username, balance, exposer (JSON)
+ * Get banking admin list: admins added by this user, with username, balance, exposer (JSON)
  */
 const getBankingAdmins = async (req, res, next) => {
   try {
-    const list = await walletService.getBankingAdminList();
+    const list = await walletService.getBankingAdminList(req.userId);
     res.json({
       success: true,
       data: list
