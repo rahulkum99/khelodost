@@ -160,12 +160,13 @@ const transferAmount = async (req, res, next) => {
 };
 
 /**
- * Get wallet transactions
+ * Get wallet transactions. Only deposit/withdrawal (no betting) are returned for both /me and /:userId.
  */
 const getTransactions = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.userId;
-    const result = await walletService.getTransactions(userId, req.query);
+    const query = { ...req.query, excludeBetting: 'true' };
+    const result = await walletService.getTransactions(userId, query);
     
     res.json({
       success: true,
@@ -279,17 +280,15 @@ const getBankingAdmins = async (req, res, next) => {
 
 /**
  * Bulk deposit and withdraw in one request. Requires admin password.
- * Each entry has action: 'deposit' or 'withdraw'. Response includes action in each succeeded item.
+ * Response data is array of { _id, username, balance, exposer } for users in the request.
  */
 const bulkDepositAndWithdraw = async (req, res, next) => {
   try {
     const { entries } = req.body;
     const result = await walletService.bulkDepositAndWithdraw(req.userId, entries, req);
-    const total = result.succeeded.length + result.failed.length;
     res.json({
       success: true,
-      message: `Processed ${result.succeeded.length} of ${total} (${result.failed.length} failed)`,
-      data: result
+      data: result.data
     });
   } catch (error) {
     res.status(400).json({

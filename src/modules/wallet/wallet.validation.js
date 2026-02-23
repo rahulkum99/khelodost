@@ -39,6 +39,7 @@ const validateDeductAmount = [
 
 /**
  * Validation for getting transactions
+ * Query: page, limit, fromDate, toDate, action (deposit|withdrawal), transactionType, status
  */
 const validateGetTransactions = [
   query('page')
@@ -49,6 +50,18 @@ const validateGetTransactions = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
+  query('fromDate')
+    .optional()
+    .isISO8601()
+    .withMessage('fromDate must be a valid ISO 8601 date'),
+  query('toDate')
+    .optional()
+    .isISO8601()
+    .withMessage('toDate must be a valid ISO 8601 date'),
+  query('action')
+    .optional()
+    .isIn(['deposit', 'withdrawal'])
+    .withMessage('action must be "deposit" or "withdrawal"'),
   query('transactionType')
     .optional()
     .isIn(['credit', 'debit', 'transfer', 'refund', 'commission', 'adjustment'])

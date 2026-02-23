@@ -383,8 +383,12 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
   });
 };
 
+/** Metadata types used for betting; exclude these when showing only deposit/withdrawal */
+const BETTING_METADATA_TYPES = ['bet_exposure_lock', 'bet_exposure_unlock', 'bet_settlement'];
+
 /**
  * Get wallet transactions
+ * When excludeBetting is true, only deposit/withdrawal (no betting) transactions are returned.
  */
 const getTransactions = async (userId, query = {}) => {
   const {
@@ -393,7 +397,11 @@ const getTransactions = async (userId, query = {}) => {
     transactionType,
     status,
     startDate,
-    endDate
+    endDate,
+    fromDate,
+    toDate,
+    action,
+    excludeBetting
   } = query;
 
   const skip = (page - 1) * limit;
@@ -401,7 +409,19 @@ const getTransactions = async (userId, query = {}) => {
   // Build filter
   const filter = { user: userId };
 
-  if (transactionType) {
+  if (excludeBetting) {
+    filter.$or = [
+      { 'metadata.type': { $exists: false } },
+      { 'metadata.type': { $nin: BETTING_METADATA_TYPES } }
+    ];
+  }
+
+  // action: deposit = credit, withdrawal = debit
+  if (action === 'deposit') {
+    filter.transactionType = WalletTransaction.TRANSACTION_TYPES.CREDIT;
+  } else if (action === 'withdrawal') {
+    filter.transactionType = WalletTransaction.TRANSACTION_TYPES.DEBIT;
+  } else if (transactionType) {
     filter.transactionType = transactionType;
   }
 
@@ -409,13 +429,15 @@ const getTransactions = async (userId, query = {}) => {
     filter.status = status;
   }
 
-  if (startDate || endDate) {
-    filter.createdAt = {};
-    if (startDate) {
-      filter.createdAt.$gte = new Date(startDate);
+  const dateFrom = fromDate || startDate;
+  const dateTo = toDate || endDate;
+  if (dateFrom || dateTo) {
+    filter.createdAt = filter.createdAt || {};
+    if (dateFrom) {
+      filter.createdAt.$gte = new Date(dateFrom);
     }
-    if (endDate) {
-      filter.createdAt.$lte = new Date(endDate);
+    if (dateTo) {
+      filter.createdAt.$lte = new Date(dateTo);
     }
   }
 
@@ -553,6 +575,7 @@ const getBankingUserList = async (createdByUserId) => {
     },
     {
       $project: {
+        _id: 1,
         username: 1,
         balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] },
         exposer: { $ifNull: [{ $arrayElemAt: ['$wallet.lockedBalance', 0] }, 0] }
@@ -560,7 +583,8 @@ const getBankingUserList = async (createdByUserId) => {
     },
     { $sort: { username: 1 } }
   ]);
-  return list.map(({ username, balance, exposer }) => ({
+  return list.map(({ _id, username, balance, exposer }) => ({
+    userId: _id?.toString?.() || _id,
     username,
     balance: Math.round((balance || 0) * 100) / 100,
     exposer: Math.round((exposer || 0) * 100) / 100
@@ -588,6 +612,7 @@ const getBankingAdminList = async (createdByUserId) => {
     },
     {
       $project: {
+        _id: 1,
         username: 1,
         balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] },
         exposer: { $ifNull: [{ $arrayElemAt: ['$wallet.lockedBalance', 0] }, 0] }
@@ -595,7 +620,8 @@ const getBankingAdminList = async (createdByUserId) => {
     },
     { $sort: { username: 1 } }
   ]);
-  return list.map(({ username, balance, exposer }) => ({
+  return list.map(({ _id, username, balance, exposer }) => ({
+    userId: _id?.toString?.() || _id,
     username,
     balance: Math.round((balance || 0) * 100) / 100,
     exposer: Math.round((exposer || 0) * 100) / 100
@@ -607,7 +633,7 @@ const BULK_ACTION = { DEPOSIT: 'deposit', WITHDRAW: 'withdraw' };
 /**
  * Bulk deposit and withdraw in one request. Each entry: { userId, amount, action: 'deposit'|'withdraw', description? }
  * deposit = transfer from admin to user; withdraw = deduct from user.
- * Returns { succeeded: [..., { action }], failed: [..., { action }] }
+ * Returns { succeeded, failed, data: [ { _id, username, balance, exposer }, ... ] } for all userIds in entries.
  */
 const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
   if (!entries || !Array.isArray(entries) || entries.length === 0) {
@@ -618,9 +644,11 @@ const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
   }
   const succeeded = [];
   const failed = [];
+  const userIdsSeen = new Set();
   for (const entry of entries) {
     const { userId, amount, action, description } = entry;
     const actionNorm = action && action.toLowerCase();
+    if (userId) userIdsSeen.add(userId.toString());
     if (!userId || amount == null || amount <= 0) {
       failed.push({ userId: userId || 'unknown', amount: amount ?? 0, action: actionNorm || 'deposit', reason: 'Invalid userId or amount' });
       continue;
@@ -666,7 +694,38 @@ const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
       failed.push({ userId, amount: Number(amount), action: actionNorm, reason: err.message || 'Failed' });
     }
   }
-  return { succeeded, failed };
+  const userIds = Array.from(userIdsSeen).filter(Boolean).map(id => new mongoose.Types.ObjectId(id));
+  let data = [];
+  if (userIds.length > 0) {
+    const list = await User.aggregate([
+      { $match: { _id: { $in: userIds } } },
+      {
+        $lookup: {
+          from: 'wallets',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'wallet',
+          pipeline: [{ $limit: 1 }]
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          username: 1,
+          balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] },
+          exposer: { $ifNull: [{ $arrayElemAt: ['$wallet.lockedBalance', 0] }, 0] }
+        }
+      },
+      { $sort: { username: 1 } }
+    ]);
+    data = list.map(({ _id, username, balance, exposer }) => ({
+      _id: _id ? _id.toString() : _id,
+      username,
+      balance: Math.round((balance || 0) * 100) / 100,
+      exposer: Math.round((exposer || 0) * 100) / 100
+    }));
+  }
+  return { succeeded, failed, data };
 };
 
 module.exports = {
