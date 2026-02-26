@@ -300,6 +300,29 @@ const validateGetTodayInplayPlacedBets = [
     .withMessage('limit must be between 1 and 500'),
 ];
 
+// Admin: profit/loss market analysis by selection within an event
+const validateMarketAnalysisBySelection = [
+  query('eventId')
+    .notEmpty()
+    .withMessage('eventId is required'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('marketType')
+    .optional()
+    .isIn(validMarketTypes)
+    .withMessage('Invalid marketType'),
+  query('status')
+    .optional()
+    .isIn(['open', 'settled'])
+    .withMessage('Invalid status'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
@@ -313,5 +336,6 @@ module.exports = {
   validateAdminHierarchyProfitLossByEvent,
   validateAdminHierarchySettledBets,
   validateGetTodayInplayPlacedBets,
+  validateMarketAnalysisBySelection,
 };
 

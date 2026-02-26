@@ -73,6 +73,15 @@ router.get(
   betController.getTodayInplayPlacedBets
 );
 
+
+// Admin: profit/loss market analysis by selectionId within an event
+router.get(
+  '/admin/market-analysis',
+  betValidation.validateMarketAnalysisBySelection,
+  betController.handleValidationErrors,
+  betController.getMarketAnalysisBySelection
+);
+
 // Admin bet list (filtered by hierarchy)
 router.get('/admin/bet-list',
   ...betValidation.validateAdminBetList,

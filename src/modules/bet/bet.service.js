@@ -1782,11 +1782,139 @@ const getAdminHierarchySettledBets = async (adminUserId, adminRole, query = {}) 
   });
 };
 
+/**
+ * Admin: Profit/loss market analysis by selectionId within an event.
+ * Groups all bets (open + settled) by selectionId/selectionName and computes:
+ * - totalBets, totalStake, totalExposure
+ * - profitLoss (settled bets only, computed via netWinAmount)
+ * Hierarchy-scoped: only users under the admin.
+ */
+const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) => {
+  const { eventId, sport, marketType, status, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  if (!eventId) {
+    throw betError('VALIDATION_ERROR', 'eventId is required');
+  }
+
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  if (!allowedUserIds || !allowedUserIds.length) {
+    return [];
+  }
+
+  const match = {
+    userId: { $in: allowedUserIds },
+    eventId: String(eventId),
+  };
+
+  if (sport) match.sport = sport;
+  if (marketType) match.marketType = marketType;
+  if (status) match.status = status;
+
+  const matchOddsLike = matchOddsLikeForPl();
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketId: 1,
+        marketName: 1,
+        marketType: 1,
+        selectionId: 1,
+        selectionName: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        status: 1,
+        settlementResult: 1,
+      },
+    },
+    netWinAmountAddFields(matchOddsLike),
+    {
+      $addFields: {
+        betPl: {
+          $cond: [
+            { $eq: ['$status', Bet.BET_STATUS.SETTLED] },
+            '$netWinAmount',
+            { $multiply: ['$exposure', -1] },
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          selectionId: '$selectionId',
+          selectionName: '$selectionName',
+          sport: '$sport',
+          eventId: '$eventId',
+          eventName: '$eventName',
+        },
+        totalBets: { $sum: 1 },
+        totalStake: { $sum: '$stake' },
+        totalExposure: { $sum: '$exposure' },
+        profitLoss: { $sum: '$betPl' },
+        settledPl: {
+          $sum: {
+            $cond: [{ $eq: ['$status', Bet.BET_STATUS.SETTLED] }, '$netWinAmount', 0],
+          },
+        },
+        unsettledExposure: {
+          $sum: {
+            $cond: [{ $eq: ['$status', Bet.BET_STATUS.OPEN] }, '$exposure', 0],
+          },
+        },
+        openBets: {
+          $sum: { $cond: [{ $eq: ['$status', Bet.BET_STATUS.OPEN] }, 1, 0] },
+        },
+        settledBets: {
+          $sum: { $cond: [{ $eq: ['$status', Bet.BET_STATUS.SETTLED] }, 1, 0] },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        selectionId: '$_id.selectionId',
+        selectionName: '$_id.selectionName',
+        totalBets: 1,
+        openBets: 1,
+        settledBets: 1,
+        totalStake: { $round: ['$totalStake', 2] },
+        totalExposure: { $round: ['$totalExposure', 2] },
+        profitLoss: { $round: ['$profitLoss', 2] },
+        settledPl: { $round: ['$settledPl', 2] },
+        unsettledExposure: { $round: ['$unsettledExposure', 2] },
+      },
+    },
+    { $sort: { totalBets: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows;
+};
+
 module.exports = {
   placeBet,
   getDescendantUserIds,
   getAdminBetList,
   getTodayInplayPlacedBets,
+  getMarketAnalysisBySelection,
   getUserBets,
   getUserProfitLossByEvent,
   getUserProfitLossByEventMarkets,
