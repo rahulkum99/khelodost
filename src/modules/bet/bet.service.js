@@ -446,6 +446,12 @@ const placeBet = async (userId, payload, req) => {
 /**
  * Get all user IDs under admin in hierarchy (users created by admin or by someone in their tree).
  * Uses createdBy chain: descendants = users whose createdBy eventually points to admin.
+ * 
+ * Note: In the users collection, each child stores `createdBy` pointing to its parent.
+ * For $graphLookup we must therefore:
+ * - startWith: parent's `_id`
+ * - connectFromField: `_id` (current node id)
+ * - connectToField: `createdBy` (edge from child to parent)
  */
 const getDescendantUserIds = async (adminId) => {
   const result = await User.aggregate([
@@ -454,8 +460,8 @@ const getDescendantUserIds = async (adminId) => {
       $graphLookup: {
         from: 'users',
         startWith: '$_id',
-        connectFromField: 'createdBy',
-        connectToField: '_id',
+        connectFromField: '_id',
+        connectToField: 'createdBy',
         as: 'descendants',
       },
     },
@@ -521,6 +527,93 @@ const getAdminBetList = async (adminUserId, adminRole, query = {}) => {
     limit: limitNum,
     totalPages: Math.ceil(total / limitNum) || 0,
   };
+};
+
+/**
+ * Simple market analysis for today: group bets by event and return total placed bets.
+ * - Respects admin hierarchy (only users under admin).
+ * - Super_admin sees all users.
+ */
+const getTodayInplayPlacedBets = async (adminUserId, adminRole, query = {}) => {
+  const { sport, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  // Determine which users this admin can see
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  if (!allowedUserIds || !allowedUserIds.length) {
+    return [];
+  }
+
+  // Today in UTC based on createdAt (bet placed time)
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+  const match = {
+    userId: { $in: allowedUserIds },
+    createdAt: {
+      $gte: today,
+      $lt: tomorrow,
+    },
+  };
+
+  if (sport) {
+    match.sport = sport;
+  }
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: {
+          sport: '$sport',
+          eventId: '$eventId',
+          eventName: '$eventName',
+        },
+        totalBets: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        totalBets: 1,
+      },
+    },
+    {
+      // Group again by sport to return events array per sport
+      $group: {
+        _id: '$sport',
+        events: {
+          $push: {
+            eventId: '$eventId',
+            eventName: '$eventName',
+            totalBets: '$totalBets',
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id',
+        events: 1,
+      },
+    },
+    { $sort: { sport: 1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows;
 };
 
 /**
@@ -1693,6 +1786,7 @@ module.exports = {
   placeBet,
   getDescendantUserIds,
   getAdminBetList,
+  getTodayInplayPlacedBets,
   getUserBets,
   getUserProfitLossByEvent,
   getUserProfitLossByEventMarkets,

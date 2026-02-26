@@ -288,6 +288,18 @@ const validateAdminHierarchySettledBets = [
     .withMessage('limit must be between 1 and 500'),
 ];
 
+// Admin: simple market analysis for today — grouped by event with total placed bets
+const validateGetTodayInplayPlacedBets = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
@@ -300,5 +312,6 @@ module.exports = {
   validateAdminUserEventProfitLoss,
   validateAdminHierarchyProfitLossByEvent,
   validateAdminHierarchySettledBets,
+  validateGetTodayInplayPlacedBets,
 };
 

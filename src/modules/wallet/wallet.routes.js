@@ -32,15 +32,16 @@ router.post('/transfer',
   walletController.transferAmount
 );
 
-// Admin routes - require admin role or higher
-router.use(requireMinRole(ROLES.ADMIN));
-
+// Banking & bulk admin routes
+// - Banking lists: available to Agent and above (scoped in service to users/admins they created)
+// - Bulk deposit/withdraw: requires Agent role and password confirmation
 // Banking lists (username, balance, exposer)
-router.get('/banking/users', walletController.getBankingUsers);
-router.get('/banking/admins', walletController.getBankingAdmins);
+router.get('/banking/users', requireMinRole(ROLES.AGENT), walletController.getBankingUsers);
+router.get('/banking/admins', requireMinRole(ROLES.AGENT), walletController.getBankingAdmins);
 
-// Bulk deposit and withdraw in one request - require admin password
+// Bulk deposit and withdraw in one request - require admin role + admin password
 router.post('/bulk/action',
+  requireMinRole(ROLES.AGENT),
   walletValidation.validateBulkAction,
   walletController.handleValidationErrors,
   requirePasswordConfirmation,

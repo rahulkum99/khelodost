@@ -63,7 +63,15 @@ router.get('/today-open-bets',
 router.get('/markets/live', betController.getLiveMarkets);
 
 // Admin routes - require admin role or higher
-router.use(requireMinRole(ROLES.ADMIN));
+router.use(requireMinRole(ROLES.AGENT));
+
+
+router.get(
+  '/today-inplay-placed-bets',
+  betValidation.validateGetTodayInplayPlacedBets,
+  betController.handleValidationErrors,
+  betController.getTodayInplayPlacedBets
+);
 
 // Admin bet list (filtered by hierarchy)
 router.get('/admin/bet-list',

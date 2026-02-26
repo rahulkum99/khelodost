@@ -62,6 +62,13 @@ const getAllUsers = async (req, res) => {
       ];
     }
 
+    // Restrict visibility based on hierarchy/creator:
+    // - Super Admin can see all users
+    // - Other roles can only see users they directly created
+    if (req.user && req.user.role !== ROLES.SUPER_ADMIN) {
+      filter.createdBy = req.userId;
+    }
+
     const userDocs = await User.find(filter)
       .select('-password -refreshToken')
       .sort({ createdAt: -1 })
@@ -120,6 +127,23 @@ const getUserById = async (req, res) => {
         success: false,
         message: 'User not found'
       });
+    }
+
+    // Permission check:
+    // - User can always view themselves
+    // - Super Admin can view anyone
+    // - Other roles can only view users they directly created
+    if (req.user) {
+      const isSelf = user._id.toString() === req.userId.toString();
+
+      if (!isSelf && req.user.role !== ROLES.SUPER_ADMIN) {
+        if (!user.createdBy || user.createdBy.toString() !== req.userId.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to view this user'
+          });
+        }
+      }
     }
 
     // Get wallet balance for the user

@@ -37,27 +37,29 @@ router.post(
   userController.createUser
 );
 
-// Admin routes - require admin role or higher for viewing/managing all users
-router.use(requireMinRole(ROLES.ADMIN));
+// User management routes
+// - List/get users: available to Agent and above (scoped to users they created)
+// - Stats/update/delete: restricted to Admin and above
+router.get('/', requireMinRole(ROLES.AGENT), userController.getAllUsers);
+router.get('/stats', requireMinRole(ROLES.ADMIN), userController.getUserStats);
+router.get('/:id', requireMinRole(ROLES.AGENT), userController.getUserById);
 
-router.get('/', userController.getAllUsers);
-router.get('/stats', userController.getUserStats);
-router.get('/:id', userController.getUserById);
-
-// Update user - requires password confirmation
+// Update user - requires admin role and password confirmation
 router.put(
-  '/:id', 
+  '/:id',
+  requireMinRole(ROLES.ADMIN),
   validatePasswordConfirmation,
   handleValidationErrors,
   requirePasswordConfirmation,
-  validateUpdateUser, 
-  handleValidationErrors, 
+  validateUpdateUser,
+  handleValidationErrors,
   userController.updateUser
 );
 
-// Delete user - requires password confirmation
+// Delete user - requires admin role and password confirmation
 router.delete(
-  '/:id', 
+  '/:id',
+  requireMinRole(ROLES.ADMIN),
   validatePasswordConfirmation,
   handleValidationErrors,
   requirePasswordConfirmation,
