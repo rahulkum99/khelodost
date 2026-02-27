@@ -1851,6 +1851,46 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
             { $multiply: ['$exposure', -1] },
           ],
         },
+        // For MATCH_ODDS only: theoretical max profit/loss for each bet
+        betPossibleProfit: {
+          $cond: [
+            { $eq: ['$marketType', 'match_odds'] },
+            {
+              $cond: [
+                { $eq: ['$betType', 'back'] },
+                {
+                  $multiply: [
+                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                    '$stake',
+                  ],
+                },
+                // lay profit = stake
+                '$stake',
+              ],
+            },
+            0,
+          ],
+        },
+        betPossibleLoss: {
+          $cond: [
+            { $eq: ['$marketType', 'match_odds'] },
+            {
+              $cond: [
+                { $eq: ['$betType', 'back'] },
+                // back loss = stake
+                '$stake',
+                // lay loss = (odds - 1) * stake
+                {
+                  $multiply: [
+                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                    '$stake',
+                  ],
+                },
+              ],
+            },
+            0,
+          ],
+        },
       },
     },
     {
@@ -1858,6 +1898,9 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
         _id: {
           selectionId: '$selectionId',
           selectionName: '$selectionName',
+          marketId: '$marketId',
+          marketName: '$marketName',
+          marketType: '$marketType',
           sport: '$sport',
           eventId: '$eventId',
           eventName: '$eventName',
@@ -1865,6 +1908,8 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
         totalBets: { $sum: 1 },
         totalStake: { $sum: '$stake' },
         totalExposure: { $sum: '$exposure' },
+        totalPossibleProfit: { $sum: '$betPossibleProfit' },
+        totalPossibleLoss: { $sum: '$betPossibleLoss' },
         profitLoss: { $sum: '$betPl' },
         settledPl: {
           $sum: {
@@ -1890,6 +1935,9 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
         sport: '$_id.sport',
         eventId: '$_id.eventId',
         eventName: '$_id.eventName',
+        marketId: '$_id.marketId',
+        marketName: '$_id.marketName',
+        marketType: '$_id.marketType',
         selectionId: '$_id.selectionId',
         selectionName: '$_id.selectionName',
         totalBets: 1,
@@ -1897,6 +1945,8 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
         settledBets: 1,
         totalStake: { $round: ['$totalStake', 2] },
         totalExposure: { $round: ['$totalExposure', 2] },
+        totalPossibleProfit: { $round: ['$totalPossibleProfit', 2] },
+        totalPossibleLoss: { $round: ['$totalPossibleLoss', 2] },
         profitLoss: { $round: ['$profitLoss', 2] },
         settledPl: { $round: ['$settledPl', 2] },
         unsettledExposure: { $round: ['$unsettledExposure', 2] },
