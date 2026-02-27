@@ -17,6 +17,19 @@ module.exports = (io) => {
     return eventSubscribers.get(eventId)?.size || 0;
   };
 
+  // Helper to ensure we only send MATCH_ODDS markets
+  const filterMatchOddsMarkets = (data) => {
+    if (Array.isArray(data)) {
+      return data.filter((item) => item && item.mname === 'MATCH_ODDS');
+    }
+
+    if (data && typeof data === 'object') {
+      return data.mname === 'MATCH_ODDS' ? data : null;
+    }
+
+    return data;
+  };
+
   // Function to add a subscriber to an event
   const addSubscriber = (eventId, socketId) => {
     if (!eventSubscribers.has(eventId)) {
@@ -56,23 +69,25 @@ module.exports = (io) => {
       }
 
       try {
-        const data = await fetchSoccerEventData(eventId);
-        // Check if data exists (could be array or object)
+        const rawData = await fetchSoccerEventData(eventId);
+        const data = filterMatchOddsMarkets(rawData);
+        // Check if data exists after filtering (could be array or object)
         if (data !== null && data !== undefined) {
           // Emit to ALL connected users subscribed to this event
           io.emit(`soccer_event_${eventId}`, data);
           const dataLength = Array.isArray(data) ? data.length : (typeof data === 'object' ? 'object' : 'data');
-          console.log(`📡 Broadcasted soccer event data for event ${eventId} (${dataLength}) to ${subscriberCount} subscriber(s)`);
+          console.log(`📡 Broadcasted soccer MATCH_ODDS data for event ${eventId} (${dataLength}) to ${subscriberCount} subscriber(s)`);
         } else {
-          console.log(`⚠️ No data received for event ${eventId} (subscribers: ${subscriberCount}), skipping broadcast`);
+          console.log(`⚠️ No MATCH_ODDS data received for event ${eventId} (subscribers: ${subscriberCount}), skipping broadcast`);
         }
       } catch (error) {
         console.error(`❌ Error polling soccer event ${eventId}:`, error.message);
         // Still try to send cached data if available
         const cached = getLatestSoccerEventData(eventId);
-        if (cached !== null && cached !== undefined) {
-          io.emit(`soccer_event_${eventId}`, cached);
-          console.log(`📡 Sent cached data for event ${eventId} due to error`);
+        const filteredCached = filterMatchOddsMarkets(cached);
+        if (filteredCached !== null && filteredCached !== undefined) {
+          io.emit(`soccer_event_${eventId}`, filteredCached);
+          console.log(`📡 Sent cached MATCH_ODDS data for event ${eventId} due to error`);
         }
       }
     }, API_REFRESH_TIME);

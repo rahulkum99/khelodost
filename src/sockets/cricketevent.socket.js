@@ -16,6 +16,29 @@ module.exports = (io) => {
     return eventSubscribers.get(eventId)?.size || 0;
   };
 
+  // Helper to ensure we only send specific gtype markets
+  const ALLOWED_GTYPES = new Set([
+    'match',
+    'match1',
+    'fancy',
+    'fancy1',
+    'fancy2',
+    'oddeven',
+    'meter',
+  ]);
+
+  const filterCricketMarketsByGtype = (data) => {
+    if (Array.isArray(data)) {
+      return data.filter((item) => item && ALLOWED_GTYPES.has(item.gtype));
+    }
+
+    if (data && typeof data === 'object') {
+      return ALLOWED_GTYPES.has(data.gtype) ? data : null;
+    }
+
+    return data;
+  };
+
   // Function to add a subscriber to an event
   const addSubscriber = (eventId, socketId) => {
     if (!eventSubscribers.has(eventId)) {
@@ -55,23 +78,25 @@ module.exports = (io) => {
       }
 
       try {
-        const data = await fetchCricketEventData(eventId);
-        // Check if data exists (could be array or object)
-        if (data !== null && data !== undefined) {
+        const rawData = await fetchCricketEventData(eventId);
+        const data = filterCricketMarketsByGtype(rawData);
+        // Check if data exists after filtering (could be array or object)
+        if (data !== null && data !== undefined && (!Array.isArray(data) || data.length > 0)) {
           // Emit to ALL connected users subscribed to this event
           io.emit(`cricket_event_${eventId}`, data);
           const dataLength = Array.isArray(data) ? data.length : (typeof data === 'object' ? 'object' : 'data');
-          console.log(`📡 Broadcasted cricket event data for event ${eventId} (${dataLength}) to ${subscriberCount} subscriber(s)`);
+          console.log(`📡 Broadcasted filtered cricket event data for event ${eventId} (${dataLength}) to ${subscriberCount} subscriber(s)`);
         } else {
-          console.log(`⚠️ No data received for event ${eventId} (subscribers: ${subscriberCount}), skipping broadcast`);
+          console.log(`⚠️ No cricket data with allowed gtype received for event ${eventId} (subscribers: ${subscriberCount}), skipping broadcast`);
         }
       } catch (error) {
         console.error(`❌ Error polling cricket event ${eventId}:`, error.message);
         // Still try to send cached data if available
         const cached = getLatestCricketEventData(eventId);
-        if (cached !== null && cached !== undefined) {
-          io.emit(`cricket_event_${eventId}`, cached);
-          console.log(`📡 Sent cached data for event ${eventId} due to error`);
+        const filteredCached = filterCricketMarketsByGtype(cached);
+        if (filteredCached !== null && filteredCached !== undefined && (!Array.isArray(filteredCached) || filteredCached.length > 0)) {
+          io.emit(`cricket_event_${eventId}`, filteredCached);
+          console.log(`📡 Sent cached filtered cricket data for event ${eventId} due to error`);
         }
       }
     }, API_REFRESH_TIME);
@@ -146,10 +171,11 @@ module.exports = (io) => {
       
       // Send cached data immediately if available for this event
       const cached = getLatestCricketEventData(eventId);
-      if (cached !== null && cached !== undefined) {
-        socket.emit(`cricket_event_${eventId}`, cached);
-        const cachedLength = Array.isArray(cached) ? cached.length : 'object';
-        console.log(`📤 Sent cached data for event ${eventId} (${cachedLength} items) to user: ${socket.id}`);
+      const filteredCached = filterCricketMarketsByGtype(cached);
+      if (filteredCached !== null && filteredCached !== undefined && (!Array.isArray(filteredCached) || filteredCached.length > 0)) {
+        socket.emit(`cricket_event_${eventId}`, filteredCached);
+        const cachedLength = Array.isArray(filteredCached) ? filteredCached.length : 'object';
+        console.log(`📤 Sent cached filtered data for event ${eventId} (${cachedLength} items) to user: ${socket.id}`);
       } else {
         // Notify that subscription was successful but no cached data available
         socket.emit(`cricket_event_${eventId}_subscribed`, { 
