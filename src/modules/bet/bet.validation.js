@@ -288,6 +288,75 @@ const validateAdminHierarchySettledBets = [
     .withMessage('limit must be between 1 and 500'),
 ];
 
+// Admin: user-wise profit/loss (+ possible P/L) for a particular market within an event (hierarchy scoped)
+const validateAdminHierarchyUserMarketProfitLoss = [
+  query('eventId')
+    .notEmpty()
+    .withMessage('eventId is required'),
+  query('marketId')
+    .notEmpty()
+    .withMessage('marketId is required'),
+  // Accept marketType enums plus frontend/provider aliases for toss market
+  query('marketType')
+    .custom((value) => validMarketTypes.includes(value) || value === 'tos_maket' || value === 'fancy1')
+    .withMessage('Invalid marketType'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+];
+
+// Admin: hierarchy-wide bet list for a particular market (per bet rows, includes username)
+const validateAdminHierarchyMarketBets = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+  query('eventId')
+    .notEmpty()
+    .withMessage('eventId is required'),
+  query('marketId')
+    .optional()
+    .notEmpty()
+    .withMessage('marketId must be non-empty if provided'),
+  query('marketType')
+    .optional()
+    .custom((value) => validMarketTypes.includes(value) || value === 'tos_maket' || value === 'fancy1')
+    .withMessage('Invalid marketType'),
+  query('status')
+    .optional()
+    .isIn(['open', 'settled'])
+    .withMessage('Invalid status'),
+  query('userId')
+    .optional()
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('limit must be between 1 and 500'),
+];
+
 // Admin: simple market analysis for today — grouped by event with total placed bets
 const validateGetTodayInplayPlacedBets = [
   query('sport')
@@ -335,6 +404,8 @@ module.exports = {
   validateAdminUserEventProfitLoss,
   validateAdminHierarchyProfitLossByEvent,
   validateAdminHierarchySettledBets,
+  validateAdminHierarchyUserMarketProfitLoss,
+  validateAdminHierarchyMarketBets,
   validateGetTodayInplayPlacedBets,
   validateMarketAnalysisBySelection,
 };

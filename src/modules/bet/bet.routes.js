@@ -124,4 +124,18 @@ router.get('/admin/hierarchy-settled-bets',
   betController.getAdminHierarchySettledBets
 );
 
+// Admin: hierarchy-wide bet list for a particular market (per bet rows, includes username)
+router.get('/admin/hierarchy-market-bets',
+  ...betValidation.validateAdminHierarchyMarketBets,
+  betController.handleValidationErrors,
+  betController.getAdminHierarchyMarketBets
+);
+
+// Admin: user-wise profit/loss (+ possible profit/loss) for a particular market (hierarchy scoped)
+router.get('/admin/hierarchy-user-market-profit-loss',
+  ...betValidation.validateAdminHierarchyUserMarketProfitLoss,
+  betController.handleValidationErrors,
+  betController.getAdminHierarchyUserMarketProfitLoss
+);
+
 module.exports = router;

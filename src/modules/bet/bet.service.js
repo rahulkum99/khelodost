@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Bet = require('../../models/Bet');
 const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
-const { User, ROLES } = require('../../models/User');
+const { User, ROLES, ROLE_HIERARCHY } = require('../../models/User');
 const { withTransaction, getSession, commitSession, abortSession } = require('../../utils/transaction.helper');
 
 // Event services - cached data from socket polling
@@ -31,6 +31,13 @@ const floatEquals = (a, b) => Math.abs(Number(a) - Number(b)) < FLOAT_EPSILON;
 // Helper: normalize oname for comparison (remove spaces, lowercase)
 // Provider: "back2", Frontend may send: "back 2" or "Back2"
 const normalizeOname = (oname) => String(oname || '').replace(/\s+/g, '').toLowerCase();
+
+// Helper: normalize frontend/provider marketType aliases
+const normalizeMarketTypeAlias = (marketType) => {
+  if (!marketType) return marketType;
+  if (marketType === 'tos_maket' || marketType === 'fancy1') return Bet.MARKET_TYPES.TOS_MARKET;
+  return marketType;
+};
 
 // Standardized service errors (controller will format response)
 const betError = (code, message, status = 400) => {
@@ -470,6 +477,35 @@ const getDescendantUserIds = async (adminId) => {
     { $project: { userIds: 1, _id: 0 } },
   ]);
   return result[0]?.userIds || [];
+};
+
+const sortHierarchyNodes = (a, b) => {
+  const aLvl = ROLE_HIERARCHY[a.role] || 0;
+  const bLvl = ROLE_HIERARCHY[b.role] || 0;
+  if (bLvl !== aLvl) return bLvl - aLvl;
+  return String(a.username || '').localeCompare(String(b.username || ''), 'en', { sensitivity: 'base' });
+};
+
+const buildUserHierarchyTree = ({ users }) => {
+  const byId = new Map();
+  users.forEach((u) => {
+    byId.set(String(u._id), { ...u, children: [] });
+  });
+
+  const roots = [];
+  byId.forEach((node) => {
+    const parentId = node.createdBy ? String(node.createdBy) : null;
+    const parent = parentId ? byId.get(parentId) : null;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  });
+
+  const sortDeep = (arr) => {
+    arr.sort(sortHierarchyNodes);
+    arr.forEach((n) => sortDeep(n.children));
+  };
+  sortDeep(roots);
+  return roots;
 };
 
 /**
@@ -1659,6 +1695,368 @@ const getAdminHierarchyProfitLossByEvent = async (adminUserId, adminRole, query 
 };
 
 /**
+ * Admin: User-wise profit/loss (+ possible profit/loss) for a particular market within an event.
+ * Filters: eventId (gameId), marketId, marketType; optional sport, from/to (createdAt range)
+ * Hierarchy-scoped: only users under the admin (SUPER_ADMIN = all users).
+ *
+ * Returns:
+ * {
+ *   eventId, marketId, marketType,
+ *   users: [{ _id, username, role, createdBy, profitLoss, possibleProfit, possibleLoss, bets, openBets, settledBets, totalStake, totalExposure }],
+ *   tree:  [same users but nested via children[]]
+ * }
+ */
+const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, query = {}) => {
+  const { eventId, marketId, marketType, sport, from, to } = query;
+
+  if (!eventId) throw betError('VALIDATION_ERROR', 'eventId is required');
+  if (!marketId) throw betError('VALIDATION_ERROR', 'marketId is required');
+  if (!marketType) throw betError('VALIDATION_ERROR', 'marketType is required');
+
+  const effectiveMarketType = normalizeMarketTypeAlias(String(marketType));
+
+  // Determine which users this admin can see
+  let visibleUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    visibleUserIds = ids.map((u) => u._id);
+  } else {
+    const descendants = await getDescendantUserIds(adminUserId);
+    const selfId = new mongoose.Types.ObjectId(adminUserId);
+    visibleUserIds = [...descendants, selfId];
+  }
+
+  if (!visibleUserIds || !visibleUserIds.length) {
+    return {
+      eventId: String(eventId),
+      marketId: String(marketId),
+      marketType: effectiveMarketType,
+      users: [],
+      tree: [],
+    };
+  }
+
+  // Load users (for username/role + hierarchy)
+  const userDocs = await User.find({ _id: { $in: visibleUserIds } })
+    .select('_id username role createdBy')
+    .lean();
+
+  const match = {
+    userId: { $in: visibleUserIds },
+    eventId: String(eventId),
+    marketId: String(marketId),
+    marketType: effectiveMarketType,
+  };
+  if (sport) match.sport = sport;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+  if (fromDate || toDate) {
+    match.createdAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.createdAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.createdAt.$lte = toDate;
+    if (Object.keys(match.createdAt).length === 0) delete match.createdAt;
+  }
+
+  const matchOddsLike = matchOddsLikeForPl();
+
+  const stats = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        userId: 1,
+        status: 1,
+        marketType: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        settlementResult: 1,
+      },
+    },
+    netWinAmountAddFields(matchOddsLike),
+    {
+      $addFields: {
+        betPossibleProfit: {
+          $switch: {
+            branches: [
+              // MATCH_ODDS-like (includes TOS_MARKET / fancy1 toss)
+              {
+                case: { $in: ['$marketType', matchOddsLike] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'back'] },
+                    {
+                      $multiply: [
+                        { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                        '$stake',
+                      ],
+                    },
+                    '$stake',
+                  ],
+                },
+              },
+              // BOOKMAKERS_FANCY
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'yes'] },
+                    { $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100] },
+                    '$stake',
+                  ],
+                },
+              },
+              // KADO: stake*(multiplier-1), multiplier defaults to 2 (rate used as multiplier)
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
+                then: {
+                  $let: {
+                    vars: { multiplier: { $ifNull: ['$rate', 2] } },
+                    in: { $multiply: ['$stake', { $subtract: ['$$multiplier', 1] }] },
+                  },
+                },
+              },
+              // LINE / METER / FANCY
+              {
+                case: {
+                  $in: [
+                    '$marketType',
+                    [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
+                  ],
+                },
+                then: '$stake',
+              },
+            ],
+            default: 0,
+          },
+        },
+        betPossibleLoss: {
+          $switch: {
+            branches: [
+              // MATCH_ODDS-like (includes TOS_MARKET / fancy1 toss)
+              {
+                case: { $in: ['$marketType', matchOddsLike] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'back'] },
+                    '$stake',
+                    {
+                      $multiply: [
+                        { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                        '$stake',
+                      ],
+                    },
+                  ],
+                },
+              },
+              // BOOKMAKERS_FANCY
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'yes'] },
+                    '$stake',
+                    { $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100] },
+                  ],
+                },
+              },
+              // KADO: max loss is stake
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
+                then: '$stake',
+              },
+              // LINE / METER / FANCY
+              {
+                case: {
+                  $in: [
+                    '$marketType',
+                    [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
+                  ],
+                },
+                then: '$stake',
+              },
+            ],
+            default: 0,
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: '$userId',
+        profitLoss: { $sum: '$netWinAmount' },
+        possibleProfit: { $sum: '$betPossibleProfit' },
+        possibleLoss: { $sum: '$betPossibleLoss' },
+        totalStake: { $sum: '$stake' },
+        totalExposure: { $sum: '$exposure' },
+        bets: { $sum: 1 },
+        openBets: { $sum: { $cond: [{ $eq: ['$status', Bet.BET_STATUS.OPEN] }, 1, 0] } },
+        settledBets: { $sum: { $cond: [{ $eq: ['$status', Bet.BET_STATUS.SETTLED] }, 1, 0] } },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        userId: '$_id',
+        profitLoss: { $round: ['$profitLoss', 2] },
+        possibleProfit: { $round: ['$possibleProfit', 2] },
+        possibleLoss: { $round: ['$possibleLoss', 2] },
+        totalStake: { $round: ['$totalStake', 2] },
+        totalExposure: { $round: ['$totalExposure', 2] },
+        bets: 1,
+        openBets: 1,
+        settledBets: 1,
+      },
+    },
+  ]);
+
+  const statsByUserId = new Map(stats.map((s) => [String(s.userId), s]));
+
+  // Only include users who actually have at least one bet in this market
+  const mergedUsers = userDocs
+    .map((u) => {
+      const s = statsByUserId.get(String(u._id));
+      if (!s) return null;
+      return {
+        _id: u._id,
+        username: u.username,
+        role: u.role,
+        createdBy: u.createdBy || null,
+        profitLoss: Number(s.profitLoss || 0),
+        possibleProfit: Number(s.possibleProfit || 0),
+        possibleLoss: Number(s.possibleLoss || 0),
+        totalStake: Number(s.totalStake || 0),
+        totalExposure: Number(s.totalExposure || 0),
+        bets: Number(s.bets || 0),
+        openBets: Number(s.openBets || 0),
+        settledBets: Number(s.settledBets || 0),
+      };
+    })
+    .filter(Boolean);
+
+  const usersSorted = mergedUsers.slice().sort(sortHierarchyNodes);
+  const tree = buildUserHierarchyTree({ users: mergedUsers });
+
+  return {
+    eventId: String(eventId),
+    marketId: String(marketId),
+    marketType: effectiveMarketType,
+    users: usersSorted,
+    tree,
+  };
+};
+
+/**
+ * Admin: hierarchy-wide bet list for a particular market (per bet rows, includes username).
+ * Filters: required eventId; optional sport, marketId, marketType, status, userId, from, to, limit.
+ * Hierarchy-scoped: only users under the admin (SUPER_ADMIN = all users).
+ *
+ * Returns array of rows like:
+ * {
+ *   userId, username, role,
+ *   sport, eventId, eventName, marketId, marketName, marketType,
+ *   selectionId, selectionName, betType, odds, rate,
+ *   priceType, priceOname, priceSize, priceTno,
+ *   stake, exposure, status, createdAt
+ * }
+ */
+const getAdminHierarchyMarketBets = async (adminUserId, adminRole, query = {}) => {
+  const { sport, eventId, marketId, marketType, status, userId, from, to, limit = 200 } = query;
+  const limitNum = Math.min(Number(limit) || 200, 500);
+
+  if (!eventId) {
+    throw betError('VALIDATION_ERROR', 'eventId is required');
+  }
+
+  // Determine which users this admin can see
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  if (!allowedUserIds || !allowedUserIds.length) {
+    return [];
+  }
+
+  let targetUserIds = allowedUserIds;
+  if (userId) {
+    const requestedId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+    if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+      throw betError('FORBIDDEN', 'You can only view bets for users in your hierarchy', 403);
+    }
+    targetUserIds = [requestedId];
+  }
+
+  const match = {
+    userId: { $in: targetUserIds },
+    eventId: String(eventId),
+  };
+
+  if (sport) match.sport = sport;
+  if (marketId) match.marketId = String(marketId);
+  if (marketType) match.marketType = normalizeMarketTypeAlias(String(marketType));
+  if (status) match.status = status;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+  if (fromDate || toDate) {
+    match.createdAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.createdAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.createdAt.$lte = toDate;
+    if (Object.keys(match.createdAt).length === 0) delete match.createdAt;
+  }
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 0,
+        userId: '$userId',
+        username: '$user.username',
+        role: '$user.role',
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketId: 1,
+        marketName: 1,
+        marketType: 1,
+        selectionId: 1,
+        selectionName: 1,
+        betType: 1,
+        odds: 1,
+        rate: 1,
+        priceType: 1,
+        priceOname: 1,
+        priceSize: 1,
+        priceTno: 1,
+        stake: 1,
+        exposure: 1,
+        status: 1,
+        createdAt: 1,
+      },
+    },
+    { $sort: { createdAt: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows;
+};
+
+/**
  * Admin: Settled bets list for ALL users in admin's hierarchy (per bet rows)
  * Filters: optional sport, from, to, eventId, marketId, userId, limit
  * Returns rows like:
@@ -1851,45 +2249,152 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
             { $multiply: ['$exposure', -1] },
           ],
         },
-        // For MATCH_ODDS only: theoretical max profit/loss for each bet
+        // Theoretical max profit for each bet (by market type)
         betPossibleProfit: {
-          $cond: [
-            { $eq: ['$marketType', 'match_odds'] },
-            {
-              $cond: [
-                { $eq: ['$betType', 'back'] },
-                {
-                  $multiply: [
-                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+          $switch: {
+            branches: [
+              // MATCH_ODDS
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.MATCH_ODDS] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'back'] },
+                    {
+                      $multiply: [
+                        { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                        '$stake',
+                      ],
+                    },
+                    // lay profit = stake
                     '$stake',
                   ],
                 },
-                // lay profit = stake
-                '$stake',
-              ],
-            },
-            0,
-          ],
+              },
+              // TOS_MARKET (fancy1 / toss): (odds - 1) * stake for back, stake for lay
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.TOS_MARKET] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'back'] },
+                    {
+                      $multiply: [
+                        { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                        '$stake',
+                      ],
+                    },
+                    '$stake',
+                  ],
+                },
+              },
+              // BOOKMAKERS_FANCY
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'yes'] },
+                    // YES wins → (stake * rate / 100)
+                    {
+                      $divide: [
+                        { $multiply: ['$stake', { $ifNull: ['$rate', 0] }] },
+                        100,
+                      ],
+                    },
+                    // NO wins → profit ~ stake
+                    '$stake',
+                  ],
+                },
+              },
+              // Line/Fancy style markets – symmetric yes/no style
+              {
+                case: {
+                  $in: [
+                    '$marketType',
+                    [
+                      Bet.MARKET_TYPES.LINE_MARKET,
+                      Bet.MARKET_TYPES.METER_MARKET,
+                      Bet.MARKET_TYPES.FANCY,
+                    ],
+                  ],
+                },
+                then: '$stake',
+              },
+            ],
+            default: 0,
+          },
         },
+        // Theoretical max loss for each bet (by market type)
         betPossibleLoss: {
-          $cond: [
-            { $eq: ['$marketType', 'match_odds'] },
-            {
-              $cond: [
-                { $eq: ['$betType', 'back'] },
-                // back loss = stake
-                '$stake',
-                // lay loss = (odds - 1) * stake
-                {
-                  $multiply: [
-                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+          $switch: {
+            branches: [
+              // MATCH_ODDS
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.MATCH_ODDS] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'back'] },
+                    // back loss = stake
                     '$stake',
+                    // lay loss = (odds - 1) * stake
+                    {
+                      $multiply: [
+                        { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                        '$stake',
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            0,
-          ],
+              },
+              // TOS_MARKET (fancy1 / toss): back loss = stake, lay loss = (odds - 1) * stake
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.TOS_MARKET] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'back'] },
+                    '$stake',
+                    {
+                      $multiply: [
+                        { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
+                        '$stake',
+                      ],
+                    },
+                  ],
+                },
+              },
+              // BOOKMAKERS_FANCY
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
+                then: {
+                  $cond: [
+                    { $eq: ['$betType', 'yes'] },
+                    // YES loses → loss = stake
+                    '$stake',
+                    // NO loses → loss ~ (stake * rate / 100)
+                    {
+                      $divide: [
+                        { $multiply: ['$stake', { $ifNull: ['$rate', 0] }] },
+                        100,
+                      ],
+                    },
+                  ],
+                },
+              },
+              // Line/Fancy style markets – symmetric yes/no style
+              {
+                case: {
+                  $in: [
+                    '$marketType',
+                    [
+                      Bet.MARKET_TYPES.LINE_MARKET,
+                      Bet.MARKET_TYPES.METER_MARKET,
+                      Bet.MARKET_TYPES.FANCY,
+                    ],
+                  ],
+                },
+                then: '$stake',
+              },
+            ],
+            default: 0,
+          },
         },
       },
     },
@@ -1972,6 +2477,8 @@ module.exports = {
   getAdminUserEventProfitLoss,
   getAdminHierarchyProfitLossByEvent,
   getAdminHierarchySettledBets,
+  getAdminHierarchyMarketBets,
+  getAdminHierarchyUserMarketProfitLoss,
   getTodayBets,
   getTodayOpenBets,
   settleMarket,
