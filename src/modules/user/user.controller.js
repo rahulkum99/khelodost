@@ -1,8 +1,38 @@
-const { User, ROLES } = require('../../models/User');
+const { User, ROLES, ROLE_HIERARCHY } = require('../../models/User');
 const Wallet = require('../../models/Wallet');
 const authService = require('../auth/auth.service');
 const { getLatestCricketData } = require('../../services/cricket.service');
 const walletService = require('../wallet/wallet.service');
+const { getDescendantUserIds, getUserTotalProfitLoss } = require('../bet/bet.service');
+
+const sortHierarchyNodes = (a, b) => {
+  const aLvl = ROLE_HIERARCHY[a.role] || 0;
+  const bLvl = ROLE_HIERARCHY[b.role] || 0;
+  if (bLvl !== aLvl) return bLvl - aLvl;
+  return String(a.username || '').localeCompare(String(b.username || ''), 'en', { sensitivity: 'base' });
+};
+
+const buildUserHierarchyTree = ({ users }) => {
+  const byId = new Map();
+  users.forEach((u) => {
+    byId.set(String(u._id), { ...u, children: [] });
+  });
+
+  const roots = [];
+  byId.forEach((node) => {
+    const parentId = node.createdBy ? String(node.createdBy) : null;
+    const parent = parentId ? byId.get(parentId) : null;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  });
+
+  const sortDeep = (arr) => {
+    arr.sort(sortHierarchyNodes);
+    arr.forEach((n) => sortDeep(n.children));
+  };
+  sortDeep(roots);
+  return roots;
+};
 
 /**
  * Get cricket matches (public route)
@@ -346,6 +376,85 @@ const getUserStats = async (req, res) => {
   }
 };
 
+/**
+ * Get hierarchical user list under a user.
+ * - Without query.userId: returns hierarchy under the authenticated user.
+ * - With query.userId: for non-super_admin, target user must be directly created by the authenticated user.
+ */
+const getUserHierarchy = async (req, res) => {
+  try {
+    const requesterId = req.userId;
+    const requesterRole = req.user?.role;
+    const targetUserId = req.query.userId || requesterId;
+
+    // Permission check for non super_admin when requesting another user's hierarchy
+    if (String(targetUserId) !== String(requesterId) && requesterRole !== ROLES.SUPER_ADMIN) {
+      const targetUser = await User.findById(targetUserId).select('_id createdBy');
+
+      if (!targetUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      if (!targetUser.createdBy || String(targetUser.createdBy) !== String(requesterId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to view this user hierarchy'
+        });
+      }
+    }
+
+    // Get all descendant user ids under the target user
+    const descendantIds = await getDescendantUserIds(String(targetUserId));
+    const allIds = [targetUserId, ...descendantIds];
+
+    const users = await User.find({ _id: { $in: allIds } })
+      .select('_id username name role createdBy isActive')
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or no users under this user'
+      });
+    }
+
+    const roots = buildUserHierarchyTree({ users });
+    const rootNode =
+      roots.find((node) => String(node._id) === String(targetUserId)) || roots[0];
+
+    // If from/to query is provided, compute total profitLoss only for the root user (user level)
+    const { from, to, sport } = req.query;
+    let rootProfitLoss = null;
+    if (from || to || sport) {
+      try {
+        const pl = await getUserTotalProfitLoss(targetUserId, { from, to, sport });
+        rootProfitLoss = pl.profitLoss;
+      } catch (e) {
+        // If PL calculation fails, still return hierarchy without breaking
+      }
+    }
+
+    // Do not include the root user itself inside the main data list,
+    // return only users under this user hierarchically.
+    res.json({
+      success: true,
+      data: rootNode.children || [],
+      meta: {
+        rootUserId: String(targetUserId),
+        rootProfitLoss
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch user hierarchy'
+    });
+  }
+};
+
 module.exports = {
   getCricketMatches,
   getAllUsers,
@@ -353,5 +462,6 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
-  getUserStats
+  getUserStats,
+  getUserHierarchy
 };

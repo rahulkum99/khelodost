@@ -41,6 +41,7 @@ router.post(
 // - List/get users: available to Agent and above (scoped to users they created)
 // - Stats/update/delete: restricted to Admin and above
 router.get('/', requireMinRole(ROLES.AGENT), userController.getAllUsers);
+router.get('/hierarchy', requireMinRole(ROLES.AGENT), userController.getUserHierarchy);
 router.get('/stats', requireMinRole(ROLES.ADMIN), userController.getUserStats);
 router.get('/:id', requireMinRole(ROLES.AGENT), userController.getUserById);
 

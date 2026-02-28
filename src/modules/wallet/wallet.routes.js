@@ -48,6 +48,20 @@ router.post('/bulk/action',
   walletController.bulkDepositAndWithdraw
 );
 
+// Hierarchical deposit and withdraw - Agent and above, operate on any user in their tree
+router.post('/hierarchy/deposit',
+  requireMinRole(ROLES.AGENT),
+  walletValidation.validateHierarchyDeposit,
+  walletController.handleValidationErrors,
+  walletController.depositToHierarchyUser
+);
+router.post('/hierarchy/withdraw',
+  requireMinRole(ROLES.AGENT),
+  walletValidation.validateHierarchyWithdraw,
+  walletController.handleValidationErrors,
+  walletController.withdrawFromHierarchyUser
+);
+
 // Add amount to wallet - ONLY Super Admin
 router.post('/add',
   walletValidation.validateAddAmount,

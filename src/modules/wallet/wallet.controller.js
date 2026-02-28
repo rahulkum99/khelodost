@@ -279,6 +279,59 @@ const getBankingAdmins = async (req, res, next) => {
 };
 
 /**
+ * Deposit to a user in the admin's hierarchy (any descendant).
+ * Transfers from admin's wallet to target user's wallet.
+ */
+const depositToHierarchyUser = async (req, res, next) => {
+  try {
+    const { userId, amount, description } = req.body;
+    const result = await walletService.depositToHierarchyUser(
+      req.userId,
+      userId,
+      amount,
+      description,
+      req
+    );
+    res.json({
+      success: true,
+      message: 'Deposit successful',
+      data: result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Deposit failed'
+    });
+  }
+};
+
+/**
+ * Withdraw from a user in the admin's hierarchy (any descendant).
+ */
+const withdrawFromHierarchyUser = async (req, res, next) => {
+  try {
+    const { userId, amount, description } = req.body;
+    const result = await walletService.withdrawFromHierarchyUser(
+      req.userId,
+      userId,
+      amount,
+      description,
+      req
+    );
+    res.json({
+      success: true,
+      message: 'Withdrawal successful',
+      data: result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Withdrawal failed'
+    });
+  }
+};
+
+/**
  * Bulk deposit and withdraw in one request. Requires admin password.
  * Response data is array of { _id, username, balance, exposer } for users in the request.
  */
@@ -312,6 +365,8 @@ module.exports = {
   getWalletStats,
   getBankingUsers,
   getBankingAdmins,
+  depositToHierarchyUser,
+  withdrawFromHierarchyUser,
   bulkDepositAndWithdraw
 };
 

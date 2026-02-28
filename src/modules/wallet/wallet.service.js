@@ -3,6 +3,7 @@ const WalletTransaction = require('../../models/WalletTransaction');
 const { User, ROLES, ROLE_HIERARCHY } = require('../../models/User');
 const mongoose = require('mongoose');
 const { withTransaction } = require('../../utils/transaction.helper');
+const { getDescendantUserIds } = require('../bet/bet.service');
 
 const sessionOpts = (session) => (session ? { session } : {});
 
@@ -116,9 +117,9 @@ const addAmount = async (targetUserId, amount, performedBy, description, req = n
 /**
  * Deduct amount from wallet (Debit)
  * Only upper-level admins can deduct from lower-level users
- * Admin can only deduct from users they created
+ * Admin can only deduct from users they created (or hierarchy descendants if options.allowHierarchy)
  */
-const deductAmount = async (targetUserId, amount, performedBy, description, req = null) => {
+const deductAmount = async (targetUserId, amount, performedBy, description, req = null, options = {}) => {
   // Validate amount
   if (!amount || amount <= 0) {
     throw new Error('Amount must be greater than 0');
@@ -147,9 +148,17 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
       throw new Error('You can only deduct amount from users with lower role level');
     }
 
-    // Check if admin can only deduct from users they created
-    if (targetUser.createdBy && targetUser.createdBy.toString() !== performedBy.toString()) {
-      throw new Error('You can only deduct amount from users you created');
+    if (options.allowHierarchy) {
+      const descendantIds = await getDescendantUserIds(String(performedBy));
+      const allowedIds = new Set(descendantIds.map((id) => id.toString()));
+      if (!allowedIds.has(String(targetUserId))) {
+        throw new Error('Target user is not in your hierarchy');
+      }
+    } else {
+      // Check if admin can only deduct from users they created
+      if (targetUser.createdBy && targetUser.createdBy.toString() !== performedBy.toString()) {
+        throw new Error('You can only deduct amount from users you created');
+      }
     }
   }
 
@@ -210,9 +219,9 @@ const deductAmount = async (targetUserId, amount, performedBy, description, req 
  * - All users (including Super Admin) can transfer from their own wallet to other users' wallets
  * - Super Admin can transfer from their own wallet to any user
  * - Super Admin can also transfer from any wallet to any wallet
- * - Upper-level admins can transfer from wallets of users they created to users they created
+ * - Upper-level admins can transfer from wallets of users they created to users they created (or hierarchy if options.allowHierarchy)
  */
-const transferAmount = async (fromUserId, toUserId, amount, performedBy, description, req = null) => {
+const transferAmount = async (fromUserId, toUserId, amount, performedBy, description, req = null, options = {}) => {
   // Validate amount
   if (!amount || amount <= 0) {
     throw new Error('Amount must be greater than 0');
@@ -260,9 +269,16 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
         throw new Error('You can only transfer from wallets of users with lower role level');
       }
 
-      // Check if admin can only transfer from users they created
-      if (fromUser.createdBy && fromUser.createdBy.toString() !== performedBy.toString()) {
-        throw new Error('You can only transfer from wallets of users you created');
+      if (options.allowHierarchy) {
+        const descendantIds = await getDescendantUserIds(String(performedBy));
+        const allowedIds = new Set(descendantIds.map((id) => id.toString()));
+        if (!allowedIds.has(String(fromUserId))) {
+          throw new Error('Sender user is not in your hierarchy');
+        }
+      } else {
+        if (fromUser.createdBy && fromUser.createdBy.toString() !== performedBy.toString()) {
+          throw new Error('You can only transfer from wallets of users you created');
+        }
       }
     }
   }
@@ -278,9 +294,16 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
       throw new Error('You can only transfer to users with lower role level');
     }
 
-    // Check if admin can only transfer to users they created
-    if (toUser.createdBy && toUser.createdBy.toString() !== performedBy.toString()) {
-      throw new Error('You can only transfer to users you created');
+    if (options.allowHierarchy) {
+      const descendantIds = await getDescendantUserIds(String(performedBy));
+      const allowedIds = new Set(descendantIds.map((id) => id.toString()));
+      if (!allowedIds.has(String(toUserId))) {
+        throw new Error('Receiver user is not in your hierarchy');
+      }
+    } else {
+      if (toUser.createdBy && toUser.createdBy.toString() !== performedBy.toString()) {
+        throw new Error('You can only transfer to users you created');
+      }
     }
   }
 
@@ -728,6 +751,39 @@ const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
   return { succeeded, failed, data };
 };
 
+/**
+ * Deposit to a user in the admin's hierarchy (any descendant).
+ * Transfers from admin's wallet to target user's wallet.
+ * Super Admin can deposit to anyone; others only to users in their tree.
+ */
+const depositToHierarchyUser = async (adminUserId, targetUserId, amount, description, req = null) => {
+  return transferAmount(
+    adminUserId,
+    targetUserId,
+    amount,
+    adminUserId,
+    description || 'Hierarchy deposit',
+    req,
+    { allowHierarchy: true }
+  );
+};
+
+/**
+ * Withdraw from a user in the admin's hierarchy (any descendant).
+ * Deducts from target user's wallet.
+ * Super Admin can withdraw from anyone; others only from users in their tree.
+ */
+const withdrawFromHierarchyUser = async (adminUserId, targetUserId, amount, description, req = null) => {
+  return deductAmount(
+    targetUserId,
+    amount,
+    adminUserId,
+    description || 'Hierarchy withdrawal',
+    req,
+    { allowHierarchy: true }
+  );
+};
+
 module.exports = {
   getWallet,
   getBalance,
@@ -740,6 +796,8 @@ module.exports = {
   getWalletStats,
   getBankingUserList,
   getBankingAdminList,
-  bulkDepositAndWithdraw
+  bulkDepositAndWithdraw,
+  depositToHierarchyUser,
+  withdrawFromHierarchyUser
 };
 

@@ -142,6 +142,48 @@ const validateUserIdParam = [
 ];
 
 /**
+ * Validation for hierarchical deposit (userId, amount, description)
+ */
+const validateHierarchyDeposit = [
+  body('userId')
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('Invalid user ID format'),
+  body('amount')
+    .notEmpty()
+    .withMessage('Amount is required')
+    .isFloat({ min: 0.01, max: 9999999999 })
+    .withMessage('Amount must be between 0.01 and 9999999999'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters')
+];
+
+/**
+ * Validation for hierarchical withdraw (userId, amount, description)
+ */
+const validateHierarchyWithdraw = [
+  body('userId')
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('Invalid user ID format'),
+  body('amount')
+    .notEmpty()
+    .withMessage('Amount is required')
+    .isFloat({ min: 0.01, max: 9999999999 })
+    .withMessage('Amount must be between 0.01 and 9999999999'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters')
+];
+
+/**
  * Validation for bulk deposit + withdraw in one request
  * Body: { adminPassword, entries: [ { userId, amount, action: 'deposit'|'withdraw', description? } ] }
  */
@@ -182,6 +224,8 @@ module.exports = {
   validateLockWallet,
   validateUnlockWallet,
   validateUserIdParam,
-  validateBulkAction
+  validateBulkAction,
+  validateHierarchyDeposit,
+  validateHierarchyWithdraw
 };
 

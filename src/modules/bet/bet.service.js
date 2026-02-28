@@ -2464,6 +2464,72 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
   return rows;
 };
 
+/**
+ * Get total profit/loss for a single user over a date range.
+ * Uses settled bets only (like getUserProfitLossByEvent), summed across all events/markets.
+ *
+ * @param {string|ObjectId} userId
+ * @param {{ from?: string|Date, to?: string|Date, sport?: string }} query
+ * @returns {{ userId: ObjectId, profitLoss: number }}
+ */
+const getUserTotalProfitLoss = async (userId, query = {}) => {
+  const { sport, from, to } = query;
+
+  const match = {
+    userId: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+    status: Bet.BET_STATUS.SETTLED,
+  };
+
+  if (sport) match.sport = sport;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+
+  if (fromDate || toDate) {
+    match.settledAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
+    if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+  }
+
+  const matchOddsLike = matchOddsLikeForPl();
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        status: 1,
+        marketType: 1,
+        betType: 1,
+        stake: 1,
+        exposure: 1,
+        odds: 1,
+        rate: 1,
+        settlementResult: 1,
+      },
+    },
+    netWinAmountAddFields(matchOddsLike),
+    {
+      $group: {
+        _id: '$userId',
+        profitLoss: { $sum: '$netWinAmount' },
+      },
+    },
+  ]);
+
+  if (!rows.length) {
+    return {
+      userId: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+      profitLoss: 0,
+    };
+  }
+
+  return {
+    userId: rows[0]._id,
+    profitLoss: Number(rows[0].profitLoss || 0),
+  };
+};
+
 module.exports = {
   placeBet,
   getDescendantUserIds,
@@ -2482,5 +2548,6 @@ module.exports = {
   getTodayBets,
   getTodayOpenBets,
   settleMarket,
+  getUserTotalProfitLoss,
 };
 
