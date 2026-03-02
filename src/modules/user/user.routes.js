@@ -6,7 +6,7 @@ const { authorize, requireMinRole, canCreateUserWithRole } = require('../../midd
 const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
-const { validateUpdateUser, validatePasswordConfirmation } = require('../auth/auth.validation');
+const { validateUpdateUser, validatePasswordConfirmation, validateUserStatus } = require('../auth/auth.validation');
 const { handleValidationErrors } = require('../auth/auth.controller');
 
 // Apply rate limiting to all routes
@@ -55,6 +55,17 @@ router.put(
   validateUpdateUser,
   handleValidationErrors,
   userController.updateUser
+);
+
+// Set user status: active | suspended | locked (Agent+, require admin password)
+router.patch(
+  '/:id/status',
+  requireMinRole(ROLES.AGENT),
+  validateUserStatus,
+  validatePasswordConfirmation,
+  handleValidationErrors,
+  requirePasswordConfirmation,
+  userController.setUserStatus
 );
 
 // Delete user - requires admin role and password confirmation

@@ -277,6 +277,15 @@ const validateAdminChangePassword = [
     .withMessage('Admin password confirmation is required for this operation. Please provide your password in the "adminPassword" field.')
 ];
 
+// Set user status: active | suspended | locked
+const validateUserStatus = [
+  body('status')
+    .notEmpty()
+    .withMessage('status is required')
+    .isIn(['active', 'suspended', 'locked'])
+    .withMessage('status must be active, suspended, or locked')
+];
+
 module.exports = {
   validatePasswordConfirmation,
   validateRegister,
@@ -284,5 +293,6 @@ module.exports = {
   validateChangePassword,
   validateUpdateProfile,
   validateUpdateUser,
-  validateAdminChangePassword
+  validateAdminChangePassword,
+  validateUserStatus
 };

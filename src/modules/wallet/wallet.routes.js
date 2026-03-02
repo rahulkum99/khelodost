@@ -6,6 +6,7 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireMinRole } = require('../../middlewares/authorize.middleware');
 const { canManageWallet } = require('../../middlewares/wallet.middleware');
 const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
+const { validatePasswordConfirmation } = require('../auth/auth.validation');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
 
@@ -48,17 +49,21 @@ router.post('/bulk/action',
   walletController.bulkDepositAndWithdraw
 );
 
-// Hierarchical deposit and withdraw - Agent and above, operate on any user in their tree
+// Hierarchical deposit and withdraw - Agent and above, require admin password
 router.post('/hierarchy/deposit',
   requireMinRole(ROLES.AGENT),
   walletValidation.validateHierarchyDeposit,
+  validatePasswordConfirmation,
   walletController.handleValidationErrors,
+  requirePasswordConfirmation,
   walletController.depositToHierarchyUser
 );
 router.post('/hierarchy/withdraw',
   requireMinRole(ROLES.AGENT),
   walletValidation.validateHierarchyWithdraw,
+  validatePasswordConfirmation,
   walletController.handleValidationErrors,
+  requirePasswordConfirmation,
   walletController.withdrawFromHierarchyUser
 );
 

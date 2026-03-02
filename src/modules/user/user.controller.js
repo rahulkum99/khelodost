@@ -268,7 +268,7 @@ const updateUser = async (req, res) => {
     const allowedFields = [
       'username', 'name', 'email', 'mobileNumber', 'commission', 
       'rollingCommission', 'agentRollingCommission', 'currency', 'exposureLimit', 
-      'role', 'isActive', 'isEmailVerified'
+      'role', 'isActive', 'isAccountLocked', 'isEmailVerified'
     ];
     
     const filteredData = {};
@@ -305,7 +305,79 @@ const updateUser = async (req, res) => {
 };
 
 /**
- * Delete user (admin only)
+ * Set user status: active, suspended, or locked.
+ * Admin and above; target must be self or in requester's hierarchy.
+ */
+const setUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const targetUser = await User.findById(id).select('_id isActive isAccountLocked createdBy');
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Permission: Super Admin can set anyone; others only self or users in their hierarchy
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      const isSelf = id === req.userId.toString();
+      if (!isSelf) {
+        const descendantIds = await getDescendantUserIds(String(req.userId));
+        const allowedIds = new Set(descendantIds.map((oid) => oid.toString()));
+        if (!allowedIds.has(id)) {
+          return res.status(403).json({
+            success: false,
+            message: 'You can only set status for users in your hierarchy'
+          });
+        }
+      }
+    }
+
+    const updates = {};
+    switch (status) {
+      case 'active':
+        updates.isActive = true;
+        updates.isAccountLocked = false;
+        break;
+      case 'suspended':
+        updates.isActive = false;
+        updates.isAccountLocked = false;
+        break;
+      case 'locked':
+        updates.isAccountLocked = true;
+        updates.isActive = false;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'status must be active, suspended, or locked'
+        });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true }
+    ).select('-password -refreshToken');
+
+    res.json({
+      success: true,
+      message: `User status set to ${status}`,
+      data: { user }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to set user status'
+    });
+  }
+};
+
+/**
+ * Delete user (admin only). Wallet balance must be zero.
  */
 const deleteUser = async (req, res) => {
   try {
@@ -319,14 +391,29 @@ const deleteUser = async (req, res) => {
       });
     }
 
-    const user = await User.findByIdAndDelete(id);
-
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
+
+    // Require wallet balance and locked balance (exposure) to be zero before deletion
+    const wallet = await Wallet.findOne({ user: id }).select('balance lockedBalance').lean();
+    const balance = wallet ? Number(wallet.balance) || 0 : 0;
+    const lockedBalance = wallet ? Number(wallet.lockedBalance) || 0 : 0;
+    if (balance !== 0 || lockedBalance !== 0) {
+      const parts = [];
+      if (balance !== 0) parts.push('balance: ' + balance);
+      if (lockedBalance !== 0) parts.push('locked balance (exposure): ' + lockedBalance);
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete user: wallet balance and locked balance must be zero. Current: ' + parts.join(', ')
+      });
+    }
+
+    await User.findByIdAndDelete(id);
 
     res.json({
       success: true,
@@ -411,13 +498,61 @@ const getUserHierarchy = async (req, res) => {
     const allIds = [targetUserId, ...descendantIds];
 
     const users = await User.find({ _id: { $in: allIds } })
-      .select('_id username name role createdBy isActive')
+      .select('_id username name role createdBy isActive isAccountLocked')
       .lean();
 
     if (!users || users.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'User not found or no users under this user'
+      });
+    }
+
+    // Optional filter: return only locked and/or suspended users in hierarchy (flat list)
+    const statusFilter = req.query.status;
+    const statusList = statusFilter
+      ? String(statusFilter).toLowerCase().split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    if (statusList.length > 0) {
+      const validStatuses = ['suspended', 'locked'];
+      const statuses = statusList.filter((s) => validStatuses.includes(s));
+      if (statuses.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'status must be one or more of: suspended, locked'
+        });
+      }
+      // Exclude root; keep only descendants that match status
+      const descendantOnly = users.filter((u) => String(u._id) !== String(targetUserId));
+      const matchesStatus = (u) => {
+        const suspended = !u.isActive && !u.isAccountLocked;
+        const locked = !!u.isAccountLocked;
+        if (statuses.includes('suspended') && statuses.includes('locked')) {
+          return suspended || locked;
+        }
+        if (statuses.includes('suspended')) return suspended;
+        if (statuses.includes('locked')) return locked;
+        return false;
+      };
+      const filtered = descendantOnly.filter(matchesStatus).map((u) => ({
+        _id: u._id,
+        username: u.username,
+        name: u.name,
+        role: u.role,
+        createdBy: u.createdBy,
+        isActive: u.isActive,
+        isAccountLocked: u.isAccountLocked,
+        status: u.isAccountLocked ? 'locked' : (!u.isActive ? 'suspended' : 'active')
+      }));
+      return res.json({
+        success: true,
+        data: filtered,
+        meta: {
+          rootUserId: String(targetUserId),
+          total: filtered.length,
+          filter: statuses
+        }
       });
     }
 
@@ -461,6 +596,7 @@ module.exports = {
   getUserById,
   createUser,
   updateUser,
+  setUserStatus,
   deleteUser,
   getUserStats,
   getUserHierarchy

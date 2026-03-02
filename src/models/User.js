@@ -171,6 +171,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isAccountLocked: {
+    type: Boolean,
+    default: false
+  },
   isEmailVerified: {
     type: Boolean,
     default: false
@@ -270,7 +274,7 @@ userSchema.methods.hasRole = function(requiredRole) {
 
 // Method to check if user can access resource
 userSchema.methods.canAccess = function(requiredRole) {
-  if (!this.isActive) return false;
+  if (!this.isActive || this.isAccountLocked) return false;
   return this.hasRole(requiredRole);
 };
 

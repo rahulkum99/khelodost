@@ -132,7 +132,27 @@ const login = async (username, password, req = null) => {
     throw new Error('Invalid username or password');
   }
 
-  // Check if account is locked
+  if (!user.isActive) {
+    if (req) {
+      await createActivityLog(user, 'login_failed', req, {
+        loginStatus: 'failed',
+        failureReason: 'Account suspended'
+      });
+    }
+    throw new Error('Account is suspended. Please contact administrator.');
+  }
+
+  if (user.isAccountLocked) {
+    if (req) {
+      await createActivityLog(user, 'login_failed', req, {
+        loginStatus: 'failed',
+        failureReason: 'Account locked'
+      });
+    }
+    throw new Error('Account is locked. Please contact administrator.');
+  }
+
+  // Check if account is locked (temporary lock from failed login attempts)
   if (user.isLocked()) {
     const lockTime = Math.ceil((user.lockUntil - Date.now()) / 1000 / 60);
     // Log locked account attempt

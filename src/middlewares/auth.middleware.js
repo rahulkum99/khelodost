@@ -41,7 +41,14 @@ const authenticate = async (req, res, next) => {
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Account is deactivated. Please contact administrator.'
+        message: 'Account is suspended. Please contact administrator.'
+      });
+    }
+
+    if (user.isAccountLocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is locked. Please contact administrator.'
       });
     }
 
@@ -82,7 +89,7 @@ const optionalAuth = async (req, res, next) => {
       try {
         const decoded = verifyAccessToken(token);
         const user = await User.findById(decoded.userId).select('-password -refreshToken');
-        if (user && user.isActive) {
+        if (user && user.isActive && !user.isAccountLocked) {
           req.user = user;
           req.userId = user._id;
         }
