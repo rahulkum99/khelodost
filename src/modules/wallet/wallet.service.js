@@ -34,7 +34,9 @@ const getBalance = async (userId) => {
     balance: wallet.balance,
     currency: wallet.currency,
     isActive: wallet.isActive,
-    isLocked: wallet.isLocked
+    isLocked: wallet.isLocked,
+    lockedBalance: wallet.lockedBalance,
+    exposer: wallet.lockedBalance
   };
 };
 
