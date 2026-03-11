@@ -107,6 +107,45 @@ const getMyEventProfitLoss = async (req, res) => {
   }
 };
 
+// Internal: sport-wise unsettled bet list for settlement
+const getUnsettledBetsForSettlement = async (req, res) => {
+  try {
+    const rows = await betService.getUnsettledBetsForSettlement(req.query);
+
+    // Group by sport (cricket / soccer / tennis)
+    const sports = ['cricket', 'soccer', 'tennis'];
+    const grouped = sports.reduce((acc, s) => {
+      acc[s] = [];
+      return acc;
+    }, {});
+
+    for (const row of rows) {
+      if (!grouped[row.sport]) grouped[row.sport] = [];
+      grouped[row.sport].push({
+        eventId: row.eventId,
+        eventName: row.eventName,
+        marketId: row.marketId,
+        marketName: row.marketName,
+        selectionId: row.selectionId,
+        selectionName: row.selectionName,
+        openBets: row.openBets,
+        totalStake: row.totalStake,
+        totalExposure: row.totalExposure,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: grouped,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to fetch unsettled bets for settlement',
+    });
+  }
+};
+
 const settleMarket = async (req, res) => {
   try {
     await betService.settleMarket(req.body, req);
@@ -346,5 +385,6 @@ module.exports = {
   getAdminHierarchyMarketBets,
   getAdminHierarchyUserMarketProfitLoss,
   getLiveMarkets,
+  getUnsettledBetsForSettlement,
 };
 

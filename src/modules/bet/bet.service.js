@@ -2530,6 +2530,68 @@ const getUserTotalProfitLoss = async (userId, query = {}) => {
   };
 };
 
+/**
+ * Internal: sport-wise unsettled bet list for settlement.
+ * Returns one row per (sport, eventId, eventName, marketId, marketName, selectionId, selectionName)
+ * with aggregate counts/exposure.
+ */
+const getUnsettledBetsForSettlement = async (query = {}) => {
+  const { sport } = query;
+
+  const match = {
+    status: Bet.BET_STATUS.OPEN,
+  };
+
+  if (sport) {
+    match.sport = sport;
+  }
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: {
+          sport: '$sport',
+          eventId: '$eventId',
+          eventName: '$eventName',
+          marketId: '$marketId',
+          marketName: '$marketName',
+          selectionId: '$selectionId',
+          selectionName: '$selectionName',
+        },
+        openBets: { $sum: 1 },
+        totalStake: { $sum: '$stake' },
+        totalExposure: { $sum: '$exposure' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        marketId: '$_id.marketId',
+        marketName: '$_id.marketName',
+        selectionId: '$_id.selectionId',
+        selectionName: '$_id.selectionName',
+        openBets: 1,
+        totalStake: 1,
+        totalExposure: 1,
+      },
+    },
+    {
+      $sort: {
+        sport: 1,
+        eventName: 1,
+        marketName: 1,
+        selectionName: 1,
+      },
+    },
+  ]);
+
+  return rows;
+};
+
 module.exports = {
   placeBet,
   getDescendantUserIds,
@@ -2549,5 +2611,6 @@ module.exports = {
   getTodayOpenBets,
   settleMarket,
   getUserTotalProfitLoss,
+  getUnsettledBetsForSettlement,
 };
 

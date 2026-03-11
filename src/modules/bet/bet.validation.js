@@ -392,6 +392,14 @@ const validateMarketAnalysisBySelection = [
     .withMessage('limit must be between 1 and 500'),
 ];
 
+// Internal: sport-wise unsettled bet list for settlement
+const validateUnsettledBetsForSettlement = [
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis'])
+    .withMessage('Invalid sport'),
+];
+
 module.exports = {
   validatePlaceBet,
   validateGetMyBets,
@@ -408,5 +416,6 @@ module.exports = {
   validateAdminHierarchyMarketBets,
   validateGetTodayInplayPlacedBets,
   validateMarketAnalysisBySelection,
+   validateUnsettledBetsForSettlement,
 };
 

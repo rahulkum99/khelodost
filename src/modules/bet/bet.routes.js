@@ -19,6 +19,15 @@ router.post('/settle',
   betController.settleMarket
 );
 
+// Unsettled bet list for settlement (server-to-server)
+router.get(
+  '/settlement/unsettled-bets',
+  settlementInternalAuth,
+  ...betValidation.validateUnsettledBetsForSettlement,
+  betController.handleValidationErrors,
+  betController.getUnsettledBetsForSettlement
+);
+
 // All bet routes require authentication
 router.use(authenticate);
 
