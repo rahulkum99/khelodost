@@ -1237,6 +1237,57 @@ const settleMatchOdds = async ({ session, marketId, eventId, winnerSelectionId, 
   }
 };
 
+const settleTOSMarket = async ({ session, marketId, eventId, winnerSelectionId, req }) => {
+  const bets = await Bet.find({
+    marketId,
+    eventId,
+    marketType: Bet.MARKET_TYPES.TOS_MARKET,
+    status: Bet.BET_STATUS.OPEN,
+  })
+    .session(session)
+    .exec();
+
+  for (const bet of bets) {
+    const isWinner = bet.selectionId === String(winnerSelectionId);
+    let netWinAmount = 0;
+
+    if (bet.betType === 'back') {
+      if (isWinner) {
+        // Winnings = (odds - 1) * stake
+        netWinAmount = (bet.odds - 1) * bet.stake;
+        bet.settlementResult = Bet.BET_RESULT.WON;
+      } else {
+        // Lose full stake already locked as exposure
+        netWinAmount = -bet.exposure;
+        bet.settlementResult = Bet.BET_RESULT.LOST;
+      }
+    } else if (bet.betType === 'lay') {
+      if (isWinner) {
+        // Lose lay liability (exposure)
+        netWinAmount = -bet.exposure;
+        bet.settlementResult = Bet.BET_RESULT.LOST;
+      } else {
+        // Win back stake-like profit: bet.stake
+        netWinAmount = bet.stake;
+        bet.settlementResult = Bet.BET_RESULT.WON;
+      }
+    }
+
+    await settleExposure({
+      session,
+      userId: bet.userId,
+      exposure: bet.exposure,
+      netWinAmount,
+      description: 'TOS_MARKET settlement',
+      req,
+    });
+
+    bet.status = Bet.BET_STATUS.SETTLED;
+    bet.settledAt = new Date();
+    await bet.save(sessionOpts(session));
+  }
+};
+
 const settleBookmakersFancy = async ({ session, marketId, eventId, resultMap, req }) => {
   // resultMap: { selectionId: 'yes' | 'no' }
   const bets = await Bet.find({
@@ -1482,6 +1533,15 @@ const settleMarket = async (payload, req) => {
     switch (marketType) {
       case Bet.MARKET_TYPES.MATCH_ODDS:
         await settleMatchOdds({
+          session,
+          marketId,
+          eventId,
+          winnerSelectionId: payload.winnerSelectionId,
+          req,
+        });
+        break;
+      case Bet.MARKET_TYPES.TOS_MARKET:
+        await settleTOSMarket({
           session,
           marketId,
           eventId,
