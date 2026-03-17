@@ -1288,8 +1288,7 @@ const settleTOSMarket = async ({ session, marketId, eventId, winnerSelectionId, 
   }
 };
 
-const settleBookmakersFancy = async ({ session, marketId, eventId, resultMap, req }) => {
-  // resultMap: { selectionId: 'yes' | 'no' }
+const settleBookmakersFancy = async ({ session, marketId, eventId, winnerSelectionId, req }) => {
   const bets = await Bet.find({
     marketId,
     eventId,
@@ -1300,43 +1299,22 @@ const settleBookmakersFancy = async ({ session, marketId, eventId, resultMap, re
     .exec();
 
   for (const bet of bets) {
-    const outcome = resultMap[bet.selectionId];
-    if (!outcome) {
-      // Void if outcome missing
-      await settleExposure({
-        session,
-        userId: bet.userId,
-        exposure: bet.exposure,
-        netWinAmount: 0,
-        description: 'Fancy void settlement',
-        req,
-      });
-      bet.status = Bet.BET_STATUS.SETTLED;
-      bet.settlementResult = Bet.BET_RESULT.VOID;
-      bet.settledAt = new Date();
-      await bet.save(sessionOpts(session));
-      continue;
-    }
-
+    const isWinnerSelection = bet.selectionId === String(winnerSelectionId);
     let netWinAmount = 0;
 
     if (bet.betType === 'yes') {
-      if (outcome === 'yes') {
-        // YES wins → payout = stake × rate / 100 (profit)
+      if (isWinnerSelection) {
         netWinAmount = (bet.stake * bet.rate) / 100;
         bet.settlementResult = Bet.BET_RESULT.WON;
       } else {
-        // YES loses → lose full stake
         netWinAmount = -bet.exposure;
         bet.settlementResult = Bet.BET_RESULT.LOST;
       }
     } else if (bet.betType === 'no') {
-      if (outcome === 'no') {
-        // NO wins → stake returned as net 0 (we already locked stake)
+      if (!isWinnerSelection) {
         netWinAmount = 0;
         bet.settlementResult = Bet.BET_RESULT.WON;
       } else {
-        // NO loses → lose full stake
         netWinAmount = -bet.exposure;
         bet.settlementResult = Bet.BET_RESULT.LOST;
       }
@@ -1430,13 +1408,20 @@ const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }
 
 // Fancy market (marketType = fancy): fixed ±stake P/L based on final run vs line
 // line = bet.lineValue (preferred) or bet.odds (fallback)
-const settleFancyMarket = async ({ session, marketId, eventId, finalValue, req }) => {
-  const bets = await Bet.find({
+const settleFancyMarket = async ({ session, marketId, eventId, selectionId, finalValue, req }) => {
+  const filter = {
     marketId,
     eventId,
     marketType: Bet.MARKET_TYPES.FANCY,
     status: Bet.BET_STATUS.OPEN,
-  })
+  };
+  // Important: provider can have many sections (sid) under same mid.
+  // If selectionId is provided, settle only that section's bets.
+  if (selectionId !== undefined && selectionId !== null && String(selectionId).trim() !== '') {
+    filter.selectionId = String(selectionId);
+  }
+
+  const bets = await Bet.find(filter)
     .session(session)
     .exec();
 
@@ -1554,7 +1539,7 @@ const settleMarket = async (payload, req) => {
           session,
           marketId,
           eventId,
-          resultMap: payload.resultMap || {},
+          winnerSelectionId: payload.winnerSelectionId,
           req,
         });
         break;
@@ -1581,6 +1566,7 @@ const settleMarket = async (payload, req) => {
           session,
           marketId,
           eventId,
+          selectionId: payload.selectionId,
           finalValue: payload.finalValue ?? payload.resultRun,
           req,
         });

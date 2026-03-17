@@ -111,10 +111,47 @@ const validateGetMyEventProfitLoss = [
 
 const validateSettleMarket = [
   body('marketType')
-    .isIn(validMarketTypes)
+    .exists({ checkFalsy: true })
+    .withMessage('marketType is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim().toLowerCase())
+    .custom((value) => validMarketTypes.includes(value) || value === 'tos_maket' || value === 'fancy1')
     .withMessage('Invalid marketType'),
-  body('marketId').notEmpty().withMessage('marketId is required'),
-  body('eventId').notEmpty().withMessage('eventId is required'),
+  body('marketId')
+    .exists({ checkFalsy: true })
+    .withMessage('marketId is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim()),
+  body('eventId')
+    .exists({ checkFalsy: true })
+    .withMessage('eventId is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim()),
+  // Optional: for markets that have multiple sections under same marketId (e.g. provider fancy sections).
+  // When provided, settlement will apply only to that selectionId.
+  body('selectionId')
+    .optional({ nullable: true })
+    .customSanitizer((v) => String(v).trim()),
+  // For numeric-result markets (like fancy/line/meter), settlement needs a final value.
+  body('finalValue')
+    .optional({ nullable: true })
+    .custom((v, { req }) => {
+      const mt = String(req.body?.marketType || '').trim().toLowerCase();
+      if ([Bet.MARKET_TYPES.FANCY, Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET].includes(mt)) {
+        return v !== undefined && v !== null && v !== '';
+      }
+      return true;
+    })
+    .withMessage('finalValue is required for this marketType')
+    .bail()
+    .custom((v, { req }) => {
+      const mt = String(req.body?.marketType || '').trim().toLowerCase();
+      if ([Bet.MARKET_TYPES.FANCY, Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET].includes(mt)) {
+        return !Number.isNaN(Number(v));
+      }
+      return true;
+    })
+    .withMessage('finalValue must be a number'),
 ];
 
 const validateAdminBetList = [
