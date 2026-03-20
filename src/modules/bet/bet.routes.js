@@ -19,6 +19,14 @@ router.post('/settle',
   betController.settleMarket
 );
 
+// Cancel/Void endpoint (server-to-server): refunds exposure for OPEN bets
+router.post('/cancel',
+  settlementInternalAuth,
+  ...betValidation.validateCancelMarket,
+  betController.handleValidationErrors,
+  betController.cancelMarket
+);
+
 // Unsettled bet list for settlement (server-to-server)
 router.get(
   '/settlement/unsettled-bets',

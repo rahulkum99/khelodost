@@ -161,6 +161,22 @@ const settleMarket = async (req, res) => {
   }
 };
 
+const cancelMarket = async (req, res) => {
+  try {
+    const result = await betService.cancelMarket(req.body, req);
+    res.json({
+      success: true,
+      message: 'Market cancelled successfully',
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to cancel market',
+    });
+  }
+};
+
 const getAdminBetList = async (req, res) => {
   try {
     const data = await betService.getAdminBetList(req.userId, req.user.role, req.query);
@@ -374,6 +390,7 @@ module.exports = {
   getMyProfitLoss,
   getMyEventProfitLoss,
   settleMarket,
+  cancelMarket,
   getTodayInplayPlacedBets,
   getMarketAnalysisBySelection,
   getAdminBetList,

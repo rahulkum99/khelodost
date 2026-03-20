@@ -154,6 +154,34 @@ const validateSettleMarket = [
     .withMessage('finalValue must be a number'),
 ];
 
+const validateCancelMarket = [
+  body('marketType')
+    .exists({ checkFalsy: true })
+    .withMessage('marketType is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim().toLowerCase())
+    .custom((value) => validMarketTypes.includes(value) || value === 'tos_maket' || value === 'fancy1')
+    .withMessage('Invalid marketType'),
+  body('marketId')
+    .exists({ checkFalsy: true })
+    .withMessage('marketId is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim()),
+  body('eventId')
+    .exists({ checkFalsy: true })
+    .withMessage('eventId is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim()),
+  body('selectionId')
+    .optional({ nullable: true })
+    .customSanitizer((v) => String(v).trim()),
+  body('reason')
+    .optional({ nullable: true })
+    .isString()
+    .isLength({ max: 200 })
+    .withMessage('reason must be a string up to 200 chars'),
+];
+
 const validateAdminBetList = [
   query('sport')
     .optional()
@@ -443,6 +471,7 @@ module.exports = {
   validateGetMyProfitLoss,
   validateGetMyEventProfitLoss,
   validateSettleMarket,
+  validateCancelMarket,
   validateAdminBetList,
   validateAdminUserBetList,
   validateAdminUserProfitLoss,

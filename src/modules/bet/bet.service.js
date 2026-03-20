@@ -1587,6 +1587,49 @@ const settleMarket = async (payload, req) => {
 };
 
 /**
+ * Admin cancel/void entrypoint (refund exposure for OPEN bets)
+ * - Cancels matching OPEN bets and returns their locked exposure.
+ * - Marks settlementResult = VOID and status = SETTLED.
+ * - Optional selectionId allows cancelling a specific section (sid) under same marketId.
+ */
+const cancelMarket = async (payload, req) => {
+  return await withTransaction(async (session) => {
+    const { marketType, marketId, eventId, selectionId, reason } = payload;
+
+    const filter = {
+      marketType,
+      marketId,
+      eventId,
+      status: Bet.BET_STATUS.OPEN,
+    };
+
+    if (selectionId !== undefined && selectionId !== null && String(selectionId).trim() !== '') {
+      filter.selectionId = String(selectionId);
+    }
+
+    const bets = await Bet.find(filter).session(session).exec();
+
+    for (const bet of bets) {
+      await settleExposure({
+        session,
+        userId: bet.userId,
+        exposure: bet.exposure,
+        netWinAmount: 0,
+        description: `BET void/cancel${reason ? ` — ${String(reason).slice(0, 120)}` : ''}`,
+        req,
+      });
+
+      bet.status = Bet.BET_STATUS.SETTLED;
+      bet.settlementResult = Bet.BET_RESULT.VOID;
+      bet.settledAt = new Date();
+      await bet.save(sessionOpts(session));
+    }
+
+    return { cancelledBets: bets.length };
+  });
+};
+
+/**
  * Admin: Get user profit/loss grouped by event (hierarchy enforced)
  * Similar to getUserProfitLossByEvent but admin can specify userId
  */
@@ -2656,6 +2699,7 @@ module.exports = {
   getTodayBets,
   getTodayOpenBets,
   settleMarket,
+  cancelMarket,
   getUserTotalProfitLoss,
   getUnsettledBetsForSettlement,
 };
