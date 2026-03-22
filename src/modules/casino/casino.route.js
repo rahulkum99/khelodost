@@ -7,6 +7,7 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 router.get('/list/spribe', casinoController.listSpribeGames);
 router.get('/list/inout', casinoController.listInoutGames);
 router.get('/list/mac88', casinoController.listMac88Games);
+router.get('/list/playtech', casinoController.listPlaytechGames);
 
 router.get('/:gamehash/launch', authenticate, casinoController.launchGame);
 

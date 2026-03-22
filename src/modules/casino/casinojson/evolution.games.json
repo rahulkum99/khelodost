@@ -1,0 +1,2123 @@
+[
+    {
+        "gameHash": "36b1e71c6f51827e24261d06a22b1e31",
+        "gameName": "French Roulette Gold",
+        "gameImage": "https://drive.google.com/thumbnail?id=1W2LzT2jgvLbhvpfhsewNHc5hNuvj7-ey&sz=w1000",
+        "iconCode": "code_EL1 French Roulette Gold",
+        "iconFileName": "code_EL1 French Roulette Gold.png"
+    },
+    {
+        "gameHash": "7b44393101abad7ac31e21fc1bdb3d56",
+        "gameName": "Emperor Speed Baccarat B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5cb6aa4e2ce1c775c568561401ffdfca",
+        "gameName": "Fan Tan",
+        "gameImage": "https://drive.google.com/thumbnail?id=12UnvbjpFV0Tq9xccHmqdYtzqrSQiijbM&sz=w1000",
+        "iconCode": "code_EL3 Fan Tan",
+        "iconFileName": "code_EL3 Fan Tan.png"
+    },
+    {
+        "gameHash": "b4af506243cafae52908e8fa266f8ff6",
+        "gameName": "Speed Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=10WyCrwZ1NeqKBt6PSLjAdKQ9Ej6SzsOa&sz=w1000",
+        "iconCode": "code_EL4 Speed Roulette",
+        "iconFileName": "code_EL4 Speed Roulette.png"
+    },
+    {
+        "gameHash": "87a7f4550407f5ed73c3353a54a11187",
+        "gameName": "Blackjack VIP 12",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "20e34228a5086c5a4198a3c967f99301",
+        "gameName": "Blackjack VIP R",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "553ef75ae9c5c6be76f50e2187685231",
+        "gameName": "Speed VIP Blackjack K",
+        "gameImage": "https://drive.google.com/thumbnail?id=14zHwN7QYYqAHSoS594XgHAZnF3EMJgNa&sz=w1000",
+        "iconCode": "code_EL7 Speed VIP Blackjack K",
+        "iconFileName": "code_EL7 Speed VIP Blackjack K.png"
+    },
+    {
+        "gameHash": "8a14300bc05eba74aab16e4946e29edf",
+        "gameName": "Speed VIP Blackjack J",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "15dddd63199059f97f21c456a4c74da3",
+        "gameName": "Speed Blackjack E",
+        "gameImage": "https://drive.google.com/thumbnail?id=18x4oAx-7ZSK90fy2NKKc0aJNLfmEcA_U&sz=w1000",
+        "iconCode": "code_EL9 Speed Blackjack E",
+        "iconFileName": "code_EL9 Speed Blackjack E.png"
+    },
+    {
+        "gameHash": "58d7089aa20bce7f70e0e2ce81e888f4",
+        "gameName": "Infinite Blackjack",
+        "gameImage": "https://drive.google.com/thumbnail?id=18XTGaDAxNNtkQizHANCij3pbFI3vR_UW&sz=w1000",
+        "iconCode": "code_EL10 Infinite Blackjack",
+        "iconFileName": "code_EL10 Infinite Blackjack.png"
+    },
+    {
+        "gameHash": "689dd8e8f17dae910dba9fdd4990d41e",
+        "gameName": "Craps",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Z3AHzVkID07kcZhXPNlgpNziAuPDSZGe&sz=w1000",
+        "iconCode": "code_EL11 Craps",
+        "iconFileName": "code_EL11 Craps.png"
+    },
+    {
+        "gameHash": "7d35a160644fdff741e92b1b96285fd5",
+        "gameName": "Salon Privé Baccarat G",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "404f0952ac7e25d242f2079dfe390983",
+        "gameName": "Baccarat Squeeze",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e7931b2e0d410ddc4f88520e9ad87c4b",
+        "gameName": "Speed Baccarat 3",
+        "gameImage": "https://drive.google.com/thumbnail?id=1g2l-01YM-JO4AuGVVv911o3fepXr9Ia8&sz=w1000",
+        "iconCode": "code_EL14 Speed Baccarat 3",
+        "iconFileName": "code_EL14 Speed Baccarat 3.png"
+    },
+    {
+        "gameHash": "b332c47c868946659d7de97f4157bdb3",
+        "gameName": "Speed Baccarat F",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Fq-kxa06keMkZsXuJ66JAgmOAiHcb-Hi&sz=w1000",
+        "iconCode": "code_EL15 Speed Baccarat F",
+        "iconFileName": "code_EL15 Speed Baccarat F.png"
+    },
+    {
+        "gameHash": "68fa4cdc74cd23b043db2caa25f1b42c",
+        "gameName": "Emperor Speed Baccarat A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1VRjKjIryoOUnfCPeGqRFgNnuHyrn-1Xg&sz=w1000",
+        "iconCode": "code_EL16 Emperor Speed Baccarat A",
+        "iconFileName": "code_EL16 Emperor Speed Baccarat A.png"
+    },
+    {
+        "gameHash": "e3951a5bf624e822a22cba1cbe619df5",
+        "gameName": "Super Sic Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1CdiizQQWIQbDJpM074gW2OHsHeLFMORF&sz=w1000",
+        "iconCode": "code_EL17 Super Sic Bo",
+        "iconFileName": "code_EL17 Super Sic Bo.png"
+    },
+    {
+        "gameHash": "64985010e87aab51c7fb18076d34062d",
+        "gameName": "First Person Top Card",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "7ee0da50996278d7fe5136f86f368fa5",
+        "gameName": "First Person Dream Catcher",
+        "gameImage": "https://drive.google.com/thumbnail?id=11gpTmaM93PwbKPtmPFMs2agtWKwTxiO1&sz=w1000",
+        "iconCode": "code_EL19 First Person Dream Catcher",
+        "iconFileName": "code_EL19 First Person Dream Catcher.png"
+    },
+    {
+        "gameHash": "4b4c45709dfd8188d7d6d12fae15bd42",
+        "gameName": "First Person Dragon Tiger",
+        "gameImage": "https://drive.google.com/thumbnail?id=1gidg52U01ZyP6MLuzUalj2RlRhZ2rMkW&sz=w1000",
+        "iconCode": "code_EL20 First Person Dragon Tiger",
+        "iconFileName": "code_EL20 First Person Dragon Tiger.png"
+    },
+    {
+        "gameHash": "3150b1cd8fbbddd94d36f20fab504653",
+        "gameName": "First Person Mega Ball",
+        "gameImage": "https://drive.google.com/thumbnail?id=1CSQyzCGmc2RUY4FYfs9byUjQqoIDTMtB&sz=w1000",
+        "iconCode": "code_EL21 First Person Mega Ball",
+        "iconFileName": "code_EL21 First Person Mega Ball.png"
+    },
+    {
+        "gameHash": "fec1b730e804bf14bd471a1e9b82bf44",
+        "gameName": "First Person Lightning Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=18Aug6wZPJ7sanMzi5J33MxZDIJQWSdrw&sz=w1000",
+        "iconCode": "code_EL22 First Person Lightning Baccarat",
+        "iconFileName": "code_EL22 First Person Lightning Baccarat.png"
+    },
+    {
+        "gameHash": "823245918aa2afd108a5912e363c083c",
+        "gameName": "First Person Craps",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Ycj0t6PR5F1qhHTm97buFsrKVFu6-r5-&sz=w1000",
+        "iconCode": "code_EL23 First Person Craps",
+        "iconFileName": "code_EL23 First Person Craps.png"
+    },
+    {
+        "gameHash": "e18dfa4a5dd4a0f2d8b45337bd6abb9d",
+        "gameName": "First Person Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1qFa_0PNkMtexn8HuW8vQNoGgJWKkmnJ4&sz=w1000",
+        "iconCode": "code_EL24 First Person Baccarat",
+        "iconFileName": "code_EL24 First Person Baccarat.png"
+    },
+    {
+        "gameHash": "88e49e3fb9a9883f01f167d03f5efdcb",
+        "gameName": "First Person Golden Wealth Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1scB81uP6vXrzYo7I7Z3-y3NoWFuTEFED&sz=w1000",
+        "iconCode": "code_EL25 First Person Golden Wealth Baccarat",
+        "iconFileName": "code_EL25 First Person Golden Wealth Baccarat.png"
+    },
+    {
+        "gameHash": "88b2d98462fbc45d6d31e95083e183df",
+        "gameName": "First Person American Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1dcz1DN312YeBn8kwHK_lfVEIb0lMIwoO&sz=w1000",
+        "iconCode": "code_EL26 First Person American Roulette",
+        "iconFileName": "code_EL26 First Person American Roulette.png"
+    },
+    {
+        "gameHash": "c715eb06391fabe5275d0b56440f49f3",
+        "gameName": "First Person Deal or No Deal",
+        "gameImage": "https://drive.google.com/thumbnail?id=1ql5t-CpHQBDZU8A0-7GfG0p4Dp5EQ0It&sz=w1000",
+        "iconCode": "code_EL27 First Person Deal or No Deal",
+        "iconFileName": "code_EL27 First Person Deal or No Deal.png"
+    },
+    {
+        "gameHash": "4ac0e874a4d5fc55bcdba5302b43bc96",
+        "gameName": "First Person Blackjack",
+        "gameImage": "https://drive.google.com/thumbnail?id=1aynqWFTFehccBSfgrea59y2q7t6QpCZU&sz=w1000",
+        "iconCode": "code_EL28 First Person Blackjack",
+        "iconFileName": "code_EL28 First Person Blackjack.png"
+    },
+    {
+        "gameHash": "74914b065a9e6b9c7cb8a0e4b17294ed",
+        "gameName": "First Person Lightning Blackjack",
+        "gameImage": "https://drive.google.com/thumbnail?id=1AJ-r8UbQo4ZFPbwPEsbQ0Qs3by_bSPjT&sz=w1000",
+        "iconCode": "code_EL29 First Person Lightning Blackjack",
+        "iconFileName": "code_EL29 First Person Lightning Blackjack.png"
+    },
+    {
+        "gameHash": "a82670530f49a6b3445dc1a592a2eb9e",
+        "gameName": "First Person Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1ZJhhSzxSG2ykXcINJoCXZVSyXo6kJlAz&sz=w1000",
+        "iconCode": "code_EL30 First Person Roulette",
+        "iconFileName": "code_EL30 First Person Roulette.png"
+    },
+    {
+        "gameHash": "7f50a6fbfcd9257299303b5757d43525",
+        "gameName": "Dream Catcher",
+        "gameImage": "https://drive.google.com/thumbnail?id=1raezA4ANHFfPdNwGlcwmkoqcdc4MsE2b&sz=w1000",
+        "iconCode": "code_EL31 Dream Catcher",
+        "iconFileName": "code_EL31 Dream Catcher.png"
+    },
+    {
+        "gameHash": "1909b4e3380dc37654f8e3997e63ec1b",
+        "gameName": "Football Studio Dice",
+        "gameImage": "https://drive.google.com/thumbnail?id=1A8TKbvBJzijjjjz_qIL_QRVkMSunCzje&sz=w1000",
+        "iconCode": "code_EL32 Football Studio Dice",
+        "iconFileName": "code_EL32 Football Studio Dice.png"
+    },
+    {
+        "gameHash": "eda1a2c5edb8370f8df58dcf8e1381b9",
+        "gameName": "Dead or Alive: Saloon",
+        "gameImage": "https://drive.google.com/thumbnail?id=1r8J9lfr5lFV9pvWPhVNmHDWLE0MvroBW&sz=w1000",
+        "iconCode": "code_EL33 Dead or Alive Saloon",
+        "iconFileName": "code_EL33 Dead or Alive Saloon.png"
+    },
+    {
+        "gameHash": "f5ee6fce16d369d1a656f3b227fc7236",
+        "gameName": "First Person Lightning Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1O0wbUiszfd-cKAtZrOsRanh7B312yVPG&sz=w1000",
+        "iconCode": "code_EL34 First Person Lightning Roulette",
+        "iconFileName": "code_EL34 First Person Lightning Roulette.png"
+    },
+    {
+        "gameHash": "392e13e38b3cec5ad259254a206d343a",
+        "gameName": "Football Studio",
+        "gameImage": "https://drive.google.com/thumbnail?id=1CJiVbzcqhje8lOrndMfdoBs3QiOaQi5j&sz=w1000",
+        "iconCode": "code_EL35 Football Studio",
+        "iconFileName": "code_EL35 Football Studio.png"
+    },
+    {
+        "gameHash": "bee6be84ab995f2040f4e575c2cc3910",
+        "gameName": "Deal or No Deal",
+        "gameImage": "https://drive.google.com/thumbnail?id=107mM3syi2PK8IOK7o27GS3XeOHO1uzTu&sz=w1000",
+        "iconCode": "code_EL36 Deal or No Deal",
+        "iconFileName": "code_EL36 Deal or No Deal.png"
+    },
+    {
+        "gameHash": "e1969a739eb17b9e7d97835357a30082",
+        "gameName": "Gonzo's Treasure Hunt",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "b53a604877024ef2eab9946898e65d6b",
+        "gameName": "Cash or Crash",
+        "gameImage": "https://drive.google.com/thumbnail?id=1jGY9n5R3TLQeG8ChLxk491h_vFO87HYB&sz=w1000",
+        "iconCode": "code_EL38 Cash or Crash",
+        "iconFileName": "code_EL38 Cash or Crash.jpg"
+    },
+    {
+        "gameHash": "067806e82742ca16bfffe70f76215647",
+        "gameName": "Monopoly Big Baller",
+        "gameImage": "https://drive.google.com/thumbnail?id=1qsLM9vr0fjMjE7yFwAViagEhlJ2fApKL&sz=w1000",
+        "iconCode": "code_EL39 Monopoly Big Baller",
+        "iconFileName": "code_EL39 Monopoly Big Baller.png"
+    },
+    {
+        "gameHash": "3955853fc6a0b53f7f9b9cff0be19cb8",
+        "gameName": "Mega Ball",
+        "gameImage": "https://drive.google.com/thumbnail?id=1DXxSHRLFhbjV_FahUv_3OkPnpzHzkYLn&sz=w1000",
+        "iconCode": "code_EL40 Mega Ball",
+        "iconFileName": "code_EL40 Mega Ball.png"
+    },
+    {
+        "gameHash": "d496ac5fd91702331133e44b6bd12b26",
+        "gameName": "Monopoly Live",
+        "gameImage": "https://drive.google.com/thumbnail?id=1RthtkTN6pL2EowM_rhTTCbfD5NMx4JFO&sz=w1000",
+        "iconCode": "code_EL41 Monopoly Live",
+        "iconFileName": "code_EL41 Monopoly Live.png"
+    },
+    {
+        "gameHash": "814aa56348ac4165588f2a3e251f8732",
+        "gameName": "Crazy Time A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1LfqEy6kwjmc8SSno1PWYtotYgoGpeFWk&sz=w1000",
+        "iconCode": "code_EL42 Crazy Time A",
+        "iconFileName": "code_EL42 Crazy Time A.png"
+    },
+    {
+        "gameHash": "0617a82334f4f1766cf282ce906e1df7",
+        "gameName": "Teen Patti",
+        "gameImage": "https://drive.google.com/thumbnail?id=1_82DdWR7rxGTLYIImd-0sJhP8TwkNaHQ&sz=w1000",
+        "iconCode": "code_EL43 Teen Patti",
+        "iconFileName": "code_EL43 Teen Patti.png"
+    },
+    {
+        "gameHash": "f7b98e899461bdd49f92afc36b4c0db5",
+        "gameName": "Super Andar Bahar",
+        "gameImage": "https://drive.google.com/thumbnail?id=1NXW1FFIKwkDDT0Q1P5WHNR7Dk60obYUx&sz=w1000",
+        "iconCode": "code_EL44 Super Andar Bahar",
+        "iconFileName": "code_EL44 Super Andar Bahar.png"
+    },
+    {
+        "gameHash": "917c0c51d248c33eb058e3210a2e7371",
+        "gameName": "Crazy Time",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Zg2_NzEYAOV-_EnqewskkRgHi-M_Us-K&sz=w1000",
+        "iconCode": "code_EL45 Crazy Time",
+        "iconFileName": "code_EL45 Crazy Time.png"
+    },
+    {
+        "gameHash": "ccf9a69b0ff627e53fdecfcb3a379ef2",
+        "gameName": "Side Bet City",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "0d743830cca897a7c4c9187bc7f9b812",
+        "gameName": "Texas Hold'em Bonus Poker",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "724eebd5cbe7555b01ed60279cb59e5a",
+        "gameName": "Caribbean Stud Poker",
+        "gameImage": "https://drive.google.com/thumbnail?id=1pYEOKJZsAUAVm9rCOKZBa-a6fCyPr2xd&sz=w1000",
+        "iconCode": "code_EL48 Caribbean Stud Poker",
+        "iconFileName": "code_EL48 Caribbean Stud Poker.png"
+    },
+    {
+        "gameHash": "fc4e71748bc1a8a7abfc4c1e2f63aa3b",
+        "gameName": "Extreme Texas Hold'em",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "b7c3b022f1c2b768524523d855a58d89",
+        "gameName": "Triple Card Poker",
+        "gameImage": "https://drive.google.com/thumbnail?id=1LAUJwpEAfWH32dg2yPitJeBBSmGCrrpW&sz=w1000",
+        "iconCode": "code_EL50 Triple Card Poker",
+        "iconFileName": "code_EL50 Triple Card Poker.png"
+    },
+    {
+        "gameHash": "105735cbbaca3b69176c710ebb2c751d",
+        "gameName": "Salon Privé Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1SCXRVl1WwdlOMqXvw5PYJHQ7wbKszCUv&sz=w1000",
+        "iconCode": "code_EL51 Salon Privé Roulette",
+        "iconFileName": "code_EL51 Salon Privé Roulette.png"
+    },
+    {
+        "gameHash": "97dcc429fe7142159aab82b918780f14",
+        "gameName": "2 Hand Casino Hold'em",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8cb4d1c55915742a45f59f2adbb97e24",
+        "gameName": "Casino Hold'em",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5c558d5217948dedcccd2592705a8b2f",
+        "gameName": "Dragonara Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1qdxYsgVwYBvn8GguBEKcUdK11DbO5PE1&sz=w1000",
+        "iconCode": "code_EL54 Dragonara Roulette",
+        "iconFileName": "code_EL54 Dragonara Roulette.png"
+    },
+    {
+        "gameHash": "bad3e93f3faadef550cb11fcb44a49b1",
+        "gameName": "Auto Lightning Roulette",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "367c395a50d4ef9edda332e17094670b",
+        "gameName": "Auto-Roulette VIP",
+        "gameImage": "https://drive.google.com/thumbnail?id=1ITp4VtKDN4yP2KUuN-kyzbbCXTjYM0-m&sz=w1000",
+        "iconCode": "code_EL56 Auto-Roulette VIP",
+        "iconFileName": "code_EL56 Auto-Roulette VIP.png"
+    },
+    {
+        "gameHash": "56fbfbaa2183a0389eed13255b8b9b52",
+        "gameName": "Auto-Roulette La Partage",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "1ffeecc77f75d0485e83036269fd9401",
+        "gameName": "Speed Auto Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=14TCGUb9AWG7Y9tiXwkUE2is6NSH-i4YV&sz=w1000",
+        "iconCode": "code_EL58 Speed Auto Roulette",
+        "iconFileName": "code_EL58 Speed Auto Roulette.png"
+    },
+    {
+        "gameHash": "fae08e8e222f162b27a2d5c4329d1044",
+        "gameName": "Double Ball Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1g3neUIcWjPjFdb_h1vyzPZV3xdy8RzVP&sz=w1000",
+        "iconCode": "code_EL59 Double Ball Roulette",
+        "iconFileName": "code_EL59 Double Ball Roulette.png"
+    },
+    {
+        "gameHash": "0afb35f8abd269ca0c0c65a49d5145db",
+        "gameName": "American Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1FbsCIzTNj02cKKmvA-4lBLMx_-6JrODM&sz=w1000",
+        "iconCode": "code_EL60 American Roulette",
+        "iconFileName": "code_EL60 American Roulette.png"
+    },
+    {
+        "gameHash": "e8f217c3d554285933cb67072c897fac",
+        "gameName": "VIP Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1d0RcIWepBHTf2P4oQZPjj0HvfFyBBL2R&sz=w1000",
+        "iconCode": "code_EL61 VIP Roulette",
+        "iconFileName": "code_EL61 VIP Roulette.png"
+    },
+    {
+        "gameHash": "ec65c22981a707736871eecfca8e5e25",
+        "gameName": "Instant Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=152xfddEY9h6qYHnQEnhUHT0uxrVl1YK9&sz=w1000",
+        "iconCode": "code_EL62 Instant Roulette",
+        "iconFileName": "code_EL62 Instant Roulette.png"
+    },
+    {
+        "gameHash": "ed9e15ea8a2cbb9e7ad2604819764d43",
+        "gameName": "Auto-Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1DTSbBvswkoCtr7Hn7sHg9GiHsBih-ELr&sz=w1000",
+        "iconCode": "code_EL63 Auto-Roulette",
+        "iconFileName": "code_EL63 Auto-Roulette.png"
+    },
+    {
+        "gameHash": "3b43390eebe1f1a84b15f1251a253b24",
+        "gameName": "Immersive Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1zY75WmCZOLll6hjGvvrIHZ-6b9k16jnZ&sz=w1000",
+        "iconCode": "code_EL64 Immersive Roulette",
+        "iconFileName": "code_EL64 Immersive Roulette.png"
+    },
+    {
+        "gameHash": "53b7cbb34adc1279d0df4c0942af9393",
+        "gameName": "Emperor Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1my_Y6Ywi1r2iLgLIPQOODyujSWeXoxv-&sz=w1000",
+        "iconCode": "code_EL65 Emperor Roulette",
+        "iconFileName": "code_EL65 Emperor Roulette.png"
+    },
+    {
+        "gameHash": "ddec0b9e4bcb684d843af9f480e57369",
+        "gameName": "Gold Bar Roulette",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "394fe6a2cde24bc487767236cc6eccd6",
+        "gameName": "XXXtreme Lightning Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1kxhO7U9Gl1neteo4DBaGtYOhcjW11T3H&sz=w1000",
+        "iconCode": "code_EL67 XXXtreme Lightning Roulette",
+        "iconFileName": "code_EL67 XXXtreme Lightning Roulette.png"
+    },
+    {
+        "gameHash": "c9020da3ac9119910b7146416d5a9850",
+        "gameName": "Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1ZplP62s0ZYJJtzKmc7QC1IssExOOI-ZQ&sz=w1000",
+        "iconCode": "code_EL68 Roulette",
+        "iconFileName": "code_EL68 Roulette.png"
+    },
+    {
+        "gameHash": "cf2ee43e0200d8fe0564628d5a56bd6f",
+        "gameName": "Salon Privé Blackjack G",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "4a858d6b74c05260d3ea2762838798c7",
+        "gameName": "Lightning Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1rvoJIQmKdA5LVynfddesJH1kGzHrFYXs&sz=w1000",
+        "iconCode": "code_EL70 Lightning Roulette",
+        "iconFileName": "code_EL70 Lightning Roulette.png"
+    },
+    {
+        "gameHash": "d9b7ea7819d2d7abee3197bf2b1281c7",
+        "gameName": "Salon Privé Blackjack I",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "cae32c1011d6e41ab7d6948f1696ab1c",
+        "gameName": "Salon Privé Blackjack J",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "db69d21bbd5bc9d37b38bbfbfa3169fc",
+        "gameName": "Salon Privé Blackjack H",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "88094da66b69066587ab29163d239142",
+        "gameName": "Salon Privé Blackjack E",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "9aef9d09e355adc2f1bb3c4179d28385",
+        "gameName": "Salon Privé Blackjack F",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "2e8a0e70afbf41baf8200fbdf90fb6ec",
+        "gameName": "Salon Privé Blackjack C",
+        "gameImage": "https://drive.google.com/thumbnail?id=1eB9ZL3cDfj752TPjr4DJhkszvs1eObNO&sz=w1000",
+        "iconCode": "code_EL76 Salon Privé Blackjack C",
+        "iconFileName": "code_EL76 Salon Privé Blackjack C.png"
+    },
+    {
+        "gameHash": "4c4ee10f6c080904bc2e70f66d6185d4",
+        "gameName": "Salon Privé Blackjack B",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Bj-T-HvrDwd8OOpPhT1UEJLJ1SuO0Ct-&sz=w1000",
+        "iconCode": "code_EL77 Salon Privé Blackjack B",
+        "iconFileName": "code_EL77 Salon Privé Blackjack B.png"
+    },
+    {
+        "gameHash": "9e78f6d00dbebadc3efe5a52af3a0c83",
+        "gameName": "Salon Privé Blackjack D",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "0b8610191202673d86d53d45f4f05804",
+        "gameName": "Salon Privé Blackjack A",
+        "gameImage": "https://drive.google.com/thumbnail?id=156SW_IRGaYdGJ4YEQhb92Pksg8rxfc7k&sz=w1000",
+        "iconCode": "code_EL79 Salon Privé Blackjack A",
+        "iconFileName": "code_EL79 Salon Privé Blackjack A.png"
+    },
+    {
+        "gameHash": "7d4e80750fdbd046e210dc8e1d1a0c21",
+        "gameName": "Blackjack Diamond VIP",
+        "gameImage": "https://drive.google.com/thumbnail?id=1q6oQ9Kgk74mBMMRUlKWTcqgvCaD30d_X&sz=w1000",
+        "iconCode": "code_EL80 Blackjack Diamond VIP",
+        "iconFileName": "code_EL80 Blackjack Diamond VIP.png"
+    },
+    {
+        "gameHash": "06e7ecf8debac2b86e8b38342de30a7a",
+        "gameName": "Blackjack Fortune VIP",
+        "gameImage": "https://drive.google.com/thumbnail?id=1hdr5ehNogoA9BONadse4KGQMRjeENQ_y&sz=w1000",
+        "iconCode": "code_EL81 Blackjack Fortune VIP",
+        "iconFileName": "code_EL81 Blackjack Fortune VIP.png"
+    },
+    {
+        "gameHash": "79efa086e10bbd8543b6e03e7a491351",
+        "gameName": "Blackjack Grand VIP",
+        "gameImage": "https://drive.google.com/thumbnail?id=1yobJxmMVlKu8xqAPAQL5mnhNs2ge7KS9&sz=w1000",
+        "iconCode": "code_EL82 Blackjack Grand VIP",
+        "iconFileName": "code_EL82 Blackjack Grand VIP.png"
+    },
+    {
+        "gameHash": "c2bd2aafaa4dbaff9df0cd0b53fc6056",
+        "gameName": "Blackjack Platinum VIP",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "9f71de77938927179599cd645a5688c5",
+        "gameName": "Blackjack VIP Gamma",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "a6117241477a0b712edc856274691f9b",
+        "gameName": "Blackjack VIP Alpha",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "74f9dadea990e593f531953b1feaac7b",
+        "gameName": "Blackjack VIP 27",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "3a3bb51ef96c4795ac20c935ca68443b",
+        "gameName": "Blackjack VIP Beta",
+        "gameImage": "https://drive.google.com/thumbnail?id=1EJKfuVKsaml_WJ-WBRBYR6KRKLGebNRC&sz=w1000",
+        "iconCode": "code_EL87 Blackjack VIP Beta",
+        "iconFileName": "code_EL87 Blackjack VIP Beta.png"
+    },
+    {
+        "gameHash": "84c4ac47b33cb83dbdfbd56af4e658ad",
+        "gameName": "Blackjack VIP 26",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "fcb1de01fe2c14217bfabd92976c7a05",
+        "gameName": "Blackjack VIP 21",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "cc61ff297d5beef775880c9ffcccf63e",
+        "gameName": "Blackjack VIP 25",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "a9d74415dfdde9ca16087d260c63fd68",
+        "gameName": "Blackjack VIP 20",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "31915e590bc4f5904681c9ed3fec7e91",
+        "gameName": "Blackjack VIP 19",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ba4f73d5e19cb97db65f0766cd785434",
+        "gameName": "Blackjack VIP 22",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "994a2681526c98fec2b9a2d63a642faa",
+        "gameName": "Blackjack VIP 17",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ebdf09c0f6d79eed79b1027afc9d7df7",
+        "gameName": "Blackjack VIP 18",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "295743c7d72fd2eb61ca06749bb25a44",
+        "gameName": "Blackjack VIP 16",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e200f3434cd89322594336ee0f90afd0",
+        "gameName": "Blackjack VIP 15",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "1d5d1c1c3d9c76bd7f4c58b9239c373a",
+        "gameName": "Blackjack VIP 14",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ad6b96a22d790052e3f899b3ece69c03",
+        "gameName": "Blackjack VIP 13",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "1329b0405db81b9964d6dd6eb0a514c9",
+        "gameName": "Blackjack VIP 11",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "323f4086833fda7bb471f10e18a28364",
+        "gameName": "Blackjack VIP 10",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "54806d16c3eac96d4bea63ccfc0c674c",
+        "gameName": "Blackjack VIP 9",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "f3d684a1b2fb22ac35c67e296df4db31",
+        "gameName": "Blackjack VIP 5",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ecffee81bd446ea53e4836e497f9e803",
+        "gameName": "Blackjack VIP 8",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "4a33673ccc580aea8ae80ffa03c12ba7",
+        "gameName": "Blackjack VIP 6",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "3d3f89247b5ec9e98e76ef2b22da2532",
+        "gameName": "Blackjack VIP 7",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "aed251dded03e8a1e665e52cdc4b6e80",
+        "gameName": "Blackjack VIP 4",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "195f9f3cb289ab0c8e281317692590ba",
+        "gameName": "Blackjack VIP X",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "f8e17bc0ad780b65f684558001ee2e64",
+        "gameName": "Blackjack VIP 3",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "7530ac3d1140882df7e883641237bb42",
+        "gameName": "Blackjack VIP 2",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "54b14b8af2eab62dad3053c09ff7508d",
+        "gameName": "Blackjack VIP Z",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "9f509cdc3cdce669368977eda1588011",
+        "gameName": "Blackjack VIP 1",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "c69e64c185d94548fda619a867e1f031",
+        "gameName": "Blackjack VIP V",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Dl6NOZGXutei_bt_Loj235Wb74QlKL8x&sz=w1000",
+        "iconCode": "code_EL113 Blackjack VIP V",
+        "iconFileName": "code_EL113 Blackjack VIP V.png"
+    },
+    {
+        "gameHash": "78beceac05fb03bb597646ee2a85cb1e",
+        "gameName": "Blackjack VIP T",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "921477a239b298fdd623e29c8f982274",
+        "gameName": "Blackjack VIP U",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "a422edff8144adb81cd3e5d0236bb52b",
+        "gameName": "Blackjack VIP S",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5a04abf1c8f61ff36beaa840b38fd720",
+        "gameName": "Blackjack VIP P",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8cadf51f3bab6ca1d1351e39920f0cd0",
+        "gameName": "Blackjack VIP N",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "694ea4e8c2bc49bb69c0c113a29e5c18",
+        "gameName": "Blackjack VIP Q",
+        "gameImage": "https://drive.google.com/thumbnail?id=1CxRm-4O_dfufb-Pk1PL6B2NFbkxYeQtB&sz=w1000",
+        "iconCode": "code_EL119 Blackjack VIP Q",
+        "iconFileName": "code_EL119 Blackjack VIP Q.png"
+    },
+    {
+        "gameHash": "bee49a234fcb2ed9547b9e1562953f35",
+        "gameName": "Blackjack VIP M",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "4134e22ef51602a341306df756ee8f2c",
+        "gameName": "Blackjack VIP O",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "2703c1a1340451d9f9d35904c721f7d6",
+        "gameName": "Blackjack VIP I",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ce84d2072af4db522109e3e349bec9c9",
+        "gameName": "Blackjack VIP K",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Z1_ADei4a_4rvHx9RBVSBGh0f2WLSiP-&sz=w1000",
+        "iconCode": "code_EL123 Blackjack VIP K",
+        "iconFileName": "code_EL123 Blackjack VIP K.png"
+    },
+    {
+        "gameHash": "bd5be8139f01f6719bdd15b92e005523",
+        "gameName": "Blackjack VIP J",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "2d2e7afef9695e9cf82be87a08f28d23",
+        "gameName": "Blackjack VIP L",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "fe2e28180d600b1dfc7784324d3df640",
+        "gameName": "Blackjack VIP H",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "2c2f06025f65fe745cabd81a3aae8aba",
+        "gameName": "Blackjack VIP E",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "40273c03c2a48786cb6111e35f012e6b",
+        "gameName": "Blackjack VIP G",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d3cc53709c12b63755a2e40bba47f448",
+        "gameName": "Blackjack VIP D",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "201a27d2b833951f5d982dc5c313fe74",
+        "gameName": "Blackjack VIP F",
+        "gameImage": "https://drive.google.com/thumbnail?id=1U-wxuHTvkPRHKVhI3lAbnRtpdK4bmVMo&sz=w1000",
+        "iconCode": "code_EL130 Blackjack VIP F",
+        "iconFileName": "code_EL130 Blackjack VIP F.png"
+    },
+    {
+        "gameHash": "68c5eb853ecdfee94cd5a22f3210aacf",
+        "gameName": "Blackjack VIP C",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "cd2394d2d8ef2160c8b4826233f7b2fb",
+        "gameName": "Blackjack Silver F",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "0fcd90352f378191e02359a0ab9df5a8",
+        "gameName": "Blackjack Silver E",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "446551dd9ae32002824b065e57686463",
+        "gameName": "Blackjack VIP B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "fdc106b08bfc4c4d324cac4fa347bf19",
+        "gameName": "Blackjack Silver G",
+        "gameImage": "https://drive.google.com/thumbnail?id=1C4HO7arwKwyqHJtJzr8w-JcKiux6J0kI&sz=w1000",
+        "iconCode": "code_EL135 Blackjack Silver G",
+        "iconFileName": "code_EL135 Blackjack Silver G.png"
+    },
+    {
+        "gameHash": "555681ca33cd74847afbab62a9c446a3",
+        "gameName": "Blackjack VIP A",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "91cbad4d3ac237e40d477539e5c767fa",
+        "gameName": "Blackjack Silver D",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8de1993b371ce298b85584d21e5d2106",
+        "gameName": "Blackjack Silver B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "422b5f8f63f54841a0045584237c4eee",
+        "gameName": "Blackjack Silver C",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "faa0c98465e5fe48aefaca3fc885977e",
+        "gameName": "Blackjack Silver A",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "51636f763710a40d94435d5721b47afb",
+        "gameName": "Speed VIP Blackjack M",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "41ff316f28958f3939f2886e3d8813f7",
+        "gameName": "Speed VIP Blackjack L",
+        "gameImage": "https://drive.google.com/thumbnail?id=1HJT2d4JiW9UkdCZw1at7wFZoMWGNZq1A&sz=w1000",
+        "iconCode": "code_EL142 Speed VIP Blackjack L",
+        "iconFileName": "code_EL142 Speed VIP Blackjack L.png"
+    },
+    {
+        "gameHash": "fd0ce69ba5a8e9fde4a0118e0b9498e8",
+        "gameName": "Speed VIP Blackjack I",
+        "gameImage": "https://drive.google.com/thumbnail?id=1N9XCnWDh_DvisVnkDRRf1WDPU69xOvxG&sz=w1000",
+        "iconCode": "code_EL143 Speed VIP Blackjack I",
+        "iconFileName": "code_EL143 Speed VIP Blackjack I.png"
+    },
+    {
+        "gameHash": "ea5bb4a83394921afb0f26635b331266",
+        "gameName": "Speed VIP Blackjack H",
+        "gameImage": "https://drive.google.com/thumbnail?id=1CJAItKAXo2VoYayv3NVn4b248XJ2paHg&sz=w1000",
+        "iconCode": "code_EL144 Speed VIP Blackjack H",
+        "iconFileName": "code_EL144 Speed VIP Blackjack H.png"
+    },
+    {
+        "gameHash": "ac5ae4dd6c8b09b3da54aad693345ea5",
+        "gameName": "Speed VIP Blackjack E",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5b28de9903431500b020d6fa6fa84ac4",
+        "gameName": "Speed VIP Blackjack G",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "29a0088d6ddc73df59bbd2cadedb3e64",
+        "gameName": "Speed VIP Blackjack F",
+        "gameImage": "https://drive.google.com/thumbnail?id=1KxrN7nBIQkspiqHxPek7uKVs0WySq0WN&sz=w1000",
+        "iconCode": "code_EL147 Speed VIP Blackjack F",
+        "iconFileName": "code_EL147 Speed VIP Blackjack F.png"
+    },
+    {
+        "gameHash": "fcdeb63512da4f7980a03b3542a21796",
+        "gameName": "Speed VIP Blackjack C",
+        "gameImage": "https://drive.google.com/thumbnail?id=1nMlqzyvABPkF7k5Ny8n_D905RspZW-a0&sz=w1000",
+        "iconCode": "code_EL148 Speed VIP Blackjack C",
+        "iconFileName": "code_EL148 Speed VIP Blackjack C.png"
+    },
+    {
+        "gameHash": "994a06251ad003c0be35b252803f49a5",
+        "gameName": "Speed VIP Blackjack D",
+        "gameImage": "https://drive.google.com/thumbnail?id=1YKfLTq4pDddY1leiAqmrI-ajZfGVmMCM&sz=w1000",
+        "iconCode": "code_EL149 Speed VIP Blackjack D",
+        "iconFileName": "code_EL149 Speed VIP Blackjack D.png"
+    },
+    {
+        "gameHash": "5fdb477013f4d377433e2a3daeac1d28",
+        "gameName": "Speed VIP Blackjack B",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Gft4rfD1qnxRIllO7MvKvyJR91oyMgw5&sz=w1000",
+        "iconCode": "code_EL150 Speed VIP Blackjack B",
+        "iconFileName": "code_EL150 Speed VIP Blackjack B.png"
+    },
+    {
+        "gameHash": "fdf05d777a59a24fd546e06cb460980e",
+        "gameName": "Speed VIP Blackjack A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1EgSSEPEtuJ7rIc69Y03pT8xaSYq_tmJT&sz=w1000",
+        "iconCode": "code_EL151 Speed VIP Blackjack A",
+        "iconFileName": "code_EL151 Speed VIP Blackjack A.png"
+    },
+    {
+        "gameHash": "5a948565b571fadb2256a7789de597ec",
+        "gameName": "Speed Blackjack J",
+        "gameImage": "https://drive.google.com/thumbnail?id=1A2tYms0peFexe0KW0f7Nul4ePgiTQDca&sz=w1000",
+        "iconCode": "code_EL152 Speed Blackjack J",
+        "iconFileName": "code_EL152 Speed Blackjack J.png"
+    },
+    {
+        "gameHash": "3a8c810f74a20fc9e8e871af1c3100db",
+        "gameName": "Speed Blackjack H",
+        "gameImage": "https://drive.google.com/thumbnail?id=1ZRKEkiGy6LYPn2Gyjdq3TK7kSs7Og_7c&sz=w1000",
+        "iconCode": "code_EL153 Speed Blackjack H",
+        "iconFileName": "code_EL153 Speed Blackjack H.png"
+    },
+    {
+        "gameHash": "0fd44663c3e5db6c9f14b2a6114d5e8d",
+        "gameName": "Speed Blackjack I",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "fb166643bac3b714a7ce524c2fb0eb00",
+        "gameName": "Speed Blackjack G",
+        "gameImage": "https://drive.google.com/thumbnail?id=1drbVlc4r0fLv6qWnMNfM1_GIh1rYclJm&sz=w1000",
+        "iconCode": "code_EL155 Speed Blackjack G",
+        "iconFileName": "code_EL155 Speed Blackjack G.png"
+    },
+    {
+        "gameHash": "b796189e77ae8a84f4b2e65a6bbe1a15",
+        "gameName": "Speed Blackjack D",
+        "gameImage": "https://drive.google.com/thumbnail?id=1fEk-iGgNIkbxDhuKrR6Em8KK2-7tAiGL&sz=w1000",
+        "iconCode": "code_EL156 Speed Blackjack D",
+        "iconFileName": "code_EL156 Speed Blackjack D.png"
+    },
+    {
+        "gameHash": "323c8a2868da01aeae418d247e4f3ee0",
+        "gameName": "Speed Blackjack M",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e23e0f97958143d951abc0fecca02ec4",
+        "gameName": "Speed Blackjack L",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d609730e8da3693bd8ac428926747390",
+        "gameName": "Blackjack Party",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5344ba3dbbd1b3c4b0082fe6212d502c",
+        "gameName": "Blackjack B",
+        "gameImage": "https://drive.google.com/thumbnail?id=1zlq80CCGwQ3tKjDEQmoJ8FTrySVPSJnU&sz=w1000",
+        "iconCode": "code_EL160 Blackjack B",
+        "iconFileName": "code_EL160 Blackjack B.png"
+    },
+    {
+        "gameHash": "135c1d0063a5a18532314e7f669da0a2",
+        "gameName": "Blackjack C",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "063cf66c2e8b256eb49ba0c5983354e0",
+        "gameName": "Speed Blackjack K",
+        "gameImage": "https://drive.google.com/thumbnail?id=1kw-0wDI5XXoQHRTNhl5WsbjYN0Hu2pJ6&sz=w1000",
+        "iconCode": "code_EL162 Speed Blackjack K",
+        "iconFileName": "code_EL162 Speed Blackjack K.png"
+    },
+    {
+        "gameHash": "e7df9c2fdf7c680ddee3739f5b703c88",
+        "gameName": "Blackjack A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1LWHSpmNYaNN0PIkMoj6uyat55Afcyd9x&sz=w1000",
+        "iconCode": "code_EL163 Blackjack A",
+        "iconFileName": "code_EL163 Blackjack A.png"
+    },
+    {
+        "gameHash": "1d1c0d3ec98deb128bdd5acdef0f157e",
+        "gameName": "Power Blackjack",
+        "gameImage": "https://drive.google.com/thumbnail?id=17lf1viZ03VZmryLg_Y45jquOpNDfrGHF&sz=w1000",
+        "iconCode": "code_EL164 Power Blackjack",
+        "iconFileName": "code_EL164 Power Blackjack.png"
+    },
+    {
+        "gameHash": "6407557ea880b7f6276ec9d4e23e7926",
+        "gameName": "Salon Privé Baccarat I",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ec258bed8fd84778fc31a864fe1571b4",
+        "gameName": "Salon Privé Baccarat J",
+        "gameImage": "https://drive.google.com/thumbnail?id=1AVXkcWcY7guRHs0Ohtedl6rx9U52lcuQ&sz=w1000",
+        "iconCode": "code_EL166 Salon Privé Baccarat J",
+        "iconFileName": "code_EL166 Salon Privé Baccarat J.png"
+    },
+    {
+        "gameHash": "44f46f61a501ab9555f46eeecae266ce",
+        "gameName": "Salon Privé Baccarat H",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "61a5215e2679932781ed245b59d34679",
+        "gameName": "Salon Privé Baccarat F",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e48c03210c8a577516c69c7fec657356",
+        "gameName": "Salon Privé Baccarat E",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "538b9ff225701f1e4e851167e5af1b84",
+        "gameName": "Salon Privé Baccarat D",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d0fd04343f3d6e77136f4752d93c7610",
+        "gameName": "Salon Privé Baccarat C",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "0c3d0758899d28221890b665fa59a0b3",
+        "gameName": "Salon Privé Baccarat B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "21e95ab2901433939d83fcd79be52925",
+        "gameName": "Salon Privé Baccarat A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Bj5WZCfgGpzOVJaimzELWRcE-8PhpbMc&sz=w1000",
+        "iconCode": "code_EL173 Salon Privé Baccarat A",
+        "iconFileName": "code_EL173 Salon Privé Baccarat A.png"
+    },
+    {
+        "gameHash": "e787504951d5137db06246b0d5ec1f89",
+        "gameName": "Baccarat Control Squeeze",
+        "gameImage": "https://drive.google.com/thumbnail?id=11QMtFloRovnQ8Qb_f4Ac8wdSaapO2ZS7&sz=w1000",
+        "iconCode": "code_EL174 Baccarat Control Squeeze",
+        "iconFileName": "code_EL174 Baccarat Control Squeeze.png"
+    },
+    {
+        "gameHash": "17440e0b64775115bb5ae6554a2973a9",
+        "gameName": "No Commission Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=17bBP16_ehiMLI3hO5EA2Nec02gF1lRbM&sz=w1000",
+        "iconCode": "code_EL175 No Commission Baccarat",
+        "iconFileName": "code_EL175 No Commission Baccarat.png"
+    },
+    {
+        "gameHash": "7f5b0d20c3f491c4fc9456e951ea7005",
+        "gameName": "No Commission Speed Baccarat B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "f9e106cfc932d1f0fdb0cc3dd1057c1a",
+        "gameName": "No Commission Speed Baccarat C",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "b82371488f8fb90efb946634ac61d7f5",
+        "gameName": "No Commission Speed Baccarat A",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "21cf3fdf28915845ff76f963695bb8e3",
+        "gameName": "Baccarat C",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "0ea8519b837ebd62f5a8978acca33e1d",
+        "gameName": "Baccarat B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "3ae1a406c3f243f1559759f041cd1dcd",
+        "gameName": "Speed Baccarat 2",
+        "gameImage": "https://drive.google.com/thumbnail?id=1loVkZ5VfKbCkEmSLAnEQ8qFeo5BkRnvD&sz=w1000",
+        "iconCode": "code_EL181 Speed Baccarat 2",
+        "iconFileName": "code_EL181 Speed Baccarat 2.png"
+    },
+    {
+        "gameHash": "1d955d48d50aef2e9546466d9d859be1",
+        "gameName": "Baccarat A",
+        "gameImage": "https://drive.google.com/thumbnail?id=18IwYo1UYe3jfsDx1T_VnIKDm6FXjQNDG&sz=w1000",
+        "iconCode": "code_EL182 Baccarat A",
+        "iconFileName": "code_EL182 Baccarat A.png"
+    },
+    {
+        "gameHash": "d607a58df6bb6a5e4d356ee13c241126",
+        "gameName": "Speed Baccarat 1",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Ew3Y_wb14ZTiksMzNRIR0kVKooB9EPgx&sz=w1000",
+        "iconCode": "code_EL183 Speed Baccarat 1",
+        "iconFileName": "code_EL183 Speed Baccarat 1.png"
+    },
+    {
+        "gameHash": "52a7b9d8c127b8b33f5c8d682ed40371",
+        "gameName": "Speed Baccarat Z",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Ladv8BP0GXNy7CZRaOnq4dSNSl5tFx2Q&sz=w1000",
+        "iconCode": "code_EL184 Speed Baccarat Z",
+        "iconFileName": "code_EL184 Speed Baccarat Z.png"
+    },
+    {
+        "gameHash": "128268adb0c5c9cd62746a0a8105dc21",
+        "gameName": "Speed Baccarat X",
+        "gameImage": "https://drive.google.com/thumbnail?id=11o0UO1CpJjl1UfVqO_QAiM9EN5NMyRsx&sz=w1000",
+        "iconCode": "code_EL185 Speed Baccarat X",
+        "iconFileName": "code_EL185 Speed Baccarat X.png"
+    },
+    {
+        "gameHash": "239ca8da8e291b7d9e377adfcf4745dc",
+        "gameName": "Speed Baccarat W",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ce7558886d46f01a02aade95a5127b43",
+        "gameName": "Speed Baccarat V",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e0e8f76fa25eb2fcebf96e7b5f45e120",
+        "gameName": "Speed Baccarat U",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "44eca39b0a839bf2af75db7a5ecb3450",
+        "gameName": "Speed Baccarat R",
+        "gameImage": "https://drive.google.com/thumbnail?id=1lQD9dq534OZSATzGJcT_ml-ZB65ocMW4&sz=w1000",
+        "iconCode": "code_EL189 Speed Baccarat R",
+        "iconFileName": "code_EL189 Speed Baccarat R.png"
+    },
+    {
+        "gameHash": "85e9ebaaec03ab8d1e579cf2d28a898e",
+        "gameName": "Speed Baccarat Q",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "60c61989f6a8ff1a33b14c98abe83e62",
+        "gameName": "Speed Baccarat T",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "3c4df047efd6126b12f351ad40123e40",
+        "gameName": "Speed Baccarat S",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "cb6e4ad80df2c456cc69d7d43400ef2a",
+        "gameName": "Speed Baccarat P",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "47a936ba7665516ecf132a2b8898b2eb",
+        "gameName": "Speed Baccarat M",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "964e7d090167c429e1b6c15a97210e22",
+        "gameName": "Speed Baccarat O",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "374b0298147823425fb0d41a6fae25ba",
+        "gameName": "Speed Baccarat N",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5c58dcfb54df086d00b8725a10761e03",
+        "gameName": "Speed Baccarat L",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "04bbac98e29afadca20019f21b2c21d2",
+        "gameName": "Speed Baccarat K",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "fbd7f3f9692774963341d7758aa0f439",
+        "gameName": "Speed Baccarat J",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "306416e24dc7aa7400ae46d151c3526e",
+        "gameName": "Speed Baccarat I",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "08e3fac9968542e243e1b320c033b8d7",
+        "gameName": "Speed Baccarat H",
+        "gameImage": "https://drive.google.com/thumbnail?id=18PbPaHlbEAqZ1XAKY-MBpJSWv8eAti3W&sz=w1000",
+        "iconCode": "code_EL201 Speed Baccarat H",
+        "iconFileName": "code_EL201 Speed Baccarat H.png"
+    },
+    {
+        "gameHash": "0f318059268a7522710dfa4b867005e9",
+        "gameName": "Speed Baccarat G",
+        "gameImage": "https://drive.google.com/thumbnail?id=1W7WkFSYANW812NwEbIEGs3AS4lL15r9o&sz=w1000",
+        "iconCode": "code_EL202 Speed Baccarat G",
+        "iconFileName": "code_EL202 Speed Baccarat G.png"
+    },
+    {
+        "gameHash": "441f7d75f645a3ba8c6ca6ac97766e27",
+        "gameName": "Speed Baccarat D",
+        "gameImage": "https://drive.google.com/thumbnail?id=1KIoTqCDi4z6RrmuH5AX56He5qN7Sb4rf&sz=w1000",
+        "iconCode": "code_EL203 Speed Baccarat D",
+        "iconFileName": "code_EL203 Speed Baccarat D.png"
+    },
+    {
+        "gameHash": "78a8f259b57a85b7c01f9a1c5c667898",
+        "gameName": "Speed Baccarat C",
+        "gameImage": "https://drive.google.com/thumbnail?id=1xyA_lO7URSCbVJNfpgVAkGJ_-VIyqMy4&sz=w1000",
+        "iconCode": "code_EL204 Speed Baccarat C",
+        "iconFileName": "code_EL204 Speed Baccarat C.png"
+    },
+    {
+        "gameHash": "d3c71b0de6799ca7419d1e7834a05a47",
+        "gameName": "Speed Baccarat B",
+        "gameImage": "https://drive.google.com/thumbnail?id=11_00oSbjmiu33fhc-roQvzIfT7PMU0H-&sz=w1000",
+        "iconCode": "code_EL205 Speed Baccarat B",
+        "iconFileName": "code_EL205 Speed Baccarat B.png"
+    },
+    {
+        "gameHash": "ca432917c1beafa247d346bdc7c178a7",
+        "gameName": "Speed Baccarat A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1oAPKkA5LP8AP5YO9WiC6wjIBh6JcZzaa&sz=w1000",
+        "iconCode": "code_EL206 Speed Baccarat A",
+        "iconFileName": "code_EL206 Speed Baccarat A.png"
+    },
+    {
+        "gameHash": "b565bd61b2dd5216d910bd07feb5994e",
+        "gameName": "Speed Baccarat E",
+        "gameImage": "https://drive.google.com/thumbnail?id=1PnjxEtw0ixez_q7O8gc282P8kK1xxriB&sz=w1000",
+        "iconCode": "code_EL207 Speed Baccarat E",
+        "iconFileName": "code_EL207 Speed Baccarat E.png"
+    },
+    {
+        "gameHash": "c367b8269a44719f19d7264b37d4582b",
+        "gameName": "Peek Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1yBfVNVhjI-zZI3y8es43ViI7zdS2Cm8t&sz=w1000",
+        "iconCode": "code_EL208 Peek Baccarat",
+        "iconFileName": "code_EL208 Peek Baccarat.png"
+    },
+    {
+        "gameHash": "0f78172e62af19dcc9c75077ea0d0cd0",
+        "gameName": "Lightning Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1H2wKx0rM0GQWTJHeZz1Cm2chRseX2zVN&sz=w1000",
+        "iconCode": "code_EL209 Lightning Baccarat",
+        "iconFileName": "code_EL209 Lightning Baccarat.png"
+    },
+    {
+        "gameHash": "cfd22f775afcf9fb4d8e7cf12cbab45a",
+        "gameName": "Hindi Speed Baccarat",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d401d6d240f29c2854b26d74c042bd16",
+        "gameName": "Emperor Speed Baccarat С",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "9b25f8d744859c6840d16ff6103dc5a6",
+        "gameName": "Bac Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1EWgS-m2lQZgdEGxKajODJTx82cnej8Ox&sz=w1000",
+        "iconCode": "code_EL212 Bac Bo",
+        "iconFileName": "code_EL212 Bac Bo.png"
+    },
+    {
+        "gameHash": "1eaa16200ee75bddd50ab54b01fbefa9",
+        "gameName": "Emperor Dragon Tiger",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Q0stZkZFwqmJHJgMkVTInp-KaawCMyS6&sz=w1000",
+        "iconCode": "code_EL213 Emperor Dragon Tiger",
+        "iconFileName": "code_EL213 Emperor Dragon Tiger.png"
+    },
+    {
+        "gameHash": "6a1e55dc7a14f038d9b0207fdb3ecbc0",
+        "gameName": "Emperor Sic Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1RpaQAS2Bf_krEtr51P8-ygY0aKF7w-nm&sz=w1000",
+        "iconCode": "code_EL214 Emperor Sic Bo",
+        "iconFileName": "code_EL214 Emperor Sic Bo.png"
+    },
+    {
+        "gameHash": "1fd20a344c9f147cdef85bbaa7447dcd",
+        "gameName": "Dragon Tiger",
+        "gameImage": "https://drive.google.com/thumbnail?id=1SuAUncVd3P_Z_Q0ubf6-3JbNbGVZKMEY&sz=w1000",
+        "iconCode": "code_EL215 Dragon Tiger",
+        "iconFileName": "code_EL215 Dragon Tiger.png"
+    },
+    {
+        "gameHash": "624db9f6b362baf19796f281dfdee1ab",
+        "gameName": "Imperial Quest",
+        "gameImage": "https://drive.google.com/thumbnail?id=1lzPzT1IKuU4C2fvqnD7rNihWlrzO3XEg&sz=w1000",
+        "iconCode": "code_EL216 Imperial Quest",
+        "iconFileName": "code_EL216 Imperial Quest.png"
+    },
+    {
+        "gameHash": "8405541014f364b7dc59657aa6892446",
+        "gameName": "Funky Time",
+        "gameImage": "https://drive.google.com/thumbnail?id=1vHcnBVYiu8WsZ0gXOZH0NkIX3NdNGOMp&sz=w1000",
+        "iconCode": "code_EL217 Funky Time",
+        "iconFileName": "code_EL217 Funky Time.png"
+    },
+    {
+        "gameHash": "c177ce05258ed2dcbdece64434eaf817",
+        "gameName": "Crazy Coin Flip",
+        "gameImage": "https://drive.google.com/thumbnail?id=1kgPRTeeZQijzWoOaihi6uIA7_c2zo_Cy&sz=w1000",
+        "iconCode": "code_EL218 Crazy Coin Flip",
+        "iconFileName": "code_EL218 Crazy Coin Flip.jpg"
+    },
+    {
+        "gameHash": "7476b40db4af067e4d00fa2dd2067ef9",
+        "gameName": "Roleta Ao Vivo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1vEIWIVY3FtphIjzwLfR_oEjbhkHh7Vhb&sz=w1000",
+        "iconCode": "code_EL219 Roleta Ao Vivo",
+        "iconFileName": "code_EL219 Roleta Ao Vivo.png"
+    },
+    {
+        "gameHash": "a8d52f6fa06dafce786d70d190c25cbe",
+        "gameName": "Gold Vault Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1uYeDUUwE7Ez2OCR2M3sP0oTFMeevwPkF&sz=w1000",
+        "iconCode": "code_EL220 Gold Vault Roulette",
+        "iconFileName": "code_EL220 Gold Vault Roulette.png"
+    },
+    {
+        "gameHash": "3f0b35e91f18915f5c5e88f3e1daf66e",
+        "gameName": "Gonzo's Treasure Map",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "6ddd73419e9a49b6b942e29088219d64",
+        "gameName": "Red Door Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1kN-vB54h0JjKz8pbMOomXVBOgONISvPt&sz=w1000",
+        "iconCode": "code_EL222 Red Door Roulette",
+        "iconFileName": "code_EL222 Red Door Roulette.png"
+    },
+    {
+        "gameHash": "4817595d88a1dd68f7e13581dd8dca1c",
+        "gameName": "Hindi Lightning Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1r056D_tqEIe3pv5EXH4-VYv2nJFmW-79&sz=w1000",
+        "iconCode": "code_EL223 Hindi Lightning Roulette",
+        "iconFileName": "code_EL223 Hindi Lightning Roulette.png"
+    },
+    {
+        "gameHash": "d5fbbb820c4e68d75f6c87b989d088ba",
+        "gameName": "Hindi Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Ojgjv6aSaRqiyklWXWOS3qwHFpCME-iT&sz=w1000",
+        "iconCode": "code_EL224 Hindi Roulette",
+        "iconFileName": "code_EL224 Hindi Roulette.png"
+    },
+    {
+        "gameHash": "211fb0f922ef785382a129c6fdb02b46",
+        "gameName": "Evo Speed Blackjack 11",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "a8f13fe5c06d1834b7f21c1e3b18ba14",
+        "gameName": "Evo Speed Blackjack 4",
+        "gameImage": "https://drive.google.com/thumbnail?id=1IKfoHLeVaBuRhJE4ZGQdE8QPo-EcS3LR&sz=w1000",
+        "iconCode": "code_EL226 Evo Speed Blackjack 4",
+        "iconFileName": "code_EL226 Evo Speed Blackjack 4.png"
+    },
+    {
+        "gameHash": "8245d5d9440024927f18c1cd9f75f285",
+        "gameName": "Bac Bo Ao Vivo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1dZYChv-oERLlfr-Mo7KVX3yztCNTiom_&sz=w1000",
+        "iconCode": "code_EL227 Bac Bo Ao Vivo",
+        "iconFileName": "code_EL227 Bac Bo Ao Vivo.png"
+    },
+    {
+        "gameHash": "0845c431394654ca59bb4bd8af43c351",
+        "gameName": "Mega Bola Da Sorte",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "327b996d10cab4e88d68a0d1782681b1",
+        "gameName": "Hindi Speed Baccarat B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "a1c4ff6865032d4f5cae8ca362579fdf",
+        "gameName": "Roleta Relâmpago",
+        "gameImage": "https://drive.google.com/thumbnail?id=1G2PZajGqhECgpA6aSUZBFpXWzvo3x5zu&sz=w1000",
+        "iconCode": "code_EL230 Roleta Relâmpago",
+        "iconFileName": "code_EL230 Roleta Relâmpago.png"
+    },
+    {
+        "gameHash": "f8c1f4dc8ca9cd39b44011c1adefa9c2",
+        "gameName": "Evo Speed Blackjack 6",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Jf1a5yHEGLvsxncVOw2fX7h85VPXQlP_&sz=w1000",
+        "iconCode": "code_EL231 Evo Speed Blackjack 6",
+        "iconFileName": "code_EL231 Evo Speed Blackjack 6.png"
+    },
+    {
+        "gameHash": "a8c16416f0b48b87cccdd470723b6d8a",
+        "gameName": "Evo Speed Blackjack 8",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8a6967d67e5ad5a1e34b46bb15360290",
+        "gameName": "Evo Speed Blackjack 9",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "b61a4d32bde967239d321ab8363424be",
+        "gameName": "Evo Speed Blackjack 7",
+        "gameImage": "https://drive.google.com/thumbnail?id=1b9htyiTXsmD6ahk3pGD19SJAfYVT2_wt&sz=w1000",
+        "iconCode": "code_EL234 Evo Speed Blackjack 7",
+        "iconFileName": "code_EL234 Evo Speed Blackjack 7.png"
+    },
+    {
+        "gameHash": "3c7c139fc7095e3ddeeffed3fdd4da3c",
+        "gameName": "Evo Speed Blackjack 10",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e1275fa257ec5eaa91aa92e90c52fa42",
+        "gameName": "Evo Speed Blackjack 5",
+        "gameImage": "https://drive.google.com/thumbnail?id=17no8PkLRWaGtKX9TJjKzcKeoML8eQ-g9&sz=w1000",
+        "iconCode": "code_EL236 Evo Speed Blackjack 5",
+        "iconFileName": "code_EL236 Evo Speed Blackjack 5.png"
+    },
+    {
+        "gameHash": "bb5d9a68f06045695ba133a6f4bba082",
+        "gameName": "Blackjack VIP 44",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "abdae315508ec2b531c87cadf4b790ae",
+        "gameName": "Blackjack VIP 38",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "3acbe78079e7e8841ab34ebe03a1f4d7",
+        "gameName": "Blackjack VIP 37",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "6e5c07c21a9739e0986b67675e990d04",
+        "gameName": "Blackjack VIP 43",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "e02f15bb0df96c186555c62264bd4379",
+        "gameName": "Blackjack VIP 41",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8909fa4180ae8c713b5d75aa04b5b3b9",
+        "gameName": "Blackjack VIP 42",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "c6361dfd83d86cc5c98e2b41c28791eb",
+        "gameName": "Blackjack VIP 36",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "97e1e4e23f9fd02ea58a8415a515d1e5",
+        "gameName": "Blackjack VIP 32",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8b6200a6ef1f7df8c91c51dfe4444866",
+        "gameName": "Blackjack VIP 34",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "64fee17522e56dd16ad4a0548c5b842c",
+        "gameName": "Blackjack VIP 35",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "401d3a40b06fa9b0ee299e31823796d9",
+        "gameName": "Blackjack VIP 33",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d8ab16519a21608d1fed93cc83690593",
+        "gameName": "Blackjack VIP 31",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "530ed3caad9e07621982956b571f6794",
+        "gameName": "Blackjack VIP 30",
+        "gameImage": "https://drive.google.com/thumbnail?id=1lPX_LE3uuoKZ0f15sw0Q6nEcIjkLIkdz&sz=w1000",
+        "iconCode": "code_EL249 Blackjack VIP 30",
+        "iconFileName": "code_EL249 Blackjack VIP 30.png"
+    },
+    {
+        "gameHash": "30faa46ba41ab76519816ca827d19320",
+        "gameName": "Speed Baccarat 5",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "898ec009cf2e34a256e6340238c8d95c",
+        "gameName": "Speed Baccarat 12",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "498de0e2c664b3865a6e0387e6839f2a",
+        "gameName": "Speed Baccarat 4",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "911a32ad38d77f86baf29a2cdb95da05",
+        "gameName": "Crazy Pachinko",
+        "gameImage": "https://drive.google.com/thumbnail?id=1YeNXOrhKGJBLDxr6b7pFLCIsLZFbyz-T&sz=w1000",
+        "iconCode": "code_EL253 Crazy Pachinko",
+        "iconFileName": "code_EL253 Crazy Pachinko.png"
+    },
+    {
+        "gameHash": "e2124ac641282f02462d0b6e0245f3f9",
+        "gameName": "Blackjack VIP 28",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "6f22caa749471a99b1ded2c9a35d9542",
+        "gameName": "Blackjack VIP 29",
+        "gameImage": "https://drive.google.com/thumbnail?id=14Mmfe6NMFC1BQ7rkAjX0QgSvsL8NhhUx&sz=w1000",
+        "iconCode": "code_EL255 Blackjack VIP 29",
+        "iconFileName": "code_EL255 Blackjack VIP 29.png"
+    },
+    {
+        "gameHash": "a9e710a7389d1096cdab23e530cc8d06",
+        "gameName": "Speed VIP Blackjack N",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ec9fb09912bc272168651f43ec4c78a6",
+        "gameName": "Speed VIP Blackjack O",
+        "gameImage": "https://drive.google.com/thumbnail?id=1MONQ-I-GTJtBNK6_skMaL-QEotFzmZOm&sz=w1000",
+        "iconCode": "code_EL257 Speed VIP Blackjack O",
+        "iconFileName": "code_EL257 Speed VIP Blackjack O.png"
+    },
+    {
+        "gameHash": "868116316bb9c2f9498b2165c7db9bd4",
+        "gameName": "Speed VIP Blackjack P",
+        "gameImage": "https://drive.google.com/thumbnail?id=1zniDo69PaH_88UZDJ18m55j5c8ozjm_m&sz=w1000",
+        "iconCode": "code_EL258 Speed VIP Blackjack P",
+        "iconFileName": "code_EL258 Speed VIP Blackjack P.png"
+    },
+    {
+        "gameHash": "19bc9ea56909a0bdbd43b0a6471849bb",
+        "gameName": "Speed VIP Blackjack Q",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "ceda0cfac236c9431f061d964ed5062b",
+        "gameName": "Speed VIP Blackjack R",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "4e11ce207582fcffe80e0174a116bb74",
+        "gameName": "Free Bet VIP Blackjack A",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "6199b85a5e56f0ac613f3c3ed49b2d78",
+        "gameName": "Free Bet VIP Blackjack B",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "5920c9adb7ac352c7ab840e83cbc181b",
+        "gameName": "Speed Super Sic Bc",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d8da3c5c99a593a44c97325e7ba83838",
+        "gameName": "Lightning Dragon Tiger",
+        "gameImage": "https://drive.google.com/thumbnail?id=1PlxevSIwc_85XDwzrxpDsSQAh13nSpl1&sz=w1000",
+        "iconCode": "code_EL264 Lightning Dragon Tiger",
+        "iconFileName": "code_EL264 Lightning Dragon Tiger.png"
+    },
+    {
+        "gameHash": "699fff17c56ac4af07db510e86cdf6bb",
+        "gameName": "Stock Market",
+        "gameImage": "https://drive.google.com/thumbnail?id=16BDkv4fmOQMaxUGl083zcFyGMA1pPM4_&sz=w1000",
+        "iconCode": "code_EL265 Stock Market",
+        "iconFileName": "code_EL265 Stock Market.png"
+    },
+    {
+        "gameHash": "758772f63feb61b6ab997d8d37385a65",
+        "gameName": "Emperor Sic Bo A",
+        "gameImage": "https://drive.google.com/thumbnail?id=1SdovqZPIVzgNxleKB9kdfJBEmntu7LZb&sz=w1000",
+        "iconCode": "code_EL266 Emperor Sic Bo A",
+        "iconFileName": "code_EL266 Emperor Sic Bo A.png"
+    },
+    {
+        "gameHash": "f7967398d7cd3e114e3dea7c1eb350b1",
+        "gameName": "Emperor Golden Wealth Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=16wW9RlavgmjRybb7PmRw6Q634bQCzwqO&sz=w1000",
+        "iconCode": "code_EL267 Emperor Golden Wealth Baccarat",
+        "iconFileName": "code_EL267 Emperor Golden Wealth Baccarat.png"
+    },
+    {
+        "gameHash": "232307d28ab01bac2f4afb6665d18bbb",
+        "gameName": "Evo Speed Blackjack 1",
+        "gameImage": "https://drive.google.com/thumbnail?id=1fqaal1p0UlTqQA9-kkabwoIWMt88G1Q3&sz=w1000",
+        "iconCode": "code_EL268 Evo Speed Blackjack 1",
+        "iconFileName": "code_EL268 Evo Speed Blackjack 1.png"
+    },
+    {
+        "gameHash": "80f0179f173b9d90b7abd7a602c5bccb",
+        "gameName": "Evo Speed Blackjack 2",
+        "gameImage": "https://drive.google.com/thumbnail?id=1N8Fclt6I2AMa7SN1uSJdlolHEnYW9s9W&sz=w1000",
+        "iconCode": "code_EL269 Evo Speed Blackjack 2",
+        "iconFileName": "code_EL269 Evo Speed Blackjack 2.png"
+    },
+    {
+        "gameHash": "c072c5d6161ca1deca73b0402ec0c138",
+        "gameName": "Evo Speed Blackjack 3",
+        "gameImage": "https://drive.google.com/thumbnail?id=1zJjRiyNr7XiXxLm9rdMRNo8B8vzIY3my&sz=w1000",
+        "iconCode": "code_EL270 Evo Speed Blackjack 3",
+        "iconFileName": "code_EL270 Evo Speed Blackjack 3.png"
+    },
+    {
+        "gameHash": "ed0d26758183cfc88c8c791233d86de9",
+        "gameName": "Extra Chilli Epic Spins",
+        "gameImage": "https://drive.google.com/thumbnail?id=1NLFrJBo2JlhK1gjPs_yRb5ADAZruu8nI&sz=w1000",
+        "iconCode": "code_EL271 Extra Chilli Epic Spins",
+        "iconFileName": "code_EL271 Extra Chilli Epic Spins.png"
+    },
+    {
+        "gameHash": "24e52b094b2dfadb0c641ed4f4935077",
+        "gameName": "First Person Video Poker",
+        "gameImage": "https://drive.google.com/thumbnail?id=1V7Q0HmQZJ82JudpAX__JlHLUHkRclSe9&sz=w1000",
+        "iconCode": "code_EL272 First Person Video Poker",
+        "iconFileName": "code_EL272 First Person Video Poker.png"
+    },
+    {
+        "gameHash": "6bfe5f8bc47dd87f38fc38ff837b11a6",
+        "gameName": "Golden Wealth Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=17QyKcwdzRaZGZ-4hltGwlqZ9ZvnhnMfs&sz=w1000",
+        "iconCode": "code_EL273 Golden Wealth Baccarat",
+        "iconFileName": "code_EL273 Golden Wealth Baccarat.png"
+    },
+    {
+        "gameHash": "96050ea4ce01c7c295c15cf910aa7bc4",
+        "gameName": "Lightning Ball",
+        "gameImage": "https://drive.google.com/thumbnail?id=1SZbpIFCTiUMNKsQhdY9PpdRLswZR-s-G&sz=w1000",
+        "iconCode": "code_EL274 Lightning Ball",
+        "iconFileName": "code_EL274 Lightning Ball.png"
+    },
+    {
+        "gameHash": "7df14b65a14ab249155c76bc888f4f59",
+        "gameName": "Lightning Sic Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1IGDI6xgB7uSP6u73jreRFWOtMKfMrwDB&sz=w1000",
+        "iconCode": "code_EL275 Lightning Sic Bo",
+        "iconFileName": "code_EL275 Lightning Sic Bo.png"
+    },
+    {
+        "gameHash": "2fa292e4b9852e4f2d79360bab5ccbbc",
+        "gameName": "Lightning Storm",
+        "gameImage": "https://drive.google.com/thumbnail?id=1Iclo-mq6tY0k38U1xzb8F2Mu_tEV8-16&sz=w1000",
+        "iconCode": "code_EL276 Lightning Storm",
+        "iconFileName": "code_EL276 Lightning Storm.png"
+    },
+    {
+        "gameHash": "418f38d98be47c4f77c052347e56b481",
+        "gameName": "Prosperity Tree Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=15brQ5KzhMEvBdCHD3zril5b91ISEnkiJ&sz=w1000",
+        "iconCode": "code_EL277 Prosperity Tree Baccarat",
+        "iconFileName": "code_EL277 Prosperity Tree Baccarat.png"
+    },
+    {
+        "gameHash": "94ee2b657375b079b44c12d19dfde8f9",
+        "gameName": "Emperor Speed Baccarat D",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "2ef06aa38d149fb5fb708ff650153ac0",
+        "gameName": "Speed Baccarat 6",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "d26747ca84730c71a415680e3dcaa282",
+        "gameName": "Speed Baccarat 7",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8c8a73faefddd236bbc18afc8388ac18",
+        "gameName": "Speed Baccarat 8",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "4ce386bbf23b5d10eabfafdf028f649d",
+        "gameName": "Speed Baccarat 9",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "96550fdcfc5a84ab34072b987f13e03d",
+        "gameName": "Speed Baccarat 10",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "660e0fdbb13f94818568a630c9285b76",
+        "gameName": "Speed Baccarat 11",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "0cca3db8b5cbf76b1ac52f9e9f149aa1",
+        "gameName": "Emperor Bac Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1EpfVTgi_fReGIGhFVm_mGoAK7EMCdtAn&sz=w1000",
+        "iconCode": "code_EL285 Emperor Bac Bo",
+        "iconFileName": "code_EL285 Emperor Bac Bo.png"
+    },
+    {
+        "gameHash": "fde4cf03eb3504e9f3898e528231f564",
+        "gameName": "First Person Prosperity Tree Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1SxaLGLYhn3g_HWDiQcLPr08XxHaz3S81&sz=w1000",
+        "iconCode": "code_EL286 First Person Prosperity Tree Baccarat",
+        "iconFileName": "code_EL286 First Person Prosperity Tree Baccarat.png"
+    },
+    {
+        "gameHash": "7f59ab12793402d5d5c499798460c3a1",
+        "gameName": "First Person XXXtreme Lightning Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1FPaLHxIc1Zn3hk3jOQEOGPypMspYqFFP&sz=w1000",
+        "iconCode": "code_EL287 First Person XXXtreme Lightning Roulette",
+        "iconFileName": "code_EL287 First Person XXXtreme Lightning Roulette.png"
+    },
+    {
+        "gameHash": "7b5d05fc48390b74980d63ac1ea78ed5",
+        "gameName": "First Person HiLo",
+        "gameImage": "https://drive.google.com/thumbnail?id=12HopX-PFu05gS2pAJyB0Gt2H8VGEh1GS&sz=w1000",
+        "iconCode": "code_EL288 First Person HiLo",
+        "iconFileName": "code_EL288 First Person HiLo.png"
+    },
+    {
+        "gameHash": "797aa3e732352d1348b5c876597f5cb4",
+        "gameName": "First Person Super Sic Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=1QJQ2QcWtVtfyu9_sWKiCfQksb9TO2YpK&sz=w1000",
+        "iconCode": "code_EL289 First Person Super Sic Bo",
+        "iconFileName": "code_EL289 First Person Super Sic Bo.png"
+    },
+    {
+        "gameHash": "318291bd00fb6542cf6b6d35e2a9b41a",
+        "gameName": "First Person XXXtreme Lightning Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1dEnVzKrNyxoA4Sjq1KhXG9_7E54qXOgQ&sz=w1000",
+        "iconCode": "code_EL290 First Person XXXtreme Lightning Baccarat",
+        "iconFileName": "code_EL290 First Person XXXtreme Lightning Baccarat.png"
+    },
+    {
+        "gameHash": "e722b180875038d8a9b5df84ff340577",
+        "gameName": "Infinite Fun Fun 21 Blackjack",
+        "gameImage": "https://drive.google.com/thumbnail?id=1DYcP7ibyoz0gmByfBdrBC_zcXhv8WlEq&sz=w1000",
+        "iconCode": "code_EL291 Infinite Fun Fun 21 Blackjack",
+        "iconFileName": "code_EL291 Infinite Fun Fun 21 Blackjack.png"
+    },
+    {
+        "gameHash": "e39fe089ced4676b1d61bd4c4442a9f2",
+        "gameName": "Super Color Game",
+        "gameImage": "https://drive.google.com/thumbnail?id=1f1NgRy8NsPqmmT_QLcllQnJqphXki40w&sz=w1000",
+        "iconCode": "code_EL292 Super Color Game",
+        "iconFileName": "code_EL292 Super Color Game.png"
+    },
+    {
+        "gameHash": "bbf570734d54910e75ee4bfc788e00df",
+        "gameName": "XXXtreme Lightning Baccarat",
+        "gameImage": "https://drive.google.com/thumbnail?id=1S6R8YTNIvAezxW3YlSQJz0mH_B0GQ7Nq&sz=w1000",
+        "iconCode": "code_EL293 XXXtreme Lightning Baccarat",
+        "iconFileName": "code_EL293 XXXtreme Lightning Baccarat.png"
+    },
+    {
+        "gameHash": "e6cbbf0e9f197a0cfbc7511b04452a06",
+        "gameName": "Dragon Tiger Phoenix",
+        "gameImage": "https://drive.google.com/thumbnail?id=1iME9hqE5uUbTgaJKAUBauVhkU0Rj_shI&sz=w1000",
+        "iconCode": "code_EL294 Dragon Tiger Phoenix",
+        "iconFileName": "code_EL294 Dragon Tiger Phoenix.png"
+    },
+    {
+        "gameHash": "dcfd7f4a51ffbd64aa760d319394e5ca",
+        "gameName": "Ice Fishing",
+        "gameImage": "https://drive.google.com/thumbnail?id=1jv4QcwvX8PKz8n9LbDb_S1qE7Ka45eSu&sz=w1000",
+        "iconCode": "code_EL296 Ice Fishing",
+        "iconFileName": "code_EL296 Ice Fishing.png"
+    },
+    {
+        "gameHash": "2978ffa7d2297e8b933b77ca677f9bb8",
+        "gameName": "Insurance Baccarat",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "c32a26d1204bf752ec5768e88a27d3eb",
+        "gameName": "Crazy Balls",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "b22534687e78132b412029a6934f6e50",
+        "gameName": "Marble Race",
+        "gameImage": "https://drive.google.com/thumbnail?id=1eOs4COsypJf_aezCbL8TY16MieAQ5RTW&sz=w1000",
+        "iconCode": "code_EL299 Marble Race",
+        "iconFileName": "code_EL299 Marble Race.png"
+    },
+    {
+        "gameHash": "e923a18743405f78737c851afec9c21f",
+        "gameName": "Fireball Roulette",
+        "gameImage": "https://drive.google.com/thumbnail?id=1s7r4LI9JLbVcjAyOvgCqdqQmBxrGDLde&sz=w1000",
+        "iconCode": "code_EL300 Fireball Roulette",
+        "iconFileName": "code_EL300 Fireball Roulette.png"
+    },
+    {
+        "gameHash": "8519c3cb6d504c510af94b1ec99c706d",
+        "gameName": "First Person Bac Bo",
+        "gameImage": "https://drive.google.com/thumbnail?id=13Z8E2FjjKAeS0nNXTU45tXozL_l8khN9&sz=w1000",
+        "iconCode": "code_EL301 First Person Bac Bo",
+        "iconFileName": "code_EL301 First Person Bac Bo.png"
+    },
+    {
+        "gameHash": "bd61f1feb5ecd2b72e04d22c66651727",
+        "gameName": "Evolution Blackjack",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "146896890ee326c1f808ef747dd962cf",
+        "gameName": "Evolution Poker",
+        "gameImage": "",
+        "iconCode": "",
+        "iconFileName": ""
+    },
+    {
+        "gameHash": "8ef39602e589bf9f32fc351b1cbb338b",
+        "gameName": "Evolution Lobby",
+        "gameImage": "https://drive.google.com/thumbnail?id=12UL1LdALb054p6mrmEm47ILZcw92TUtY&sz=w1000",
+        "iconCode": "code_EL295 Evolution Lobby",
+        "iconFileName": "code_EL295 Evolution Lobby.png"
+    }
+]
