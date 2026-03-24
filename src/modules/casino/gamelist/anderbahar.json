@@ -1,0 +1,20 @@
+[
+    {
+        "gameHash": "",
+        "gameName": "andar-bahar-casino-marina",
+        "sheetGameType": "anderbahar",
+        "gameImage": "anderbahar/andar-bahar-casino-marina.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "andar-bahar",
+        "sheetGameType": "anderbahar",
+        "gameImage": "anderbahar/andar-bahar.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "ultimate-andhar-bahar",
+        "sheetGameType": "anderbahar",
+        "gameImage": "anderbahar/ultimate-andhar-bahar.png"
+    }
+]

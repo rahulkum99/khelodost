@@ -1,0 +1,74 @@
+[
+    {
+        "gameHash": "7e1886a44af41f33e03903df4d96d9f8",
+        "gameName": "baccarat-1-pragmatic",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/baccarat-1-pragmatic.png"
+    },
+    {
+        "gameHash": "82b9e0d3bcaaf66cff008cc4618c40fd",
+        "gameName": "bet-behind-pro-blackjack-pragmatic",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/bet-behind-pro-blackjack-pragmatic.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "bet-stacker-blackjack-evolution",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/bet-stacker-blackjack-evolution.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "blackjack-classico-em-portugues5-evolution",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-classico-em-portugues5-evolution.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "blackjack-em-portugues1-evolution",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-em-portugues1-evolution.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "blackjack-live-evolution",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-live-evolution.png"
+    },
+    {
+        "gameHash": "f86cec4da2d8d7595abd84b4498af5e3",
+        "gameName": "blackjack-lobby-pragmatic",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-lobby-pragmatic.png"
+    },
+    {
+        "gameHash": "e88c3138de3cddcc43c9de3237eada5f",
+        "gameName": "brazilian-one-blackjack-pragmatic",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/brazilian-one-blackjack-pragmatic.png"
+    },
+    {
+        "gameHash": "d123ad1b85006f4d5a5f3f26a81d722b",
+        "gameName": "one-blackjack-pragmatic",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/one-blackjack-pragmatic.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "prosperity-three-baccarat-live-evolution",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/prosperity-three-baccarat-live-evolution.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "vip-blackjack-evolutions",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/vip-blackjack-evolutions.png"
+    },
+    {
+        "gameHash": "",
+        "gameName": "vip-blackjack-live-evolution",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/vip-blackjack-live-evolution.png"
+    }
+]

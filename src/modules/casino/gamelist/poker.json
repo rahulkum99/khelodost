@@ -1,0 +1,14 @@
+[
+    {
+        "gameHash": "724eebd5cbe7555b01ed60279cb59e5a",
+        "gameName": "caribbean-stud-poker-evolution",
+        "sheetGameType": "poker",
+        "gameImage": "poker/caribbean-stud-poker-evolution.png"
+    },
+    {
+        "gameHash": "146896890ee326c1f808ef747dd962cf",
+        "gameName": "poker-lobby-evolution",
+        "sheetGameType": "poker",
+        "gameImage": "poker/poker-lobby-evolution.png"
+    }
+]
