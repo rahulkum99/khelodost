@@ -1,0 +1,202 @@
+[
+    {
+        "gameHash": "1fb333954772d674f81ddd347bf90c79",
+        "gameName": "speed-baccarat-1-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/speed-baccarat-1-microgaming.png"
+    },
+    {
+        "gameHash": "70984c9c2dffa0cd039a2cad05228f48",
+        "gameName": "speed-baccarat-2-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/speed-baccarat-2-microgaming.png"
+    },
+    {
+        "gameHash": "f1196b5b7864f2302225b091808c37b4",
+        "gameName": "speed-baccarat-3-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/speed-baccarat-3-microgaming.png"
+    },
+    {
+        "gameHash": "77afbc9d1b79faad145868bb055c6a32",
+        "gameName": "speed-baccarat-4-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/speed-baccarat-4-microgaming.png"
+    },
+    {
+        "gameHash": "b164d4fbf9eff95afdaa6e7fc9dd714d",
+        "gameName": "baccarat-1-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-1-microgaming.png"
+    },
+    {
+        "gameHash": "096681a371856a9c74dc8bd77874e5b2",
+        "gameName": "baccarat-2-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-2-microgaming.png"
+    },
+    {
+        "gameHash": "65dca82ad615e732f4110ab6e4081134",
+        "gameName": "baccarat-3-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-3-microgaming.png"
+    },
+    {
+        "gameHash": "837c69cad673580542f91974993b7bff",
+        "gameName": "baccarat-4-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-4-microgaming.png"
+    },
+    {
+        "gameHash": "68c4eea31e5673008f1d2c965061cfc4",
+        "gameName": "baccarat-5-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-5-microgaming.png"
+    },
+    {
+        "gameHash": "d7e1f7855f8f347e7ad1664e3aa23293",
+        "gameName": "baccarat-6-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-6-microgaming.png"
+    },
+    {
+        "gameHash": "c475ba352fae8cdf0789352cdf18a959",
+        "gameName": "baccarat-7-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-7-microgaming.png"
+    },
+
+
+    {
+        "gameHash": "a9a6f0dab1c2cd8c11b395d230e273ce",
+        "gameName": "dragon-tiger-microgaming",
+        "sheetGameType": "dragontiger",
+        "gameImage": "dragontiger/dragon-tiger-microgaming.png"
+    },
+
+
+
+    {
+        "gameHash": "aebfbc5a3fe2f28af7eaf4cf7a59d436",
+        "gameName": "airwave-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/airwave-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "1acbe3f4942faa857995dd4c35ca29c0",
+        "gameName": "clubhouse-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/clubhouse-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "76bce76b87bd3ce8d5d5ace38bcc6ed6",
+        "gameName": "amstel-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/amstel-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "0dde1e2bb4c1843ec93370cfbecaa4e0",
+        "gameName": "speed-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/speed-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "3597c1344d8473dc260abc8cf01b7cc8",
+        "gameName": "auto-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/auto-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "de473034cbf2ae2b874b1a50d5786d65",
+        "gameName": "istanbul-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/istanbul-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "4286b2cea14b127d949d81d18d31c824",
+        "gameName": "diamond-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/diamond-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "9c286c1494300efdfc18f9d110d0e6ba",
+        "gameName": "playboy-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/playboy-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "9344121a50ffb98ca713351f0c0f0ef1",
+        "gameName": "roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/roulette-microgaming.png"
+    },
+    {
+        "gameHash": "26d1e4776e2d48d777369ecd9ba3f903",
+        "gameName": "holo-roulette-microgaming",
+        "sheetGameType": "roulette",
+        "gameImage": "roulette/holo-roulette-microgaming.png"
+    },
+
+
+    {
+        "gameHash": "e5d911733c791524a43687976559985c",
+        "gameName": "speed-blackjack1-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/speed-blackjack1-microgaming.png"
+    },
+    {
+        "gameHash": "207d318232df7686702f4a6aabf2105b",
+        "gameName": "speed-blackjack2-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/speed-blackjack2-microgaming.png"
+    },
+    {
+        "gameHash": "6655a82d639b10f019835752fbebd8d3",
+        "gameName": "blackjack-montreal-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-montreal-microgaming.png"
+    },
+    {
+        "gameHash": "59be2ca6bc92922710d0d76e2386ebaa",
+        "gameName": "blackjack-vancouver-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-vancouver-microgaming.png"
+    },
+    {
+        "gameHash": "936651bfd3aeb789d957f4393078367a",
+        "gameName": "blackjack-calgary-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-calgary-microgaming.png"
+    },
+    {
+        "gameHash": "f4474fd9fb7bf3f92f6b7140d62b9216",
+        "gameName": "playboy-blackjack-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/playboy-blackjack-microgaming.png"
+    },
+    {
+        "gameHash": "52132070d76ca606a15cfbc3c90c6074",
+        "gameName": "blackjack-toronto-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-toronto-microgaming.png"
+    },
+    {
+        "gameHash": "da1255b9e3e91851bc80771d631e149d",
+        "gameName": "blackjack-riga-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-riga-microgaming.png"
+    },
+    {
+        "gameHash": "4b4719bcb625e9a512f9ff3774c3b552",
+        "gameName": "blackjack-madrid-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-madrid-microgaming.png"
+    },
+    {
+        "gameHash": "4b4719bcb625e9a512f9ff3774c3b552",
+        "gameName": "blackjack-monte-carlo-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-monte-carlo-microgaming.png"
+    } 
+
+]

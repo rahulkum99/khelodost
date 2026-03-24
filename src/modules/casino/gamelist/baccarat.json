@@ -94,5 +94,48 @@
         "gameName": "turbo-baccarat-pragmatic",
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/turbo-baccarat-pragmatic.png"
+    },
+
+
+
+
+    {
+        "gameHash": "096681a371856a9c74dc8bd77874e5b2",
+        "gameName": "baccarat-2-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-2-microgaming.png"
+    },
+  
+    {
+        "gameHash": "837c69cad673580542f91974993b7bff",
+        "gameName": "baccarat-4-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-4-microgaming.png"
+    },
+    {
+        "gameHash": "68c4eea31e5673008f1d2c965061cfc4",
+        "gameName": "baccarat-5-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-5-microgaming.png"
+    },
+    {
+        "gameHash": "d7e1f7855f8f347e7ad1664e3aa23293",
+        "gameName": "baccarat-6-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-6-microgaming.png"
+    },
+    {
+        "gameHash": "c475ba352fae8cdf0789352cdf18a959",
+        "gameName": "baccarat-7-microgaming",
+        "sheetGameType": "baccarat",
+        "gameImage": "baccarat/baccarat-7-microgaming.png"
+    },
+    {
+        "gameHash": "65dca82ad615e732f4110ab6e4081134",
+        "gameName": "baccarat-3-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/baccarat-3-microgaming.png"
     }
+
+
 ]

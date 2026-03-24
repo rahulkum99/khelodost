@@ -70,5 +70,84 @@
         "gameName": "vip-blackjack-live-evolution",
         "sheetGameType": "blackjack",
         "gameImage": "blackjack/vip-blackjack-live-evolution.png"
+    },
+    {
+        "gameHash": "e5d911733c791524a43687976559985c",
+        "gameName": "speed-blackjack1-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/speed-blackjack1-microgaming.png"
+    },
+    {
+        "gameHash": "207d318232df7686702f4a6aabf2105b",
+        "gameName": "speed-blackjack2-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/speed-blackjack2-microgaming.png"
+    },
+    {
+        "gameHash": "6655a82d639b10f019835752fbebd8d3",
+        "gameName": "blackjack-montreal-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-montreal-microgaming.png"
+    },
+
+    {
+        "gameHash": "f4474fd9fb7bf3f92f6b7140d62b9216",
+        "gameName": "playboy-blackjack-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/playboy-blackjack-microgaming.png"
+    },
+    {
+        "gameHash": "52132070d76ca606a15cfbc3c90c6074",
+        "gameName": "blackjack-toronto-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-toronto-microgaming.png"
+    },
+    {
+        "gameHash": "da1255b9e3e91851bc80771d631e149d",
+        "gameName": "blackjack-riga-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-riga-microgaming.png"
+    },
+    {
+        "gameHash": "4b4719bcb625e9a512f9ff3774c3b552",
+        "gameName": "blackjack-madrid-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-madrid-microgaming.png"
+    },
+    {
+        "gameHash": "4b4719bcb625e9a512f9ff3774c3b552",
+        "gameName": "blackjack-monte-carlo-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-monte-carlo-microgaming.png"
+    },
+    {
+        "gameHash": "e5d911733c791524a43687976559985c",
+        "gameName": "speed-blackjack-1-micorgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/speed-blackjack-1-micorgaming.png"
+    },
+    {
+        "gameHash": "207d318232df7686702f4a6aabf2105b",
+        "gameName": "speed-blackjack-2-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/speed-blackjack-2-microgaming.png"
+    },
+    {
+        "gameHash": "4dac97f6614136c10d80c9f3929750c9",
+        "gameName": "blackjack-berlin-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/blackjack-berlin-microgaming.png"
+    },
+    {
+        "gameHash": "7cafed64c20875072d0ca3bd9ec5c51b",
+        "gameName": "blackjack-london-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/blackjack-london-microgaming.png"
+    },
+    {
+        "gameHash": "b3339853d704feabd055899f74ddb40a",
+        "gameName": "blackjack-manchester-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/blackjack-manchester-microgaming.png"
     }
 ]

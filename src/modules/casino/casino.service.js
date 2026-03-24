@@ -114,7 +114,7 @@ const callbackBet = async (body = {}) => {
   let decryptedPayload;
   try {
     decryptedPayload = decryptPayloadFromBase64(body.payload, AES_KEY);
-    console.log('[casino.callbackBet] Payload decrypted successfully');
+    console.log('[casino.callbackBet] Payload decrypted successfully', decryptedPayload);
   } catch (error) {
     console.error('[casino.callbackBet] Payload decryption failed:', error.message);
     return { code: 1, message: 'Invalid decrypted data', payload: null };

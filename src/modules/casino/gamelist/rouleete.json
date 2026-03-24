@@ -88,5 +88,24 @@
         "gameName": "vip-auto-roulette-pragmatic",
         "sheetGameType": "rouleete",
         "gameImage": "rouleete/vip-auto-roulette-pragmatic.png"
+    },
+    {
+        "gameHash": "0dde1e2bb4c1843ec93370cfbecaa4e0",
+        "gameName": "speed-roulette-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/speed-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "25b0bb7276fa2893a4abefdea373c8d7",
+        "gameName": "turkish-roulette-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/turkish-roulette-microgaming.png"
+    },
+    {
+        "gameHash": "b1fe7a2af37aa8cf5a2e20787a5e08f5",
+        "gameName": "fashon-tv-xbeat-roulette-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/fashon-tv-xbeat-roulette-microgaming.png"
     }
+ 
 ]

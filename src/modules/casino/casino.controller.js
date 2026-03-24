@@ -162,18 +162,11 @@ const getGameByHash = async (req, res) => {
 
 const launchGame = async (req, res) => {
   try {
-    const username = req.user?.username;
-    if (!username) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username is required to launch casino game',
-      });
-    }
-
     const wallet = await walletService.getBalance(req.userId);
+    const memberUserIdentity = req.userId.toString();
 
     const launchUrl = await casinoService.createLaunchUrl({
-      userId: username,
+      userId: memberUserIdentity,
       vendorId: req.query.vendorId || '18',
       gameHash: req.params.gamehash,
       currencyCode: (wallet.currency || req.query.currencyCode || 'inr').toLowerCase(),
@@ -198,7 +191,7 @@ const launchGame = async (req, res) => {
 const callbackBet = async (req, res) => {
   try {
     const result = await casinoService.callbackBet(req.body);
-    console.log('[casino.callbackBet] Callback received', result);
+    console.log('[casino.callbackBet] Result:', result);
     return res.json(result);
   } catch (error) {
     return res.json({
