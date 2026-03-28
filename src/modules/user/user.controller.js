@@ -590,6 +590,94 @@ const getUserHierarchy = async (req, res) => {
   }
 };
 
+/**
+ * Update exposure limit for self or a user in hierarchy (Agent+). Super Admin: any user.
+ */
+const updateUserExposure = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { exposureLimit } = req.body;
+
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      const isSelf = id === req.userId.toString();
+      if (!isSelf) {
+        const descendantIds = await getDescendantUserIds(String(req.userId));
+        const allowed = new Set(descendantIds.map((oid) => oid.toString()));
+        if (!allowed.has(id)) {
+          return res.status(403).json({
+            success: false,
+            message: 'You can only set exposure for yourself or users in your hierarchy'
+          });
+        }
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: { exposureLimit: Number(exposureLimit) } },
+      { new: true, runValidators: true }
+    ).select('-password -refreshToken');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Exposure limit updated',
+      data: { user }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update exposure limit'
+    });
+  }
+};
+
+/**
+ * Change password for a hierarchy user (not self). Reuses auth admin password flow + logging.
+ */
+const changeHierarchyUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (id === req.userId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'To change your own password, use PUT /api/auth/change-password with your current password'
+      });
+    }
+
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      const descendantIds = await getDescendantUserIds(String(req.userId));
+      const allowed = new Set(descendantIds.map((oid) => oid.toString()));
+      if (!allowed.has(id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only change passwords for users in your hierarchy'
+        });
+      }
+    }
+
+    const result = await authService.adminChangePassword(id, newPassword, req.userId, req);
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.user
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to change password'
+    });
+  }
+};
+
 module.exports = {
   getCricketMatches,
   getAllUsers,
@@ -599,5 +687,7 @@ module.exports = {
   setUserStatus,
   deleteUser,
   getUserStats,
-  getUserHierarchy
+  getUserHierarchy,
+  updateUserExposure,
+  changeHierarchyUserPassword
 };

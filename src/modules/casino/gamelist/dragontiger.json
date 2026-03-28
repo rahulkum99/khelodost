@@ -5,12 +5,7 @@
         "sheetGameType": "dragontiger",
         "gameImage": "dragontiger/dragon-tiger-live.png"
     },
-    {
-        "gameHash": "75776a4167b0616cec63966d3877ff22",
-        "gameName": "dragon-tiger-lobby-pragmatic",
-        "sheetGameType": "dragontiger",
-        "gameImage": "dragontiger/dragon-tiger-lobby-pragmatic.png"
-    },
+
     {
         "gameHash": "43473f00e237b4d8754d22095d701b4c",
         "gameName": "dragon-tiger",

@@ -10,5 +10,11 @@
         "gameName": "matka7",
         "sheetGameType": "lottery",
         "gameImage": "lottery/matka7.png"
+    },
+    {
+        "gameHash": "1d93109e3e25654e679f911c60b4414b",
+        "gameName": "game-shows-lobby-pragmatic",
+        "sheetGameType": "gameshow",
+        "gameImage": "gameshow/game-shows-lobby-pragmatic.png"
     }
 ]

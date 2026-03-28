@@ -71,12 +71,7 @@
         "sheetGameType": "popular",
         "gameImage": "popular/mega-ball-evolution.png"
     },
-    {
-        "gameHash": "e18b53fffb12388f9e3cbe9895ca82f1",
-        "gameName": "mega-wheel-pragmatic",
-        "sheetGameType": "popular",
-        "gameImage": "popular/mega-wheel-pragmatic.png"
-    },
+
     {
         "gameHash": "d496ac5fd91702331133e44b6bd12b26",
         "gameName": "monopoly-live-evolution",
@@ -90,15 +85,54 @@
         "gameImage": "popular/red-door-roulette-evolution.png"
     },
     {
-        "gameHash": "03a00a10ccd01b5424bc988c3648776a",
-        "gameName": "snakes-ladders-live-pragmatic",
-        "sheetGameType": "popular",
-        "gameImage": "popular/snakes-ladders-live-pragmatic.png"
+        "gameHash": "da1255b9e3e91851bc80771d631e149d",
+        "gameName": "blackjack-riga-microgaming",
+        "sheetGameType": "blackjack",
+        "gameImage": "blackjack/blackjack-riga-microgaming.png"
     },
     {
-        "gameHash": "9a7ccf5d0e8862eaf13a0f3c18807cd2",
-        "gameName": "treasure-island-pragmatic",
-        "sheetGameType": "popular",
-        "gameImage": "popular/treasure-island-pragmatic.png"
+        "gameHash": "e5d911733c791524a43687976559985c",
+        "gameName": "speed-blackjack-1-micorgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/speed-blackjack-1-micorgaming.png"
+    },
+    {
+        "gameHash": "af022dc4300f7c55ebdaf559688115d9",
+        "gameName": "sic-bo-lobby-pragmatic",
+        "sheetGameType": "sicbo",
+        "gameImage": "sicbo/sic-bo-lobby-pragmatic.png"
+    },
+    {
+        "gameHash": "724eebd5cbe7555b01ed60279cb59e5a",
+        "gameName": "caribbean-stud-poker-evolution",
+        "sheetGameType": "poker",
+        "gameImage": "poker/caribbean-stud-poker-evolution.png"
+    },
+    {
+        "gameHash": "146896890ee326c1f808ef747dd962cf",
+        "gameName": "poker-lobby-evolution",
+        "sheetGameType": "poker",
+        "gameImage": "poker/poker-lobby-evolution.png"
+    },
+    {
+        "gameHash": "1d93109e3e25654e679f911c60b4414b",
+        "gameName": "game-shows-lobby-pragmatic",
+        "sheetGameType": "gameshow",
+        "gameImage": "gameshow/game-shows-lobby-pragmatic.png"
+    },
+
+    {
+        "gameHash": "a9a6f0dab1c2cd8c11b395d230e273ce",
+        "gameName": "dragon-tiger-microgaming",
+        "sheetGameType": "dragontiger",
+        "gameImage": "dragontiger/dragon-tiger-microgaming.png"
+    },
+    {
+        "gameHash": "b53a604877024ef2eab9946898e65d6b",
+        "gameName": "cash-or-crash-evolution",
+        "sheetGameType": "crash",
+        "gameImage": "crash/cash-or-crash-evolution.png"
     }
+
+ 
 ]

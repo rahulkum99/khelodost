@@ -6,7 +6,13 @@ const { authorize, requireMinRole, canCreateUserWithRole } = require('../../midd
 const { requirePasswordConfirmation } = require('../../middlewares/passwordConfirmation.middleware');
 const { ROLES } = require('../../models/User');
 const { apiLimiter } = require('../../middlewares/security.middleware');
-const { validateUpdateUser, validatePasswordConfirmation, validateUserStatus } = require('../auth/auth.validation');
+const {
+  validateUpdateUser,
+  validatePasswordConfirmation,
+  validateUserStatus,
+  validateExposureLimitUpdate,
+  validateHierarchyUserNewPassword
+} = require('../auth/auth.validation');
 const { handleValidationErrors } = require('../auth/auth.controller');
 
 // Apply rate limiting to all routes
@@ -43,6 +49,31 @@ router.post(
 router.get('/', requireMinRole(ROLES.AGENT), userController.getAllUsers);
 router.get('/hierarchy', requireMinRole(ROLES.AGENT), userController.getUserHierarchy);
 router.get('/stats', requireMinRole(ROLES.ADMIN), userController.getUserStats);
+
+// Hierarchy: edit exposure (Agent+), requires admin password
+router.patch(
+  '/:id/exposure',
+  requireMinRole(ROLES.AGENT),
+  validatePasswordConfirmation,
+  handleValidationErrors,
+  requirePasswordConfirmation,
+  validateExposureLimitUpdate,
+  handleValidationErrors,
+  userController.updateUserExposure
+);
+
+// Hierarchy: change a downline user's password (Agent+), requires admin password — not for changing own password
+router.patch(
+  '/:id/password',
+  requireMinRole(ROLES.AGENT),
+  validatePasswordConfirmation,
+  handleValidationErrors,
+  requirePasswordConfirmation,
+  validateHierarchyUserNewPassword,
+  handleValidationErrors,
+  userController.changeHierarchyUserPassword
+);
+
 router.get('/:id', requireMinRole(ROLES.AGENT), userController.getUserById);
 
 // Update user - requires admin role and password confirmation

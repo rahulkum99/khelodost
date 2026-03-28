@@ -169,6 +169,7 @@ const launchGame = async (req, res) => {
       userId: memberUserIdentity,
       vendorId: req.query.vendorId || '18',
       gameHash: req.params.gamehash,
+      gameName: req.query.gameName || null,
       currencyCode: (wallet.currency || req.query.currencyCode || 'inr').toLowerCase(),
       language: req.query.language || 'en',
       creditAmount: Number(wallet.balance || 0),

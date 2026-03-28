@@ -1,19 +1,54 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios');
 const mongoose = require('mongoose');
 const walletService = require('../wallet/wallet.service');
 const Wallet = require('../../models/Wallet');
-const WalletTransaction = require('../../models/WalletTransaction');
+const Bet = require('../../models/Bet');
 const { withTransaction } = require('../../utils/transaction.helper');
 
 const AES_KEY = process.env.CASINO_AES_KEY || '168f3ea1b9f3f24aca63c6d9b5ce0238';
 const PLAYER_PREFIX = process.env.CASINO_PLAYER_PREFIX || 'h6b144';
 const AGENCY_ID = process.env.CASINO_AGENCY_ID || '20b644819cfcaf95015e2f0e558eaa30';
 const API_URL = process.env.CASINO_API_URL || 'https://huidu.bet';
-const HOME_URL = process.env.CASINO_HOME_URL || 'https://khelodost.live';
-const CALLBACK_URL = process.env.CASINO_CALLBACK_URL || 'https://api.khelodost.live/api/casino/callback/bet';
+const HOME_URL = process.env.CASINO_HOME_URL || 'https://kingexch365.vip';
+const CALLBACK_URL = process.env.CASINO_CALLBACK_URL || 'https://api.kingexch365.vip/api/casino/callback/bet';
 const LEGACY_MEMBER_USER_ID_LENGTH = Number(process.env.CASINO_MEMBER_USER_ID_LENGTH || 20);
 const sessionOpts = (session) => (session ? { session } : {});
+
+const GAMELIST_DIR = path.join(__dirname, 'gamelist');
+let gameHashCache = null;
+
+const buildGameHashCache = () => {
+  if (gameHashCache) return gameHashCache;
+  gameHashCache = new Map();
+
+  const files = fs.readdirSync(GAMELIST_DIR).filter((f) => f.endsWith('.json'));
+  for (const file of files) {
+    try {
+      const raw = fs.readFileSync(path.join(GAMELIST_DIR, file), 'utf8').replace(/^\uFEFF/, '');
+      const games = JSON.parse(raw);
+      if (!Array.isArray(games)) continue;
+      for (const g of games) {
+        if (g.gameHash) gameHashCache.set(g.gameHash, g.gameName || '');
+      }
+    } catch (_) { /* skip invalid files */ }
+  }
+  return gameHashCache;
+};
+
+const findGameNameByHash = (gameHash) => buildGameHashCache().get(gameHash) || null;
+
+const slugToTitle = (slug) =>
+  String(slug || '')
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+// Stores gameHash → gameName at launch time so callbacks can resolve names
+// even when the hash isn't in the static JSON files.
+const launchedGamesCache = new Map();
 
 const encryptPayloadToBase64 = (params, keyString = AES_KEY) => {
   if (!keyString || keyString.length !== 32) {
@@ -35,11 +70,17 @@ const createLaunchUrl = async ({
   userId,
   vendorId,
   gameHash,
+  gameName: suppliedGameName,
   currencyCode,
   language,
   creditAmount,
   platform,
 }) => {
+  const resolvedName = suppliedGameName
+    || findGameNameByHash(gameHash)
+    || gameHash;
+  launchedGamesCache.set(gameHash, resolvedName);
+
   const timestamp = Date.now();
   const memberAccount = `${PLAYER_PREFIX}${vendorId}${userId}`;
 
@@ -123,18 +164,38 @@ const callbackBet = async (body = {}) => {
   const userId = extractUserIdFromMemberAccount(decryptedPayload.member_account);
   console.log('[casino.callbackBet] User resolved from member_account:', userId);
 
-  const wallet = await walletService.getBalance(userId);
-  const userCredit = Number(wallet.balance || 0);
   const betAmount = Number(decryptedPayload.bet_amount || 0);
   const winAmount = Number(decryptedPayload.win_amount || 0);
+
+  const rawGameName = findGameNameByHash(decryptedPayload.game_uid)
+    || launchedGamesCache.get(decryptedPayload.game_uid)
+    || decryptedPayload.game_uid
+    || 'unknown_game';
+  const gameName = slugToTitle(rawGameName);
+
+  let settlementResult;
+  if (betAmount < 0) {
+    settlementResult = Bet.BET_RESULT.VOID;
+  } else if (winAmount > 0) {
+    settlementResult = Bet.BET_RESULT.WON;
+  } else if (betAmount > 0) {
+    settlementResult = Bet.BET_RESULT.LOST;
+  } else {
+    settlementResult = Bet.BET_RESULT.VOID;
+  }
+
+  const wallet = await walletService.getBalance(userId);
+  const userCredit = Number(wallet.balance || 0);
   const currentBalance = userCredit - betAmount + winAmount;
 
   console.log('[casino.callbackBet] Settlement values:', {
     game_uid: decryptedPayload.game_uid,
+    gameName,
     betAmount,
     winAmount,
     prevBalance: userCredit,
     currentBalance,
+    settlementResult,
   });
 
   const responsePayload = {
@@ -148,42 +209,37 @@ const callbackBet = async (body = {}) => {
       throw new Error('Wallet not found');
     }
 
-    const balanceBefore = Number(walletDoc.balance || 0);
-    const balanceAfter = Math.round(currentBalance * 100) / 100;
-    const delta = Math.round((balanceAfter - balanceBefore) * 100) / 100;
-
-    walletDoc.balance = balanceAfter;
+    walletDoc.balance = Math.round(currentBalance * 100) / 100;
     walletDoc.lastTransactionAt = new Date();
     await walletDoc.save(sessionOpts(session));
 
-    await WalletTransaction.create([{
-      wallet: walletDoc._id,
-      user: userId,
-      transactionType: delta >= 0
-        ? WalletTransaction.TRANSACTION_TYPES.CREDIT
-        : WalletTransaction.TRANSACTION_TYPES.DEBIT,
-      amount: Math.abs(delta),
-      balanceBefore,
-      balanceAfter,
-      currency: wallet.currency || 'INR',
-      status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
-      description: `Casino callback settlement (${decryptedPayload.game_uid || 'unknown_game'})`,
-      performedBy: userId,
-      metadata: {
-        type: 'casino_callback_settlement',
-        game_uid: decryptedPayload.game_uid,
-        member_account: decryptedPayload.member_account,
-        bet_amount: betAmount,
-        win_amount: winAmount,
-        provider_timestamp: decryptedPayload.timestamp || null,
-      },
+    await Bet.create([{
+      userId,
+      sport: 'casino',
+      eventId: decryptedPayload.game_uid,
+      eventName: gameName,
+      eventJsonStamp: decryptedPayload,
+      marketId: decryptedPayload.game_round,
+      marketName: gameName,
+      marketType: Bet.MARKET_TYPES.CASINO,
+      selectionId: decryptedPayload.serial_number,
+      selectionName: gameName,
+      betType: 'back',
+      stake: Math.abs(betAmount),
+      exposure: Math.abs(betAmount),
+      winAmount,
+      status: Bet.BET_STATUS.SETTLED,
+      settlementResult,
+      settledAt: new Date(),
     }], sessionOpts(session));
 
-    console.log('[casino.callbackBet] Wallet updated successfully:', {
+    console.log('[casino.callbackBet] Bet recorded & wallet updated:', {
       userId,
-      balanceBefore,
-      balanceAfter,
-      delta,
+      gameName,
+      betAmount,
+      winAmount,
+      settlementResult,
+      newBalance: walletDoc.balance,
     });
   });
 

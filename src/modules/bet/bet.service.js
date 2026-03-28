@@ -189,29 +189,33 @@ const settleExposure = async ({
     throw new Error('Locked exposure inconsistent for settlement');
   }
 
-  let balanceBefore = wallet.balance;
-  let balanceAfter = fromInt(availableInt + exposureInt + netWinInt);
-  const lockedBefore = wallet.lockedBalance;
   const lockedAfter = fromInt(lockedInt - exposureInt);
+  const afterUnlockInt = availableInt + exposureInt;
+  const balanceAfterUnlock = fromInt(afterUnlockInt);
+  const finalBalanceInt = afterUnlockInt + netWinInt;
+  const finalBalance = fromInt(finalBalanceInt);
 
-  wallet.balance = balanceAfter;
-  wallet.lockedBalance = lockedAfter;
-  wallet.lastTransactionAt = new Date();
-  await wallet.save(sessionOpts(session));
+  if (finalBalanceInt < 0) {
+    throw new Error(
+      'Settlement would make wallet balance negative; check exposure / net win amounts.'
+    );
+  }
+
+  const balanceBeforeStart = wallet.balance;
 
   // Base description for ledger (e.g. "MATCH_ODDS settlement", "BOOKMAKERS_FANCY settlement")
   const baseDesc = description || 'Bet settlement';
 
-  // Always create at least one transaction to unlock exposure
   const txs = [];
 
+  // 1) Unlock exposure only (ledger matches wallet math; do not apply netWin twice)
   txs.push({
     wallet: wallet._id,
     user: userId,
     transactionType: WalletTransaction.TRANSACTION_TYPES.CREDIT,
     amount: exposure,
-    balanceBefore,
-    balanceAfter,
+    balanceBefore: balanceBeforeStart,
+    balanceAfter: balanceAfterUnlock,
     currency: wallet.currency,
     status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
     description: `${baseDesc} — exposure returned`,
@@ -223,12 +227,9 @@ const settleExposure = async ({
     userAgent: req ? req.get('user-agent') : null,
   });
 
-  // If there is additional net win (>0) or net loss (<0), create another transaction
+  // 2) Optional win/loss relative to unlocked funds
   if (netWinInt !== 0) {
     const isWin = netWinInt > 0;
-    balanceBefore = balanceAfter;
-    balanceAfter = fromInt(toInt(balanceBefore) + netWinInt);
-
     txs.push({
       wallet: wallet._id,
       user: userId,
@@ -236,8 +237,8 @@ const settleExposure = async ({
         ? WalletTransaction.TRANSACTION_TYPES.CREDIT
         : WalletTransaction.TRANSACTION_TYPES.DEBIT,
       amount: Math.abs(netWinAmount),
-      balanceBefore,
-      balanceAfter,
+      balanceBefore: balanceAfterUnlock,
+      balanceAfter: finalBalance,
       currency: wallet.currency,
       status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
       description: isWin ? `${baseDesc} — win` : `${baseDesc} — loss`,
@@ -248,11 +249,12 @@ const settleExposure = async ({
       ipAddress: req ? req.ip : null,
       userAgent: req ? req.get('user-agent') : null,
     });
-
-    wallet.balance = balanceAfter;
-    wallet.lastTransactionAt = new Date();
-    await wallet.save(sessionOpts(session));
   }
+
+  wallet.balance = finalBalance;
+  wallet.lockedBalance = lockedAfter;
+  wallet.lastTransactionAt = new Date();
+  await wallet.save(sessionOpts(session));
 
   if (txs.length) {
     await WalletTransaction.create(txs, sessionOpts(session));
@@ -297,7 +299,7 @@ const placeBet = async (userId, payload, req) => {
     const effectiveMarketType =
       marketType === 'tos_maket' ? Bet.MARKET_TYPES.TOS_MARKET : marketType;
 
-    if (!sport || !['cricket', 'soccer', 'tennis'].includes(sport)) {
+    if (!sport || !['cricket', 'soccer', 'tennis', 'casino'].includes(sport)) {
       throw betError('INVALID_SPORT', 'Invalid sport', 400);
     }
 
@@ -409,6 +411,27 @@ const placeBet = async (userId, payload, req) => {
       rate: effectiveRate,
     });
 
+    const [userForLimit, walletForLimit] = await Promise.all([
+      User.findById(userId).select('exposureLimit').session(session).lean(),
+      Wallet.findOne({ user: userId }).session(session),
+    ]);
+    if (!userForLimit) {
+      throw betError('USER_NOT_FOUND', 'User not found', 404);
+    }
+    if (!walletForLimit) {
+      throw betError('WALLET_NOT_FOUND', 'Wallet not found', 404);
+    }
+    const exposureLimit = Number(userForLimit.exposureLimit);
+    const currentLocked = Number(walletForLimit.lockedBalance) || 0;
+    const projectedTotal = currentLocked + exposure;
+    if (toInt(projectedTotal) > toInt(exposureLimit)) {
+      throw betError(
+        'EXPOSURE_LIMIT_EXCEEDED',
+        `Exposure limit exceeded. Limit: ${exposureLimit.toFixed(2)}, current exposure: ${currentLocked.toFixed(2)}, this bet: ${exposure.toFixed(2)}.`,
+        400
+      );
+    }
+
     await lockExposure({
       session,
       userId,
@@ -515,7 +538,7 @@ const buildUserHierarchyTree = ({ users }) => {
  * Optional query.userId: restrict to that user (must be in hierarchy).
  */
 const getAdminBetList = async (adminUserId, adminRole, query = {}) => {
-  const { sport, status, marketType, userId: filterUserId, limit = 50, page = 1 } = query;
+  const { sport, status, settlement, marketType, userId: filterUserId, from, to, limit = 50, page = 1 } = query;
   const limitNum = Math.min(Number(limit) || 50, 100);
   const skip = (Math.max(1, Number(page)) - 1) * limitNum;
 
@@ -542,8 +565,26 @@ const getAdminBetList = async (adminUserId, adminRole, query = {}) => {
 
   const filter = { userId: { $in: targetUserIds } };
   if (sport) filter.sport = sport;
-  if (status) filter.status = status;
+  if (settlement) {
+    if (settlement === 'settled') filter.status = Bet.BET_STATUS.SETTLED;
+    if (settlement === 'unsettled') filter.status = Bet.BET_STATUS.OPEN;
+    if (settlement === 'void') {
+      filter.status = Bet.BET_STATUS.SETTLED;
+      filter.settlementResult = Bet.BET_RESULT.VOID;
+    }
+  } else if (status) {
+    filter.status = status;
+  }
   if (marketType) filter.marketType = marketType;
+
+  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+  if (fromDate || toDate) {
+    filter.createdAt = {};
+    if (fromDate && !Number.isNaN(fromDate.getTime())) filter.createdAt.$gte = fromDate;
+    if (toDate && !Number.isNaN(toDate.getTime())) filter.createdAt.$lte = toDate;
+    if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
+  }
 
   const [bets, total] = await Promise.all([
     Bet.find(filter)
@@ -603,6 +644,8 @@ const getTodayInplayPlacedBets = async (adminUserId, adminRole, query = {}) => {
 
   if (sport) {
     match.sport = sport;
+  } else {
+    match.sport = { $ne: 'casino' };
   }
 
   const rows = await Bet.aggregate([
@@ -654,9 +697,10 @@ const getTodayInplayPlacedBets = async (adminUserId, adminRole, query = {}) => {
 
 /**
  * Get bets for current user
+ * If `from` and `to` are both omitted, defaults to today (UTC midnight → next midnight), same window as /today-bets.
  */
 const getUserBets = async (userId, query = {}) => {
-  const { sport, status, marketType, eventId, marketId, limit = 50 } = query;
+  const { sport, status, marketType, eventId, marketId, from, to, limit = 50 } = query;
 
   const filter = { userId };
   if (sport) filter.sport = sport;
@@ -664,6 +708,23 @@ const getUserBets = async (userId, query = {}) => {
   if (marketType) filter.marketType = marketType;
   if (eventId) filter.eventId = String(eventId);
   if (marketId) filter.marketId = String(marketId);
+
+  if (!from && !to) {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    filter.createdAt = { $gte: todayStart, $lt: tomorrowStart };
+  } else {
+    const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+    const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+    if (fromDate || toDate) {
+      filter.createdAt = {};
+      if (fromDate && !Number.isNaN(fromDate.getTime())) filter.createdAt.$gte = fromDate;
+      if (toDate && !Number.isNaN(toDate.getTime())) filter.createdAt.$lte = toDate;
+      if (Object.keys(filter.createdAt).length === 0) delete filter.createdAt;
+    }
+  }
 
   const bets = await Bet.find(filter)
     .select('-eventJsonStamp')
@@ -679,6 +740,7 @@ const getUserBets = async (userId, query = {}) => {
  */
 const getUserProfitLossByEvent = async (userId, query = {}) => {
   const { sport, from, to, limit = 200 } = query;
+  if (!from && !to) return [];
   const limitNum = Math.min(Number(limit) || 200, 500);
 
   const match = {
@@ -720,96 +782,12 @@ const getUserProfitLossByEvent = async (userId, query = {}) => {
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         settlementResult: 1,
         settledAt: 1,
       },
     },
-    {
-      $addFields: {
-        netWinAmount: {
-          $switch: {
-            branches: [
-              // VOID (or missing) => 0
-              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.VOID] }, then: 0 },
-              { case: { $eq: ['$settlementResult', null] }, then: 0 },
-              // LOST => -exposure
-              { case: { $eq: ['$settlementResult', Bet.BET_RESULT.LOST] }, then: { $multiply: ['$exposure', -1] } },
-              // WON => compute per marketType
-              {
-                case: { $eq: ['$settlementResult', Bet.BET_RESULT.WON] },
-                then: {
-                  $switch: {
-                    branches: [
-                      // MATCH_ODDS-like: back => (odds-1)*stake, lay => stake
-                      {
-                        case: { $in: ['$marketType', matchOddsLike] },
-                        then: {
-                          $switch: {
-                            branches: [
-                              {
-                                case: { $eq: ['$betType', 'back'] },
-                                then: {
-                                  $multiply: [
-                                    { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
-                                    '$stake',
-                                  ],
-                                },
-                              },
-                              { case: { $eq: ['$betType', 'lay'] }, then: '$stake' },
-                            ],
-                            default: '$stake',
-                          },
-                        },
-                      },
-                      // BOOKMAKERS_FANCY: yes => stake*rate/100, no => 0
-                      {
-                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
-                        then: {
-                          $switch: {
-                            branches: [
-                              {
-                                case: { $eq: ['$betType', 'yes'] },
-                                then: {
-                                  $divide: [{ $multiply: ['$stake', { $ifNull: ['$rate', 0] }] }, 100],
-                                },
-                              },
-                              { case: { $eq: ['$betType', 'no'] }, then: 0 },
-                            ],
-                            default: 0,
-                          },
-                        },
-                      },
-                      // KADO: stake*(multiplier-1), multiplier defaults to 2 (rate used as multiplier)
-                      {
-                        case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
-                        then: {
-                          $let: {
-                            vars: { multiplier: { $ifNull: ['$rate', 2] } },
-                            in: { $multiply: ['$stake', { $subtract: ['$$multiplier', 1] }] },
-                          },
-                        },
-                      },
-                      // LINE / METER / FANCY: winner profit = stake
-                      {
-                        case: {
-                          $in: [
-                            '$marketType',
-                            [Bet.MARKET_TYPES.LINE_MARKET, Bet.MARKET_TYPES.METER_MARKET, Bet.MARKET_TYPES.FANCY],
-                          ],
-                        },
-                        then: '$stake',
-                      },
-                    ],
-                    default: '$stake',
-                  },
-                },
-              },
-            ],
-            default: 0,
-          },
-        },
-      },
-    },
+    netWinAmountAddFields(matchOddsLike),
     {
       $group: {
         _id: { sport: '$sport', eventId: '$eventId', eventName: '$eventName' },
@@ -868,6 +846,12 @@ const netWinAmountAddFields = (matchOddsLike) => ({
             then: {
               $switch: {
                 branches: [
+                  {
+                    case: { $eq: ['$marketType', Bet.MARKET_TYPES.CASINO] },
+                    then: {
+                      $subtract: [{ $ifNull: ['$winAmount', 0] }, '$stake'],
+                    },
+                  },
                   {
                     case: { $in: ['$marketType', matchOddsLike] },
                     then: {
@@ -986,6 +970,7 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
           exposure: 1,
           odds: 1,
           rate: 1,
+          winAmount: 1,
           settlementResult: 1,
           settledAt: 1,
           createdAt: 1,
@@ -1056,6 +1041,7 @@ const getUserProfitLossByEventMarkets = async (userId, query = {}) => {
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         settlementResult: 1,
         settledAt: 1,
         createdAt: 1,
@@ -1748,6 +1734,7 @@ const getAdminHierarchyProfitLossByEvent = async (adminUserId, adminRole, query 
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         settlementResult: 1,
         settledAt: 1,
       },
@@ -1861,6 +1848,7 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         settlementResult: 1,
       },
     },
@@ -1870,7 +1858,10 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
         betPossibleProfit: {
           $switch: {
             branches: [
-              // MATCH_ODDS-like (includes TOS_MARKET / fancy1 toss)
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.CASINO] },
+                then: { $ifNull: ['$winAmount', 0] },
+              },
               {
                 case: { $in: ['$marketType', matchOddsLike] },
                 then: {
@@ -1886,7 +1877,6 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
                   ],
                 },
               },
-              // BOOKMAKERS_FANCY
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
                 then: {
@@ -1897,7 +1887,6 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
                   ],
                 },
               },
-              // KADO: stake*(multiplier-1), multiplier defaults to 2 (rate used as multiplier)
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
                 then: {
@@ -1907,7 +1896,6 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
                   },
                 },
               },
-              // LINE / METER / FANCY
               {
                 case: {
                   $in: [
@@ -1924,7 +1912,10 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
         betPossibleLoss: {
           $switch: {
             branches: [
-              // MATCH_ODDS-like (includes TOS_MARKET / fancy1 toss)
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.CASINO] },
+                then: '$stake',
+              },
               {
                 case: { $in: ['$marketType', matchOddsLike] },
                 then: {
@@ -1940,7 +1931,6 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
                   ],
                 },
               },
-              // BOOKMAKERS_FANCY
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
                 then: {
@@ -1951,12 +1941,10 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
                   ],
                 },
               },
-              // KADO: max loss is stake
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.KADO_MARKET] },
                 then: '$stake',
               },
-              // LINE / METER / FANCY
               {
                 case: {
                   $in: [
@@ -2223,6 +2211,7 @@ const getAdminHierarchySettledBets = async (adminUserId, adminRole, query = {}) 
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         settlementResult: 1,
         settledAt: 1,
         createdAt: 1,
@@ -2324,6 +2313,7 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         status: 1,
         settlementResult: 1,
       },
@@ -2338,11 +2328,13 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
             { $multiply: ['$exposure', -1] },
           ],
         },
-        // Theoretical max profit for each bet (by market type)
         betPossibleProfit: {
           $switch: {
             branches: [
-              // MATCH_ODDS
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.CASINO] },
+                then: { $ifNull: ['$winAmount', 0] },
+              },
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.MATCH_ODDS] },
                 then: {
@@ -2354,12 +2346,10 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
                         '$stake',
                       ],
                     },
-                    // lay profit = stake
                     '$stake',
                   ],
                 },
               },
-              // TOS_MARKET (fancy1 / toss): (odds - 1) * stake for back, stake for lay
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.TOS_MARKET] },
                 then: {
@@ -2375,25 +2365,21 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
                   ],
                 },
               },
-              // BOOKMAKERS_FANCY
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
                 then: {
                   $cond: [
                     { $eq: ['$betType', 'yes'] },
-                    // YES wins → (stake * rate / 100)
                     {
                       $divide: [
                         { $multiply: ['$stake', { $ifNull: ['$rate', 0] }] },
                         100,
                       ],
                     },
-                    // NO wins → profit ~ stake
                     '$stake',
                   ],
                 },
               },
-              // Line/Fancy style markets – symmetric yes/no style
               {
                 case: {
                   $in: [
@@ -2411,19 +2397,19 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
             default: 0,
           },
         },
-        // Theoretical max loss for each bet (by market type)
         betPossibleLoss: {
           $switch: {
             branches: [
-              // MATCH_ODDS
+              {
+                case: { $eq: ['$marketType', Bet.MARKET_TYPES.CASINO] },
+                then: '$stake',
+              },
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.MATCH_ODDS] },
                 then: {
                   $cond: [
                     { $eq: ['$betType', 'back'] },
-                    // back loss = stake
                     '$stake',
-                    // lay loss = (odds - 1) * stake
                     {
                       $multiply: [
                         { $subtract: [{ $ifNull: ['$odds', 1] }, 1] },
@@ -2433,7 +2419,6 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
                   ],
                 },
               },
-              // TOS_MARKET (fancy1 / toss): back loss = stake, lay loss = (odds - 1) * stake
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.TOS_MARKET] },
                 then: {
@@ -2449,15 +2434,12 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
                   ],
                 },
               },
-              // BOOKMAKERS_FANCY
               {
                 case: { $eq: ['$marketType', Bet.MARKET_TYPES.BOOKMAKERS_FANCY] },
                 then: {
                   $cond: [
                     { $eq: ['$betType', 'yes'] },
-                    // YES loses → loss = stake
                     '$stake',
-                    // NO loses → loss ~ (stake * rate / 100)
                     {
                       $divide: [
                         { $multiply: ['$stake', { $ifNull: ['$rate', 0] }] },
@@ -2467,7 +2449,6 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
                   ],
                 },
               },
-              // Line/Fancy style markets – symmetric yes/no style
               {
                 case: {
                   $in: [
@@ -2594,6 +2575,7 @@ const getUserTotalProfitLoss = async (userId, query = {}) => {
         exposure: 1,
         odds: 1,
         rate: 1,
+        winAmount: 1,
         settlementResult: 1,
       },
     },
@@ -2681,6 +2663,143 @@ const getUnsettledBetsForSettlement = async (query = {}) => {
   return rows;
 };
 
+/**
+ * Admin: User exposure game list — open bets grouped by sport > event > market.
+ * Returns: [{ sport, eventId, eventName, marketId, marketName, betCount, totalStake, totalExposure }]
+ */
+const getAdminUserExposureGameList = async (adminUserId, adminRole, query = {}) => {
+  const { userId, sport } = query;
+
+  if (!userId) {
+    throw betError('VALIDATION_ERROR', 'userId is required');
+  }
+
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  const requestedId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+  if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+    throw betError('FORBIDDEN', 'You can only view exposure for users in your hierarchy', 403);
+  }
+
+  const match = {
+    userId: requestedId,
+    status: Bet.BET_STATUS.OPEN,
+  };
+  if (sport) match.sport = sport;
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: {
+          sport: '$sport',
+          eventId: '$eventId',
+          eventName: '$eventName',
+          marketId: '$marketId',
+          marketName: '$marketName',
+        },
+        betCount: { $sum: 1 },
+        totalStake: { $sum: '$stake' },
+        totalExposure: { $sum: '$exposure' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        sport: '$_id.sport',
+        eventId: '$_id.eventId',
+        eventName: '$_id.eventName',
+        marketId: '$_id.marketId',
+        marketName: '$_id.marketName',
+        betCount: 1,
+        totalStake: { $round: ['$totalStake', 2] },
+        totalExposure: { $round: ['$totalExposure', 2] },
+      },
+    },
+    { $sort: { sport: 1, eventName: 1, marketName: 1 } },
+  ]);
+
+  return rows;
+};
+
+/**
+ * Admin: user market exposure rows for modal/table view.
+ * Required: userId, marketId
+ * Optional: eventId, sport, limit, status (defaults to OPEN)
+ */
+const getAdminUserMarketExposureBets = async (adminUserId, adminRole, query = {}) => {
+  const { userId, marketId, eventId, sport, status, limit = 500 } = query;
+  const limitNum = Math.min(Number(limit) || 500, 1000);
+
+  if (!userId) {
+    throw betError('VALIDATION_ERROR', 'userId is required');
+  }
+  if (!marketId) {
+    throw betError('VALIDATION_ERROR', 'marketId is required');
+  }
+
+  let allowedUserIds;
+  if (adminRole === ROLES.SUPER_ADMIN) {
+    const ids = await User.find({}).select('_id').lean();
+    allowedUserIds = ids.map((u) => u._id);
+  } else {
+    allowedUserIds = await getDescendantUserIds(adminUserId);
+  }
+
+  const requestedId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+  if (!requestedId || !allowedUserIds.some((id) => id.toString() === requestedId.toString())) {
+    throw betError('FORBIDDEN', 'You can only view exposure for users in your hierarchy', 403);
+  }
+
+  const match = {
+    userId: requestedId,
+    marketId: String(marketId),
+    status: status || Bet.BET_STATUS.OPEN,
+  };
+  if (eventId) match.eventId = String(eventId);
+  if (sport) match.sport = sport;
+
+  const rows = await Bet.aggregate([
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        betId: '$_id',
+        sport: 1,
+        eventId: 1,
+        eventName: 1,
+        marketId: 1,
+        marketName: 1,
+        runnerName: '$selectionName',
+        selectionId: 1,
+        betType: { $toUpper: '$betType' },
+        userPrice: {
+          $ifNull: ['$odds', { $ifNull: ['$rate', 0] }],
+        },
+        rate: { $ifNull: ['$rate', 0] },
+        amount: '$stake',
+        placeDate: '$createdAt',
+        matchDate: '$updatedAt',
+        createdAt: 1,
+        updatedAt: 1,
+        stake: 1,
+        exposure: 1,
+        status: 1,
+      },
+    },
+    { $sort: { placeDate: -1 } },
+    { $limit: limitNum },
+  ]);
+
+  return rows;
+};
+
 module.exports = {
   placeBet,
   getDescendantUserIds,
@@ -2696,6 +2815,8 @@ module.exports = {
   getAdminHierarchySettledBets,
   getAdminHierarchyMarketBets,
   getAdminHierarchyUserMarketProfitLoss,
+  getAdminUserExposureGameList,
+  getAdminUserMarketExposureBets,
   getTodayBets,
   getTodayOpenBets,
   settleMarket,

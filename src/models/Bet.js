@@ -13,6 +13,7 @@ const MARKET_TYPES = {
   LINE_MARKET: 'line_market',
   METER_MARKET: 'meter_market',
   KADO_MARKET: 'kado_market',
+  CASINO: 'casino',
 };
 
 // Bet status
@@ -38,7 +39,7 @@ const betSchema = new mongoose.Schema(
     },
     sport: {
       type: String,
-      enum: ['cricket', 'soccer', 'tennis'],
+      enum: ['cricket', 'soccer', 'tennis', 'casino'],
       required: true,
       index: true,
     },
@@ -80,7 +81,10 @@ const betSchema = new mongoose.Schema(
       required: true,
     },
 
-    // betType changes semantics based on marketType
+    // betType semantics by market:
+    // - match_odds / tied_match / tos_market / fancy / over_by_over / oddeven: 'back' | 'lay'
+    // - bookmakers_fancy: 'yes' = back, 'no' = lay (mapped to priceType back/lay at place-bet)
+    // - line/meter/kado: 'over' | 'under' as applicable
     betType: {
       type: String,
       enum: ['back', 'lay', 'yes', 'no', 'over', 'under'],
@@ -99,7 +103,7 @@ const betSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Provider quote snapshot at bet time (which ladder/row user matched)
+    // Ladder side at bet time: 'back' (incl. yes on bookmakers) or 'lay' (incl. no on bookmakers)
     priceType: {
       type: String,
       enum: ['back', 'lay'],
@@ -134,6 +138,11 @@ const betSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+
+    winAmount: {
+      type: Number,
+      default: null,
     },
 
     status: {

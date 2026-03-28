@@ -155,4 +155,18 @@ router.get('/admin/hierarchy-user-market-profit-loss',
   betController.getAdminHierarchyUserMarketProfitLoss
 );
 
+// Admin: user exposure game list — open bets grouped by sport > event > market
+router.get('/admin/user-exposure-game-list',
+  ...betValidation.validateAdminUserExposureGameList,
+  betController.handleValidationErrors,
+  betController.getAdminUserExposureGameList
+);
+
+// Admin: market exposure rows for a particular user + market
+router.get('/admin/user-market-exposure-bets',
+  ...betValidation.validateAdminUserMarketExposureBets,
+  betController.handleValidationErrors,
+  betController.getAdminUserMarketExposureBets
+);
+
 module.exports = router;

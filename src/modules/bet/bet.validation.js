@@ -5,8 +5,8 @@ const validMarketTypes = Object.values(Bet.MARKET_TYPES);
 
 const validatePlaceBet = [
   body('sport')
-    .isIn(['cricket', 'soccer', 'tennis'])
-    .withMessage('sport must be one of cricket, soccer, tennis'),
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
+    .withMessage('sport must be one of cricket, soccer, tennis, casino'),
   body('eventId').notEmpty().withMessage('eventId is required'),
   body('eventName').notEmpty().withMessage('eventName is required'),
   // eventJsonStamp is fetched server-side from cached socket data, not from frontend
@@ -43,7 +43,7 @@ const validatePlaceBet = [
 const validateGetMyBets = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('status')
     .optional()
@@ -53,12 +53,21 @@ const validateGetMyBets = [
     .optional()
     .isIn(validMarketTypes)
     .withMessage('Invalid marketType'),
+  // Omit both to get today's bets (UTC day); same range as GET /today-bets
+  query('from')
+    .optional()
+    .isISO8601()
+    .withMessage('from must be a valid ISO 8601 date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .withMessage('to must be a valid ISO 8601 date'),
 ];
 
 const validateGetMyProfitLoss = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   // ISO dates, e.g. 2026-02-17 or 2026-02-17T12:00:00Z
   query('from')
@@ -91,7 +100,7 @@ const validateGetMyEventProfitLoss = [
     .withMessage('by must be market or bet'),
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('from')
     .optional()
@@ -185,8 +194,12 @@ const validateCancelMarket = [
 const validateAdminBetList = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
+  query('settlement')
+    .optional()
+    .isIn(['settled', 'unsettled', 'void'])
+    .withMessage('Invalid settlement filter'),
   query('status')
     .optional()
     .isIn(['open', 'settled'])
@@ -199,6 +212,16 @@ const validateAdminBetList = [
     .optional()
     .isMongoId()
     .withMessage('userId must be a valid MongoDB ID'),
+  query('from')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('from must be a valid ISO date'),
+  query('to')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('to must be a valid ISO date'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -216,7 +239,7 @@ const validateAdminUserBetList = [
     .withMessage('userId must be a valid MongoDB ID'),
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('status')
     .optional()
@@ -243,7 +266,7 @@ const validateAdminUserProfitLoss = [
     .withMessage('userId must be a valid MongoDB ID'),
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('from')
     .optional()
@@ -279,7 +302,7 @@ const validateAdminUserEventProfitLoss = [
     .withMessage('by must be market or bet'),
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('from')
     .optional()
@@ -301,7 +324,7 @@ const validateAdminUserEventProfitLoss = [
 const validateAdminHierarchyProfitLossByEvent = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('from')
     .optional()
@@ -323,7 +346,7 @@ const validateAdminHierarchyProfitLossByEvent = [
 const validateAdminHierarchySettledBets = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('eventId')
     .optional()
@@ -367,7 +390,7 @@ const validateAdminHierarchyUserMarketProfitLoss = [
     .withMessage('Invalid marketType'),
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('from')
     .optional()
@@ -385,7 +408,7 @@ const validateAdminHierarchyUserMarketProfitLoss = [
 const validateAdminHierarchyMarketBets = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('eventId')
     .notEmpty()
@@ -426,7 +449,7 @@ const validateAdminHierarchyMarketBets = [
 const validateGetTodayInplayPlacedBets = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('limit')
     .optional()
@@ -441,7 +464,7 @@ const validateMarketAnalysisBySelection = [
     .withMessage('eventId is required'),
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
   query('marketType')
     .optional()
@@ -461,8 +484,47 @@ const validateMarketAnalysisBySelection = [
 const validateUnsettledBetsForSettlement = [
   query('sport')
     .optional()
-    .isIn(['cricket', 'soccer', 'tennis'])
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
+];
+
+const validateAdminUserExposureGameList = [
+  query('userId')
+    .notEmpty()
+    .withMessage('userId is required')
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
+    .withMessage('Invalid sport'),
+];
+
+const validateAdminUserMarketExposureBets = [
+  query('userId')
+    .notEmpty()
+    .withMessage('userId is required')
+    .isMongoId()
+    .withMessage('userId must be a valid MongoDB ID'),
+  query('marketId')
+    .notEmpty()
+    .withMessage('marketId is required'),
+  query('eventId')
+    .optional()
+    .notEmpty()
+    .withMessage('eventId must be non-empty if provided'),
+  query('sport')
+    .optional()
+    .isIn(['cricket', 'soccer', 'tennis', 'casino'])
+    .withMessage('Invalid sport'),
+  query('status')
+    .optional()
+    .isIn(['open', 'settled'])
+    .withMessage('Invalid status'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('limit must be between 1 and 1000'),
 ];
 
 module.exports = {
@@ -482,6 +544,8 @@ module.exports = {
   validateAdminHierarchyMarketBets,
   validateGetTodayInplayPlacedBets,
   validateMarketAnalysisBySelection,
-   validateUnsettledBetsForSettlement,
+  validateAdminUserExposureGameList,
+  validateAdminUserMarketExposureBets,
+  validateUnsettledBetsForSettlement,
 };
 

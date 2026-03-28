@@ -286,6 +286,36 @@ const validateUserStatus = [
     .withMessage('status must be active, suspended, or locked')
 ];
 
+/** PATCH /user/:id/exposure — body after admin password middleware strips adminPassword */
+const validateExposureLimitUpdate = [
+  body('exposureLimit')
+    .notEmpty()
+    .withMessage('exposureLimit is required')
+    .isNumeric()
+    .withMessage('Exposure limit must be a number')
+    .custom((value) => {
+      const num = parseFloat(value);
+      if (num < 0 || num > 9999999999) {
+        throw new Error('Exposure limit must be between 0 and 9999999999 (10 digits)');
+      }
+      if (String(value).length > 10) {
+        throw new Error('Exposure limit cannot exceed 10 digits');
+      }
+      return true;
+    })
+];
+
+/** PATCH /user/:id/password — hierarchy user new password (adminPassword confirmed separately) */
+const validateHierarchyUserNewPassword = [
+  body('newPassword')
+    .notEmpty()
+    .withMessage('newPassword is required')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number')
+];
+
 module.exports = {
   validatePasswordConfirmation,
   validateRegister,
@@ -294,5 +324,7 @@ module.exports = {
   validateUpdateProfile,
   validateUpdateUser,
   validateAdminChangePassword,
-  validateUserStatus
+  validateUserStatus,
+  validateExposureLimitUpdate,
+  validateHierarchyUserNewPassword
 };

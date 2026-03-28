@@ -39,7 +39,7 @@ const validateDeductAmount = [
 
 /**
  * Validation for getting transactions
- * Query: page, limit, fromDate, toDate, action (deposit|withdrawal), transactionType, status
+ * Query: page, limit, optional fromDate, toDate, action (deposit|withdrawal), transactionType, status
  */
 const validateGetTransactions = [
   query('page')

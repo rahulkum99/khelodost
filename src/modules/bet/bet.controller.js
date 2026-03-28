@@ -113,7 +113,7 @@ const getUnsettledBetsForSettlement = async (req, res) => {
     const rows = await betService.getUnsettledBetsForSettlement(req.query);
 
     // Group by sport (cricket / soccer / tennis)
-    const sports = ['cricket', 'soccer', 'tennis'];
+    const sports = ['cricket', 'soccer', 'tennis', 'casino'];
     const grouped = sports.reduce((acc, s) => {
       acc[s] = [];
       return acc;
@@ -381,6 +381,26 @@ const getMarketAnalysisBySelection = async (req, res) => {
   }
 };
 
+const getAdminUserExposureGameList = async (req, res) => {
+  try {
+    const data = await betService.getAdminUserExposureGameList(req.userId, req.user.role, req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({ success: false, message: err.message || 'Failed to fetch user exposure game list' });
+  }
+};
+
+const getAdminUserMarketExposureBets = async (req, res) => {
+  try {
+    const data = await betService.getAdminUserMarketExposureBets(req.userId, req.user.role, req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({ success: false, message: err.message || 'Failed to fetch user market exposure bets' });
+  }
+};
+
 module.exports = {
   handleValidationErrors,
   placeBet,
@@ -401,6 +421,8 @@ module.exports = {
   getAdminHierarchySettledBets,
   getAdminHierarchyMarketBets,
   getAdminHierarchyUserMarketProfitLoss,
+  getAdminUserExposureGameList,
+  getAdminUserMarketExposureBets,
   getLiveMarkets,
   getUnsettledBetsForSettlement,
 };

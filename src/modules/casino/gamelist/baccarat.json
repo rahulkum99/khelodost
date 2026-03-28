@@ -1,22 +1,12 @@
 [
-    {
-        "gameHash": "7e1886a44af41f33e03903df4d96d9f8",
-        "gameName": "baccarat-1-pragmatic",
-        "sheetGameType": "baccarat",
-        "gameImage": "baccarat/baccarat-1-pragmatic.png"
-    },
+    
     {
         "gameHash": "",
         "gameName": "baccarat-lobby-evolution",
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/baccarat-lobby-evolution.png"
     },
-    {
-        "gameHash": "",
-        "gameName": "baccarat-lobby-pragmatic",
-        "sheetGameType": "baccarat",
-        "gameImage": "baccarat/baccarat-lobby-pragmatic.png"
-    },
+   
     {
         "gameHash": "6bfe5f8bc47dd87f38fc38ff837b11a6",
         "gameName": "golden-wealth-baccarat-evolution",
@@ -47,6 +37,7 @@
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/korean-speed-baccarat-b-evolution.png"
     },
+
     {
         "gameHash": "",
         "gameName": "korean-speed-baccaratc-evolution",
@@ -59,12 +50,7 @@
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/lightning-baccarat-evolution.png"
     },
-    {
-        "gameHash": "fc836890aa838e03419a2751af98d0ce",
-        "gameName": "mega-bacarrat-pragmatic",
-        "sheetGameType": "baccarat",
-        "gameImage": "baccarat/mega-bacarrat-pragmatic.png"
-    },
+ 
     {
         "gameHash": "",
         "gameName": "no-commission-speed-baccarat-live",
@@ -77,24 +63,7 @@
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/prosperity-tree-baccarat-evolution.png"
     },
-    {
-        "gameHash": "76463248b7ca723ad49cfad50926c30e",
-        "gameName": "speed-baccarat-2-pragmatic",
-        "sheetGameType": "baccarat",
-        "gameImage": "baccarat/speed-baccarat-2-pragmatic.png"
-    },
-    {
-        "gameHash": "4e6ea2bc5ec46aa9d00fa6e056f8867b",
-        "gameName": "squeeze-baccarat-pragmatic",
-        "sheetGameType": "baccarat",
-        "gameImage": "baccarat/squeeze-baccarat-pragmatic.png"
-    },
-    {
-        "gameHash": "0b51fa9dc81ec7e5fe0905812d634419",
-        "gameName": "turbo-baccarat-pragmatic",
-        "sheetGameType": "baccarat",
-        "gameImage": "baccarat/turbo-baccarat-pragmatic.png"
-    },
+
 
 
 
@@ -104,6 +73,12 @@
         "gameName": "baccarat-2-microgaming",
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/baccarat-2-microgaming.png"
+    },
+    {
+        "gameHash": "65dca82ad615e732f4110ab6e4081134",
+        "gameName": "baccarat-3-microgaming",
+        "sheetGameType": "newgame",
+        "gameImage": "newgame/baccarat-3-microgaming.png"
     },
   
     {
@@ -129,13 +104,9 @@
         "gameName": "baccarat-7-microgaming",
         "sheetGameType": "baccarat",
         "gameImage": "baccarat/baccarat-7-microgaming.png"
-    },
-    {
-        "gameHash": "65dca82ad615e732f4110ab6e4081134",
-        "gameName": "baccarat-3-microgaming",
-        "sheetGameType": "newgame",
-        "gameImage": "newgame/baccarat-3-microgaming.png"
     }
+  
+
 
 
 ]

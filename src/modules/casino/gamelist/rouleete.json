@@ -5,60 +5,24 @@
         "sheetGameType": "rouleete",
         "gameImage": "rouleete/fireball-roullette-live-evolution.png"
     },
-    {
-        "gameHash": "e923a18743405f78737c851afec9c21f",
-        "gameName": "fortune-roulette-pragmatic",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/fortune-roulette-pragmatic.png"
-    },
-    {
-        "gameHash": "",
-        "gameName": "hindi-ez-dealer-roulette (2)",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/hindi-ez-dealer-roulette (2).png"
-    },
-    {
-        "gameHash": "",
-        "gameName": "hindi-ez-dealer-roulette",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/hindi-ez-dealer-roulette.png"
-    },
-    {
-        "gameHash": "a152b2e993cc2e72854f1907e7e7d553",
-        "gameName": "hindi-roulette",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/hindi-roulette.png"
-    },
+
+ 
+ 
     {
         "gameHash": "",
         "gameName": "immersive-roulette-live",
         "sheetGameType": "rouleete",
         "gameImage": "rouleete/immersive-roulette-live.png"
     },
-    {
-        "gameHash": "f2269c8c6428711cecfbcdf33530a90c",
-        "gameName": "lucky6-roulette-pragmatic",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/lucky6-roulette-pragmatic.png"
-    },
-    {
-        "gameHash": "b60df57bbcd472a887a9c9cff2a0e19c",
-        "gameName": "mega-roulette-pragmatic",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/mega-roulette-pragmatic.png"
-    },
+
+  
     {
         "gameHash": "",
         "gameName": "namaste-roulette",
         "sheetGameType": "rouleete",
         "gameImage": "rouleete/namaste-roulette.png"
     },
-    {
-        "gameHash": "d9a2bfc6b6a88dad99f4fb2c9e56a787",
-        "gameName": "powerup-roulette-pragmatic",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/powerup-roulette-pragmatic.png"
-    },
+
     {
         "gameHash": "",
         "gameName": "prestige-auto-roulette",
@@ -71,36 +35,21 @@
         "sheetGameType": "rouleete",
         "gameImage": "rouleete/revolution-roulette.png"
     },
-    {
-        "gameHash": "831d834fbc4f2b343e7cd5fb58eb6300",
-        "gameName": "roulette-lobby-pragmatic",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/roulette-lobby-pragmatic.png"
-    },
+
     {
         "gameHash": "",
         "gameName": "ultimate-roulette",
         "sheetGameType": "rouleete",
         "gameImage": "rouleete/ultimate-roulette.png"
     },
-    {
-        "gameHash": "491e8650612cfd6e00c86c976da5f3ae",
-        "gameName": "vip-auto-roulette-pragmatic",
-        "sheetGameType": "rouleete",
-        "gameImage": "rouleete/vip-auto-roulette-pragmatic.png"
-    },
+
     {
         "gameHash": "0dde1e2bb4c1843ec93370cfbecaa4e0",
         "gameName": "speed-roulette-microgaming",
         "sheetGameType": "newgame",
         "gameImage": "newgame/speed-roulette-microgaming.png"
     },
-    {
-        "gameHash": "25b0bb7276fa2893a4abefdea373c8d7",
-        "gameName": "turkish-roulette-microgaming",
-        "sheetGameType": "newgame",
-        "gameImage": "newgame/turkish-roulette-microgaming.png"
-    },
+
     {
         "gameHash": "b1fe7a2af37aa8cf5a2e20787a5e08f5",
         "gameName": "fashon-tv-xbeat-roulette-microgaming",

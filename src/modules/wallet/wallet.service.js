@@ -288,9 +288,11 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
   // Check receiver permissions
   const performerRoleLevel = ROLE_HIERARCHY[performer.role] || 0;
   const toUserRoleLevel = ROLE_HIERARCHY[toUser.role] || 0;
+  const isReceivingInOwnWallet = toUserId.toString() === performedBy.toString();
 
   // Super Admin can transfer to anyone
-  if (performer.role !== 'super_admin') {
+  // Receiving into own wallet (e.g. admin withdraw from user) skips "lower role only" — from-wallet rules still apply
+  if (performer.role !== 'super_admin' && !isReceivingInOwnWallet) {
     // Check if performer has higher role than receiver
     if (performerRoleLevel <= toUserRoleLevel) {
       throw new Error('You can only transfer to users with lower role level');
@@ -414,6 +416,7 @@ const BETTING_METADATA_TYPES = ['bet_exposure_lock', 'bet_exposure_unlock', 'bet
 /**
  * Get wallet transactions
  * When excludeBetting is true, only deposit/withdrawal (no betting) transactions are returned.
+ * Date filters (fromDate, toDate, startDate, endDate) are optional; omit them to list all matching rows (paginated).
  */
 const getTransactions = async (userId, query = {}) => {
   const {
@@ -429,7 +432,9 @@ const getTransactions = async (userId, query = {}) => {
     excludeBetting
   } = query;
 
-  const skip = (page - 1) * limit;
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+  const safePage = Math.max(1, Number(page) || 1);
+  const skip = (safePage - 1) * safeLimit;
 
   // Build filter
   const filter = { user: userId };
@@ -470,17 +475,17 @@ const getTransactions = async (userId, query = {}) => {
     .populate('performedBy', 'username name role')
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(safeLimit);
 
   const total = await WalletTransaction.countDocuments(filter);
 
   return {
     transactions,
     pagination: {
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / safeLimit) || 0
     }
   };
 };
@@ -657,7 +662,7 @@ const BULK_ACTION = { DEPOSIT: 'deposit', WITHDRAW: 'withdraw' };
 
 /**
  * Bulk deposit and withdraw in one request. Each entry: { userId, amount, action: 'deposit'|'withdraw', description? }
- * deposit = transfer from admin to user; withdraw = deduct from user.
+ * deposit = transfer from admin to user; withdraw = transfer from user to admin (same as hierarchy withdraw).
  * Returns { succeeded, failed, data: [ { _id, username, balance, exposer }, ... ] } for all userIds in entries.
  */
 const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
@@ -700,8 +705,9 @@ const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
           action: BULK_ACTION.DEPOSIT
         });
       } else {
-        const result = await deductAmount(
+        const result = await transferAmount(
           userId,
+          performedBy,
           Number(amount),
           performedBy,
           description || 'Bulk withdrawal by admin',
@@ -710,7 +716,7 @@ const bulkDepositAndWithdraw = async (performedBy, entries, req = null) => {
         succeeded.push({
           userId,
           amount: Number(amount),
-          balanceAfter: result.balanceAfter,
+          balanceAfter: result.fromBalanceAfter,
           description: description || null,
           action: BULK_ACTION.WITHDRAW
         });
@@ -772,12 +778,13 @@ const depositToHierarchyUser = async (adminUserId, targetUserId, amount, descrip
 
 /**
  * Withdraw from a user in the admin's hierarchy (any descendant).
- * Deducts from target user's wallet.
+ * Transfers from target user's wallet to the admin's wallet (same funds flow as bulk withdraw).
  * Super Admin can withdraw from anyone; others only from users in their tree.
  */
 const withdrawFromHierarchyUser = async (adminUserId, targetUserId, amount, description, req = null) => {
-  return deductAmount(
+  return transferAmount(
     targetUserId,
+    adminUserId,
     amount,
     adminUserId,
     description || 'Hierarchy withdrawal',

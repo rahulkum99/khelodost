@@ -22,9 +22,9 @@ module.exports = (io) => {
     'match1',
     'fancy',
     'fancy1',
-    'fancy2',
-    'oddeven',
-    'meter',
+    // 'fancy2',
+    // 'oddeven',
+    // 'meter',
   ]);
 
   const filterCricketMarketsByGtype = (data) => {
