@@ -48,6 +48,8 @@ router.post(
 // - Stats/update/delete: restricted to Admin and above
 router.get('/', requireMinRole(ROLES.AGENT), userController.getAllUsers);
 router.get('/hierarchy', requireMinRole(ROLES.AGENT), userController.getUserHierarchy);
+// Admin downline user list by adminId
+router.get('/by-admin/:adminId/users', requireMinRole(ROLES.AGENT), userController.getUsersByAdminId);
 router.get('/stats', requireMinRole(ROLES.ADMIN), userController.getUserStats);
 
 // Hierarchy: edit exposure (Agent+), requires admin password

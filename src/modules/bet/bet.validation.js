@@ -259,7 +259,7 @@ const validateAdminUserBetList = [
     .withMessage('page must be a positive integer'),
 ];
 
-// Admin: get user profit/loss grouped by event
+// Admin: get user profit/loss grouped by event (omit from+to for today's settled bets, UTC)
 const validateAdminUserProfitLoss = [
   query('userId')
     .isMongoId()

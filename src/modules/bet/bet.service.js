@@ -636,6 +636,8 @@ const getTodayInplayPlacedBets = async (adminUserId, adminRole, query = {}) => {
 
   const match = {
     userId: { $in: allowedUserIds },
+    // Only count unsettled/open bets for the market analysis.
+    status: Bet.BET_STATUS.OPEN,
     createdAt: {
       $gte: today,
       $lt: tomorrow,
@@ -737,10 +739,10 @@ const getUserBets = async (userId, query = {}) => {
 /**
  * User P/L grouped by event (settled bets only)
  * Returns: [{ sport, eventId, eventName, profitLoss, result, display, bets, lastSettledAt }]
+ * If both from and to are omitted, defaults to today (UTC), same window as GET /my-bets.
  */
 const getUserProfitLossByEvent = async (userId, query = {}) => {
   const { sport, from, to, limit = 200 } = query;
-  if (!from && !to) return [];
   const limitNum = Math.min(Number(limit) || 200, 500);
 
   const match = {
@@ -750,15 +752,24 @@ const getUserProfitLossByEvent = async (userId, query = {}) => {
 
   if (sport) match.sport = sport;
 
-  const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
-  const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+  const hasFrom = from != null && from !== '';
+  const hasTo = to != null && to !== '';
 
-  if (fromDate || toDate) {
-    match.settledAt = {};
-    if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
-    if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
-    // If both were invalid, remove filter
-    if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+  if (!hasFrom && !hasTo) {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    match.settledAt = { $gte: todayStart, $lt: tomorrowStart };
+  } else {
+    const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
+    const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
+    if (fromDate || toDate) {
+      match.settledAt = {};
+      if (fromDate && !Number.isNaN(fromDate.getTime())) match.settledAt.$gte = fromDate;
+      if (toDate && !Number.isNaN(toDate.getTime())) match.settledAt.$lte = toDate;
+      if (Object.keys(match.settledAt).length === 0) delete match.settledAt;
+    }
   }
 
   const matchOddsLike = [
@@ -2260,13 +2271,15 @@ const getAdminHierarchySettledBets = async (adminUserId, adminRole, query = {}) 
 
 /**
  * Admin: Profit/loss market analysis by selectionId within an event.
- * Groups all bets (open + settled) by selectionId/selectionName and computes:
+ * Groups bets by selectionId/selectionName and computes:
  * - totalBets, totalStake, totalExposure
  * - profitLoss (settled bets only, computed via netWinAmount)
  * Hierarchy-scoped: only users under the admin.
+ *
+ * This endpoint returns only unsettled/open bets.
  */
 const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) => {
-  const { eventId, sport, marketType, status, limit = 200 } = query;
+  const { eventId, sport, marketType, limit = 200 } = query;
   const limitNum = Math.min(Number(limit) || 200, 500);
 
   if (!eventId) {
@@ -2292,7 +2305,8 @@ const getMarketAnalysisBySelection = async (adminUserId, adminRole, query = {}) 
 
   if (sport) match.sport = sport;
   if (marketType) match.marketType = marketType;
-  if (status) match.status = status;
+  // This endpoint is for "unsettled bets only".
+  match.status = Bet.BET_STATUS.OPEN;
 
   const matchOddsLike = matchOddsLikeForPl();
 

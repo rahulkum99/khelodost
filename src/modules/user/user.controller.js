@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { User, ROLES, ROLE_HIERARCHY } = require('../../models/User');
 const Wallet = require('../../models/Wallet');
 const authService = require('../auth/auth.service');
@@ -92,11 +93,11 @@ const getAllUsers = async (req, res) => {
       ];
     }
 
-    // Restrict visibility based on hierarchy/creator:
-    // - Super Admin can see all users
-    // - Other roles can only see users they directly created
-    if (req.user && req.user.role !== ROLES.SUPER_ADMIN) {
-      filter.createdBy = req.userId;
+    // Restrict visibility to users added under this admin/agent hierarchy.
+    // Includes super admin as well (so they don't necessarily need global access in multi-root setups).
+    if (req.user) {
+      const descendantUserIds = await getDescendantUserIds(req.userId);
+      filter._id = { $in: descendantUserIds };
     }
 
     const userDocs = await User.find(filter)
@@ -116,6 +117,107 @@ const getAllUsers = async (req, res) => {
       const user = doc.toObject();
       const wallet = walletMap.get(user._id.toString());
 
+      return {
+        ...user,
+        balance: wallet ? wallet.balance : 0,
+        exposer: wallet ? wallet.lockedBalance : 0
+      };
+    });
+
+    const total = await User.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch users'
+    });
+  }
+};
+
+/**
+ * Admin downline user list by adminId.
+ * Returns users created under the provided admin (hierarchy descendants), excluding the admin itself.
+ */
+const getUsersByAdminId = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const { role, isActive, search } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(adminId)) {
+      return res.status(400).json({ success: false, message: 'Invalid adminId' });
+    }
+
+    // Permission: caller can only query admins inside their own hierarchy.
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      const allowedAdminRoots = await getDescendantUserIds(req.userId);
+      const allowedSet = new Set(allowedAdminRoots.map((oid) => oid.toString()));
+      const isSelf = String(req.userId) === String(adminId);
+      if (!isSelf && !allowedSet.has(String(adminId))) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only view users for admins within your hierarchy'
+        });
+      }
+    }
+
+    const descendantUserIds = await getDescendantUserIds(adminId);
+    const filter = { _id: { $in: descendantUserIds } };
+
+    // Optional filters (same shape as GET /)
+    if (role) {
+      const roleValues = Array.isArray(role)
+        ? role
+        : String(role)
+            .split(',')
+            .map((r) => r.trim())
+            .filter(Boolean);
+
+      if (roleValues.length === 1) filter.role = roleValues[0];
+      else if (roleValues.length > 1) filter.role = { $in: roleValues };
+    }
+
+    if (isActive !== undefined) filter.isActive = isActive === 'true';
+    if (search) {
+      filter.$or = [
+        { username: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { mobileNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const userDocs = await User.find(filter)
+      .select('-password -refreshToken')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const userIds = userDocs.map((u) => u._id);
+    const wallets = await Wallet.find({ user: { $in: userIds } });
+    const walletMap = new Map(wallets.map((w) => [w.user.toString(), w]));
+
+    const users = userDocs.map((doc) => {
+      const user = doc.toObject();
+      const wallet = walletMap.get(user._id.toString());
       return {
         ...user,
         balance: wallet ? wallet.balance : 0,
@@ -681,6 +783,7 @@ const changeHierarchyUserPassword = async (req, res) => {
 module.exports = {
   getCricketMatches,
   getAllUsers,
+  getUsersByAdminId,
   getUserById,
   createUser,
   updateUser,

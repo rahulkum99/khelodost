@@ -2,7 +2,8 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-in-production';
-const JWT_EXPIRE = process.env.JWT_EXPIRE || '30m';
+// Access token TTL; override with JWT_EXPIRE (e.g. 1d, 24h, 3600)
+const JWT_EXPIRE = process.env.JWT_EXPIRE || '1d';
 const JWT_REFRESH_EXPIRE = process.env.JWT_REFRESH_EXPIRE || '7d';
 
 /**
