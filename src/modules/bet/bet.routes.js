@@ -27,6 +27,22 @@ router.post('/cancel',
   betController.cancelMarket
 );
 
+// Delete single OPEN bet by Mongo bet _id (server-to-server)
+router.post('/remove-by-uid',
+  settlementInternalAuth,
+  ...betValidation.validateRemoveBetByUid,
+  betController.handleValidationErrors,
+  betController.removeBetByUid
+);
+
+// Revert fancy settlement (server-to-server)
+router.post('/revert-fancy',
+  settlementInternalAuth,
+  ...betValidation.validateRevertFancySettlement,
+  betController.handleValidationErrors,
+  betController.revertFancySettlement
+);
+
 // Unsettled bet list for settlement (server-to-server)
 router.get(
   '/settlement/unsettled-bets',

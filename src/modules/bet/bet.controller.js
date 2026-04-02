@@ -177,6 +177,45 @@ const cancelMarket = async (req, res) => {
   }
 };
 
+const removeBetByUid = async (req, res) => {
+  try {
+    const result = await betService.removeBetByUid(req.body, req);
+    res.json({
+      success: true,
+      message: 'Bet deleted successfully',
+      data: result,
+    });
+  } catch (err) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'Failed to remove bet',
+    });
+  }
+};
+
+const revertFancySettlement = async (req, res) => {
+  try {
+    const payload = {
+      marketType: Bet.MARKET_TYPES.FANCY,
+      marketId: req.body.marketId,
+      eventId: req.body.eventId,
+      selectionId: req.body.selectionId,
+    };
+
+    const result = await betService.revertMarketSettlement(payload, req);
+    res.json({
+      success: true,
+      message: 'Fancy settlement reverted successfully',
+      data: result,
+    });
+  } catch (err) {
+    res.status(err.status || 400).json({
+      success: false,
+      message: err.message || 'Failed to revert fancy settlement',
+    });
+  }
+};
+
 const getAdminBetList = async (req, res) => {
   try {
     const data = await betService.getAdminBetList(req.userId, req.user.role, req.query);
@@ -411,6 +450,8 @@ module.exports = {
   getMyEventProfitLoss,
   settleMarket,
   cancelMarket,
+  removeBetByUid,
+  revertFancySettlement,
   getTodayInplayPlacedBets,
   getMarketAnalysisBySelection,
   getAdminBetList,

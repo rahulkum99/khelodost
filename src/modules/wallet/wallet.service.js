@@ -411,7 +411,12 @@ const transferAmount = async (fromUserId, toUserId, amount, performedBy, descrip
 };
 
 /** Metadata types used for betting; exclude these when showing only deposit/withdrawal */
-const BETTING_METADATA_TYPES = ['bet_exposure_lock', 'bet_exposure_unlock', 'bet_settlement'];
+const BETTING_METADATA_TYPES = [
+  'bet_exposure_lock',
+  'bet_exposure_unlock',
+  'bet_settlement',
+  'bet_locked_balance_risk_sync', // place bet / void / delete — moves funds balance ↔ locked, not a deposit
+];
 
 /**
  * Get wallet transactions

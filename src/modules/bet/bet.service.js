@@ -4,6 +4,7 @@ const Wallet = require('../../models/Wallet');
 const WalletTransaction = require('../../models/WalletTransaction');
 const { User, ROLES, ROLE_HIERARCHY } = require('../../models/User');
 const { withTransaction, getSession, commitSession, abortSession } = require('../../utils/transaction.helper');
+const { withUserBetLock } = require('../../utils/userBetLock.helper');
 
 // Event services - cached data from socket polling
 const { getLatestCricketEventData } = require('../../services/cricketevent.service');
@@ -23,6 +24,15 @@ const sessionOpts = (session) => {
 // Helper: decimal-safe add/sub using integers (paise)
 const toInt = (amount) => Math.round(amount * 100);
 const fromInt = (val) => Math.round(val) / 100;
+
+/** Normalize user id for Wallet/Bet queries (avoids string/ObjectId mismatch). */
+const toObjectId = (id) => {
+  if (!id) return id;
+  if (id instanceof mongoose.Types.ObjectId) return id;
+  const s = String(id);
+  if (!mongoose.Types.ObjectId.isValid(s)) return id;
+  return new mongoose.Types.ObjectId(s);
+};
 
 // Helper: float comparison with tolerance
 const FLOAT_EPSILON = 0.0001;
@@ -104,6 +114,267 @@ const calculateExposure = ({ marketType, betType, stake, odds, rate }) => {
   }
 };
 
+// Market types where selections are treated as mutually exclusive outcomes.
+// For these, wallet.lockedBalance should represent worst-case net loss across outcomes,
+// not the sum of individual bet liabilities.
+const MATCH_ODDS_LIKE_MARKET_TYPES = new Set([
+  Bet.MARKET_TYPES.MATCH_ODDS,
+  Bet.MARKET_TYPES.TIED_MATCH,
+  Bet.MARKET_TYPES.TOS_MARKET,
+  Bet.MARKET_TYPES.OVER_BY_OVER,
+  Bet.MARKET_TYPES.ODDEVEN,
+]);
+
+/**
+ * Compute worst-case (most negative) net P/L, in paise, across all possible winners
+ * for match-odds style bets.
+ *
+ * - Uses the SAME settlement P/L rules as settleMatchOdds/settleTOSMarket helpers.
+ */
+const computeMatchOddsNetLiabilityPaiseInt = (bets, outcomeSelectionIdsOverride = null) => {
+  if (!bets || bets.length === 0) return 0;
+
+  const outcomeSelectionIds = Array.isArray(outcomeSelectionIdsOverride) && outcomeSelectionIdsOverride.length
+    ? Array.from(new Set(outcomeSelectionIdsOverride.map((x) => String(x))))
+    : Array.from(new Set(bets.map((b) => String(b.selectionId))));
+
+  // IMPORTANT:
+  // If user has bets on >= 2 selections, we simulate only those selections as possible winners.
+  // This matches your requirement that there is no 3rd outcome for tos_market/fancy1.
+  // If user has bets on exactly 1 selection, we must also consider the opposite side winning,
+  // otherwise first bet would incorrectly lock 0.
+  const winnerScenarios =
+    outcomeSelectionIds.length === 1
+      ? [outcomeSelectionIds[0], '__OTHER__']
+      : outcomeSelectionIds;
+
+  let minNetPaise = null;
+  for (const winnerSelectionId of winnerScenarios) {
+    let netPaise = 0;
+
+    for (const bet of bets) {
+      const isWinner =
+        winnerSelectionId === '__OTHER__'
+          ? false
+          : (winnerSelectionId !== null && String(bet.selectionId) === String(winnerSelectionId));
+
+      if (bet.betType === 'back') {
+        if (isWinner) {
+          // profit = (odds - 1) * stake
+          netPaise += toInt((Number(bet.odds || 1) - 1) * Number(bet.stake));
+        } else {
+          // loss = -exposure (for back exposure == stake)
+          netPaise += -toInt(bet.exposure || bet.stake);
+        }
+      } else if (bet.betType === 'lay') {
+        if (isWinner) {
+          // loss = -exposure
+          netPaise += -toInt(bet.exposure || bet.stake);
+        } else {
+          // profit = stake
+          netPaise += toInt(bet.stake);
+        }
+      }
+    }
+
+    minNetPaise = minNetPaise === null ? netPaise : Math.min(minNetPaise, netPaise);
+  }
+
+  return minNetPaise < 0 ? -minNetPaise : 0;
+};
+
+// Extract all selectionIds under a market from a provider eventJsonStamp snapshot.
+const extractMarketSelectionIdsFromStamp = ({ eventJsonStamp, marketId }) => {
+  if (!eventJsonStamp || !marketId) return [];
+  const marketsArray = Array.isArray(eventJsonStamp)
+    ? eventJsonStamp
+    : (Array.isArray(eventJsonStamp.data) ? eventJsonStamp.data : []);
+  const matchedMarket = Array.isArray(marketsArray)
+    ? marketsArray.find((m) => String(m.mid) === String(marketId))
+    : null;
+  const sections = Array.isArray(matchedMarket?.section) ? matchedMarket.section : [];
+  return sections
+    .map((s) => s?.sid)
+    .filter((sid) => sid !== undefined && sid !== null && String(sid).trim() !== '')
+    .map((sid) => String(sid));
+};
+
+/**
+ * Compute worst-case net loss (paise) for BOOKMAKERS_FANCY open bets.
+ * Uses the same P/L rules as settleBookmakersFancy:
+ * - betType 'yes': win => +stake*rate/100, lose => -exposure
+ * - betType 'no' : win => 0, lose => -exposure
+ */
+const computeBookmakersFancyNetLiabilityPaiseInt = (bets) => {
+  if (!bets || bets.length === 0) return 0;
+
+  const outcomeSelectionIds = Array.from(new Set(bets.map((b) => String(b.selectionId))));
+  const winnerScenarios = outcomeSelectionIds;
+
+  let minNetPaise = null;
+  for (const winnerSelectionId of winnerScenarios) {
+    let netPaise = 0;
+
+    for (const bet of bets) {
+      const isWinner = winnerSelectionId !== null && String(bet.selectionId) === String(winnerSelectionId);
+      const exposurePaise = toInt(bet.exposure || bet.stake || 0);
+
+      if (bet.betType === 'yes') {
+        if (isWinner) {
+          // profit = stake*rate/100
+          netPaise += toInt((Number(bet.stake) * Number(bet.rate || 0)) / 100);
+        } else {
+          netPaise += -exposurePaise;
+        }
+      } else if (bet.betType === 'no') {
+        if (!isWinner) {
+          // win => 0
+          netPaise += 0;
+        } else {
+          netPaise += -exposurePaise;
+        }
+      }
+    }
+
+    minNetPaise = minNetPaise === null ? netPaise : Math.min(minNetPaise, netPaise);
+  }
+
+  return minNetPaise < 0 ? -minNetPaise : 0;
+};
+
+/**
+ * Total locked exposure (paise) from bet rows (same shape as OPEN bet lean docs).
+ * Optionally include not-yet-saved rows (e.g. prospective place-bet) so limits run before insert.
+ */
+const computeLockedPaiseFromBetRows = (rows) => {
+  const groups = new Map();
+  for (const bet of rows) {
+    const key = `${bet.sport}|${bet.eventId}|${bet.marketId}|${bet.marketType}`;
+    const existing = groups.get(key);
+    if (existing) existing.bets.push(bet);
+    else groups.set(key, { marketType: bet.marketType, bets: [bet] });
+  }
+
+  let totalLockedPaise = 0;
+  for (const { marketType, bets } of groups.values()) {
+    if (MATCH_ODDS_LIKE_MARKET_TYPES.has(marketType)) {
+      const outcomeIds = bets.map((b) => String(b.selectionId));
+      totalLockedPaise += computeMatchOddsNetLiabilityPaiseInt(bets, outcomeIds);
+    } else if (marketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
+      totalLockedPaise += computeBookmakersFancyNetLiabilityPaiseInt(bets);
+    } else {
+      totalLockedPaise += bets.reduce((acc, b) => acc + toInt(b.exposure || 0), 0);
+    }
+  }
+
+  return totalLockedPaise;
+};
+
+/**
+ * Compute wallet.lockedBalance (as paise integer) from ALL OPEN bets for one user.
+ * For match-odds style markets, uses net worst-case loss per market (mutually exclusive).
+ * For other market types, falls back to SUM of individual bet exposure.
+ */
+const computeUserLockedBalancePaiseInt = async ({ userId, session, extraBets = [] }) => {
+  const uid = toObjectId(userId);
+  const openBets = await withSession(
+    Bet.find({
+      userId: uid,
+      status: Bet.BET_STATUS.OPEN,
+    }).select('sport eventId marketId marketType selectionId betType stake odds exposure rate eventJsonStamp'),
+    session
+  ).exec();
+
+  const rows = extraBets.length ? [...openBets, ...extraBets] : openBets;
+  return computeLockedPaiseFromBetRows(rows);
+};
+
+/**
+ * Sync wallet.balance + wallet.lockedBalance to match OPEN bets risk definition.
+ * netWinAmountPaiseInt is a change to wallet total (balance + lockedBalance) due to settlement/cancel.
+ */
+const syncWalletToOpenBetsRisk = async ({
+  session,
+  userId,
+  netWinAmountPaiseInt = 0,
+  exposureLimitPaiseInt = null,
+  description,
+  req,
+  requireWalletAvailable = true,
+}) => {
+  const wallet = await withSession(Wallet.findOne({ user: toObjectId(userId) }), session).exec();
+  if (!wallet) throw new Error('Wallet not found');
+  if (requireWalletAvailable && !wallet.isAvailable()) {
+    throw new Error(`Wallet is ${wallet.isLocked ? 'locked' : 'inactive'}. ${wallet.lockedReason || ''}`);
+  }
+
+  const balanceBeforePaise = toInt(wallet.balance);
+  const lockedBeforePaise = toInt(wallet.lockedBalance);
+  const totalBeforePaise = balanceBeforePaise + lockedBeforePaise;
+
+  const lockedAfterPaise = await computeUserLockedBalancePaiseInt({ userId, session });
+  if (
+    exposureLimitPaiseInt != null &&
+    Number.isFinite(exposureLimitPaiseInt) &&
+    lockedAfterPaise > exposureLimitPaiseInt
+  ) {
+    throw betError(
+      'EXPOSURE_LIMIT_EXCEEDED',
+      `Exposure limit exceeded. Limit: ${fromInt(exposureLimitPaiseInt)}, current exposure: ${fromInt(lockedAfterPaise)}.`,
+      400
+    );
+  }
+
+  const totalAfterPaise = totalBeforePaise + netWinAmountPaiseInt;
+  const balanceAfterPaise = totalAfterPaise - lockedAfterPaise;
+  if (balanceAfterPaise < 0) {
+    throw new Error('Insufficient wallet balance to lock exposure');
+  }
+
+  const balanceAfter = fromInt(balanceAfterPaise);
+  const lockedAfter = fromInt(lockedAfterPaise);
+
+  const deltaPaise = balanceAfterPaise - balanceBeforePaise;
+
+  wallet.balance = balanceAfter;
+  wallet.lockedBalance = lockedAfter;
+  wallet.lastTransactionAt = new Date();
+  await wallet.save(sessionOpts(session));
+
+  if (deltaPaise !== 0) {
+    const isCredit = deltaPaise > 0;
+    await WalletTransaction.create(
+      [
+        {
+          wallet: wallet._id,
+          user: toObjectId(userId),
+          transactionType: isCredit
+            ? WalletTransaction.TRANSACTION_TYPES.CREDIT
+            : WalletTransaction.TRANSACTION_TYPES.DEBIT,
+          amount: fromInt(Math.abs(deltaPaise)),
+          balanceBefore: fromInt(balanceBeforePaise),
+          balanceAfter,
+          currency: wallet.currency,
+          status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
+          description: description || 'Wallet risk sync',
+          performedBy: toObjectId(userId),
+          metadata: {
+            type: 'bet_locked_balance_risk_sync',
+            netWinAmountPaise: netWinAmountPaiseInt,
+            lockedBeforePaise: lockedBeforePaise,
+            lockedAfterPaise,
+          },
+          ipAddress: req ? req.ip : null,
+          userAgent: req ? req.get('user-agent') : null,
+        },
+      ],
+      sessionOpts(session)
+    );
+  }
+
+  return { wallet, lockedAfter, balanceAfter };
+};
+
 /**
  * Lock exposure in user's wallet inside a transaction
  */
@@ -112,7 +383,7 @@ const lockExposure = async ({ session, userId, exposure, description, req }) => 
     throw new Error('Exposure must be positive');
   }
 
-  const wallet = await withSession(Wallet.findOne({ user: userId }), session).exec();
+  const wallet = await withSession(Wallet.findOne({ user: toObjectId(userId) }), session).exec();
   if (!wallet) {
     throw new Error('Wallet not found');
   }
@@ -142,7 +413,7 @@ const lockExposure = async ({ session, userId, exposure, description, req }) => 
     [
       {
         wallet: wallet._id,
-        user: userId,
+        user: toObjectId(userId),
         transactionType: WalletTransaction.TRANSACTION_TYPES.DEBIT,
         amount: exposure,
         balanceBefore,
@@ -150,7 +421,7 @@ const lockExposure = async ({ session, userId, exposure, description, req }) => 
         currency: wallet.currency,
         status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
         description: description || 'Exposure locked for bet',
-        performedBy: userId,
+        performedBy: toObjectId(userId),
         metadata: {
           type: 'bet_exposure_lock',
         },
@@ -175,7 +446,7 @@ const settleExposure = async ({
   description,
   req,
 }) => {
-  const wallet = await withSession(Wallet.findOne({ user: userId }), session).exec();
+  const wallet = await withSession(Wallet.findOne({ user: toObjectId(userId) }), session).exec();
   if (!wallet) {
     throw new Error('Wallet not found');
   }
@@ -211,7 +482,7 @@ const settleExposure = async ({
   // 1) Unlock exposure only (ledger matches wallet math; do not apply netWin twice)
   txs.push({
     wallet: wallet._id,
-    user: userId,
+    user: toObjectId(userId),
     transactionType: WalletTransaction.TRANSACTION_TYPES.CREDIT,
     amount: exposure,
     balanceBefore: balanceBeforeStart,
@@ -219,7 +490,7 @@ const settleExposure = async ({
     currency: wallet.currency,
     status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
     description: `${baseDesc} — exposure returned`,
-    performedBy: userId,
+    performedBy: toObjectId(userId),
     metadata: {
       type: 'bet_exposure_unlock',
     },
@@ -232,7 +503,7 @@ const settleExposure = async ({
     const isWin = netWinInt > 0;
     txs.push({
       wallet: wallet._id,
-      user: userId,
+      user: toObjectId(userId),
       transactionType: isWin
         ? WalletTransaction.TRANSACTION_TYPES.CREDIT
         : WalletTransaction.TRANSACTION_TYPES.DEBIT,
@@ -242,7 +513,7 @@ const settleExposure = async ({
       currency: wallet.currency,
       status: WalletTransaction.TRANSACTION_STATUS.COMPLETED,
       description: isWin ? `${baseDesc} — win` : `${baseDesc} — loss`,
-      performedBy: userId,
+      performedBy: toObjectId(userId),
       metadata: {
         type: 'bet_settlement',
       },
@@ -277,7 +548,12 @@ const settleExposure = async ({
  */
 const placeBet = async (userId, payload, req) => {
   console.log('placeBet payload', payload);
-  return await withTransaction(async (session) => {
+  const lockUid = toObjectId(userId);
+  return await withUserBetLock(
+    lockUid,
+    async () =>
+      withTransaction(async (session) => {
+        const uid = lockUid;
     const {
       sport,
       eventId,
@@ -412,8 +688,8 @@ const placeBet = async (userId, payload, req) => {
     });
 
     const [userForLimit, walletForLimit] = await Promise.all([
-      User.findById(userId).select('exposureLimit').session(session).lean(),
-      Wallet.findOne({ user: userId }).session(session),
+      withSession(User.findById(uid).select('exposureLimit'), session).lean().exec(),
+      withSession(Wallet.findOne({ user: uid }), session).exec(),
     ]);
     if (!userForLimit) {
       throw betError('USER_NOT_FOUND', 'User not found', 404);
@@ -421,29 +697,64 @@ const placeBet = async (userId, payload, req) => {
     if (!walletForLimit) {
       throw betError('WALLET_NOT_FOUND', 'Wallet not found', 404);
     }
-    const exposureLimit = Number(userForLimit.exposureLimit);
-    const currentLocked = Number(walletForLimit.lockedBalance) || 0;
-    const projectedTotal = currentLocked + exposure;
-    if (toInt(projectedTotal) > toInt(exposureLimit)) {
+    if (!walletForLimit.isAvailable()) {
       throw betError(
-        'EXPOSURE_LIMIT_EXCEEDED',
-        `Exposure limit exceeded. Limit: ${exposureLimit.toFixed(2)}, current exposure: ${currentLocked.toFixed(2)}, this bet: ${exposure.toFixed(2)}.`,
+        'WALLET_UNAVAILABLE',
+        `Wallet is ${walletForLimit.isLocked ? 'locked' : 'inactive'}. ${walletForLimit.lockedReason || ''}`.trim(),
         400
       );
     }
 
-    await lockExposure({
-      session,
-      userId,
-      exposure,
-      description: `Exposure locked for ${effectiveMarketType} bet`,
-      req,
-    });
+    // Insufficient funds / exposure is enforced in syncWalletToOpenBetsRisk using
+    // total (balance + locked) vs recomputed locked from all OPEN bets (correct for hedging).
 
-    const bet = await Bet.create(
+    const rawExposureLimit = userForLimit.exposureLimit;
+    const exposureLimitPaiseInt =
+      rawExposureLimit != null && Number.isFinite(Number(rawExposureLimit))
+        ? toInt(Number(rawExposureLimit))
+        : null;
+
+    // Enforce exposure limit and total funds *before* insert so standalone Mongo (no txn)
+    // cannot leave an OPEN bet when syncWalletToOpenBetsRisk throws afterward.
+    const prospectiveBet = {
+      sport,
+      eventId,
+      marketId,
+      marketType: effectiveMarketType,
+      selectionId,
+      betType,
+      stake,
+      odds: odds || null,
+      rate: effectiveRate || null,
+      exposure,
+      eventJsonStamp,
+    };
+    const lockedIfPlaced = await computeUserLockedBalancePaiseInt({
+      userId: uid,
+      session,
+      extraBets: [prospectiveBet],
+    });
+    if (
+      exposureLimitPaiseInt != null &&
+      Number.isFinite(exposureLimitPaiseInt) &&
+      lockedIfPlaced > exposureLimitPaiseInt
+    ) {
+      throw betError(
+        'EXPOSURE_LIMIT_EXCEEDED',
+        `Exposure limit exceeded. Limit: ${fromInt(exposureLimitPaiseInt)}, current exposure: ${fromInt(lockedIfPlaced)}.`,
+        400
+      );
+    }
+    const totalBeforePaise =
+      toInt(Number(walletForLimit.balance || 0)) + toInt(Number(walletForLimit.lockedBalance || 0));
+    if (totalBeforePaise - lockedIfPlaced < 0) {
+      throw betError('INSUFFICIENT_WALLET_BALANCE', 'Insufficient wallet balance to place bet', 400);
+    }
+
+        const bet = await Bet.create(
       [
         {
-          userId,
+          userId: uid,
           sport,
           eventId,
           eventName,
@@ -469,8 +780,28 @@ const placeBet = async (userId, payload, req) => {
       sessionOpts(session)
     );
 
-    return bet[0];
-  });
+        const { wallet: syncedWallet } = await syncWalletToOpenBetsRisk({
+      session,
+      userId: uid,
+      netWinAmountPaiseInt: 0,
+      exposureLimitPaiseInt,
+      description: `Exposure risk sync for ${effectiveMarketType} bet`,
+      req,
+        });
+
+        const placedBet = bet[0].toObject();
+        return {
+          ...placedBet,
+          wallet: {
+            balance: syncedWallet.balance,
+            lockedBalance: syncedWallet.lockedBalance,
+            exposure: syncedWallet.lockedBalance,
+            exposer: syncedWallet.lockedBalance,
+          },
+        };
+      }),
+    { ttlMs: 8000, waitMs: 5000 }
+  );
 };
 
 /**
@@ -1193,6 +1524,7 @@ const settleMatchOdds = async ({ session, marketId, eventId, winnerSelectionId, 
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     const isWinner = bet.selectionId === String(winnerSelectionId);
     let netWinAmount = 0;
@@ -1219,19 +1551,19 @@ const settleMatchOdds = async ({ session, marketId, eventId, winnerSelectionId, 
       }
     }
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'MATCH_ODDS settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 const settleTOSMarket = async ({ session, marketId, eventId, winnerSelectionId, req }) => {
@@ -1244,6 +1576,7 @@ const settleTOSMarket = async ({ session, marketId, eventId, winnerSelectionId, 
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     const isWinner = bet.selectionId === String(winnerSelectionId);
     let netWinAmount = 0;
@@ -1270,19 +1603,19 @@ const settleTOSMarket = async ({ session, marketId, eventId, winnerSelectionId, 
       }
     }
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'TOS_MARKET settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 const settleBookmakersFancy = async ({ session, marketId, eventId, winnerSelectionId, req }) => {
@@ -1295,6 +1628,7 @@ const settleBookmakersFancy = async ({ session, marketId, eventId, winnerSelecti
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     const isWinnerSelection = bet.selectionId === String(winnerSelectionId);
     let netWinAmount = 0;
@@ -1317,19 +1651,19 @@ const settleBookmakersFancy = async ({ session, marketId, eventId, winnerSelecti
       }
     }
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'BOOKMAKERS_FANCY settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 const settleLineMarket = async ({ session, marketId, eventId, finalValue, req }) => {
@@ -1342,6 +1676,7 @@ const settleLineMarket = async ({ session, marketId, eventId, finalValue, req })
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     let isWinner = false;
     if (bet.betType === 'over') {
@@ -1352,14 +1687,12 @@ const settleLineMarket = async ({ session, marketId, eventId, finalValue, req })
 
     const netWinAmount = isWinner ? bet.stake : -bet.exposure;
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'LINE_MARKET settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settlementResult = isWinner
@@ -1368,6 +1701,8 @@ const settleLineMarket = async ({ session, marketId, eventId, finalValue, req })
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }) => {
@@ -1380,19 +1715,18 @@ const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     // Example: bet wins if meter crossed lineValue
     const isWinner = finalValue >= bet.lineValue;
     const netWinAmount = isWinner ? bet.stake : -bet.exposure;
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'METER_MARKET settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settlementResult = isWinner
@@ -1401,6 +1735,8 @@ const settleMeterMarket = async ({ session, marketId, eventId, finalValue, req }
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 // Fancy market (marketType = fancy): fixed ±stake P/L based on final run vs line
@@ -1422,18 +1758,14 @@ const settleFancyMarket = async ({ session, marketId, eventId, selectionId, fina
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     const line = bet.lineValue != null ? bet.lineValue : bet.odds;
     if (line == null) {
       // Cannot settle without a line, treat as void
-      await settleExposure({
-        session,
-        userId: bet.userId,
-        exposure: bet.exposure,
-        netWinAmount: 0,
-        description: 'FANCY void settlement (no line)',
-        req,
-      });
+      const userKey = String(bet.userId);
+      if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+
       bet.status = Bet.BET_STATUS.SETTLED;
       bet.settlementResult = Bet.BET_RESULT.VOID;
       bet.settledAt = new Date();
@@ -1452,14 +1784,12 @@ const settleFancyMarket = async ({ session, marketId, eventId, selectionId, fina
 
     const netWinAmount = isWinner ? bet.stake : -bet.exposure;
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'FANCY settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settlementResult = isWinner
@@ -1468,6 +1798,8 @@ const settleFancyMarket = async ({ session, marketId, eventId, selectionId, fina
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }) => {
@@ -1480,6 +1812,7 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
     .session(session)
     .exec();
 
+  const userNetAmountMapPaiseInt = new Map();
   for (const bet of bets) {
     const isWinner = isWinForYes ? bet.betType === 'yes' : bet.betType === 'no';
     const multiplier = bet.rate || 2; // default x2 if not specified
@@ -1487,14 +1820,12 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
       ? bet.stake * (multiplier - 1)
       : -bet.exposure;
 
-    await settleExposure({
-      session,
-      userId: bet.userId,
-      exposure: bet.exposure,
-      netWinAmount,
-      description: 'KADO_MARKET settlement',
-      req,
-    });
+    const userKey = String(bet.userId);
+    if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+    userNetAmountMapPaiseInt.set(
+      userKey,
+      userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+    );
 
     bet.status = Bet.BET_STATUS.SETTLED;
     bet.settlementResult = isWinner
@@ -1503,6 +1834,8 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
     bet.settledAt = new Date();
     await bet.save(sessionOpts(session));
   }
+
+  return userNetAmountMapPaiseInt;
 };
 
 /**
@@ -1511,10 +1844,11 @@ const settleKadoMarket = async ({ session, marketId, eventId, isWinForYes, req }
 const settleMarket = async (payload, req) => {
   return await withTransaction(async (session) => {
     const { marketType, marketId, eventId } = payload;
+    let userNetAmountMapPaiseInt = new Map();
 
     switch (marketType) {
       case Bet.MARKET_TYPES.MATCH_ODDS:
-        await settleMatchOdds({
+        userNetAmountMapPaiseInt = await settleMatchOdds({
           session,
           marketId,
           eventId,
@@ -1523,7 +1857,7 @@ const settleMarket = async (payload, req) => {
         });
         break;
       case Bet.MARKET_TYPES.TOS_MARKET:
-        await settleTOSMarket({
+        userNetAmountMapPaiseInt = await settleTOSMarket({
           session,
           marketId,
           eventId,
@@ -1532,7 +1866,7 @@ const settleMarket = async (payload, req) => {
         });
         break;
       case Bet.MARKET_TYPES.BOOKMAKERS_FANCY:
-        await settleBookmakersFancy({
+        userNetAmountMapPaiseInt = await settleBookmakersFancy({
           session,
           marketId,
           eventId,
@@ -1541,7 +1875,7 @@ const settleMarket = async (payload, req) => {
         });
         break;
       case Bet.MARKET_TYPES.LINE_MARKET:
-        await settleLineMarket({
+        userNetAmountMapPaiseInt = await settleLineMarket({
           session,
           marketId,
           eventId,
@@ -1550,7 +1884,7 @@ const settleMarket = async (payload, req) => {
         });
         break;
       case Bet.MARKET_TYPES.METER_MARKET:
-        await settleMeterMarket({
+        userNetAmountMapPaiseInt = await settleMeterMarket({
           session,
           marketId,
           eventId,
@@ -1559,7 +1893,7 @@ const settleMarket = async (payload, req) => {
         });
         break;
       case Bet.MARKET_TYPES.FANCY:
-        await settleFancyMarket({
+        userNetAmountMapPaiseInt = await settleFancyMarket({
           session,
           marketId,
           eventId,
@@ -1569,7 +1903,7 @@ const settleMarket = async (payload, req) => {
         });
         break;
       case Bet.MARKET_TYPES.KADO_MARKET:
-        await settleKadoMarket({
+        userNetAmountMapPaiseInt = await settleKadoMarket({
           session,
           marketId,
           eventId,
@@ -1580,6 +1914,150 @@ const settleMarket = async (payload, req) => {
       default:
         throw new Error('Unsupported market type for settlement');
     }
+
+    // After bets are marked SETTLED, recompute wallet.lockedBalance for each affected user.
+    // This keeps wallet math consistent with our new "net worst-case risk" definition.
+    for (const [userKey, netWinPaiseInt] of userNetAmountMapPaiseInt.entries()) {
+      await syncWalletToOpenBetsRisk({
+        session,
+        userId: userKey,
+        netWinAmountPaiseInt: netWinPaiseInt,
+        description: `${marketType} settlement`,
+        req,
+        requireWalletAvailable: false,
+      });
+    }
+  });
+};
+
+/**
+ * Admin revert settlement entrypoint
+ * - Reopens previously SETTLED bets for a given market/event.
+ * - Reverses the net win/loss that was applied to wallets during settlement.
+ */
+const revertMarketSettlement = async (payload, req) => {
+  return await withTransaction(async (session) => {
+    const { marketType, marketId, eventId, selectionId } = payload;
+
+    const filter = {
+      marketType,
+      marketId,
+      eventId,
+      status: Bet.BET_STATUS.SETTLED,
+    };
+
+    // For markets that can be partially settled per selection (e.g. FANCY),
+    // allow reverting only one selection if requested.
+    if (selectionId !== undefined && selectionId !== null && String(selectionId).trim() !== '') {
+      filter.selectionId = String(selectionId);
+    }
+
+    const bets = await Bet.find(filter).session(session).exec();
+    if (!bets.length) {
+      throw betError('NO_SETTLED_BETS', 'No settled bets found for this market to revert');
+    }
+
+    // Recompute the same netWinAmount that was applied on settlement,
+    // so we can reverse it from each wallet.
+    const userNetAmountMapPaiseInt = new Map();
+
+    for (const bet of bets) {
+      const userKey = String(bet.userId);
+      if (!userNetAmountMapPaiseInt.has(userKey)) userNetAmountMapPaiseInt.set(userKey, 0);
+
+      let netWinAmount = 0;
+
+      switch (marketType) {
+        case Bet.MARKET_TYPES.MATCH_ODDS:
+        case Bet.MARKET_TYPES.TOS_MARKET: {
+          if (bet.betType === 'back') {
+            if (bet.settlementResult === Bet.BET_RESULT.WON) {
+              netWinAmount = (bet.odds - 1) * bet.stake;
+            } else if (bet.settlementResult === Bet.BET_RESULT.LOST) {
+              netWinAmount = -bet.exposure;
+            }
+          } else if (bet.betType === 'lay') {
+            if (bet.settlementResult === Bet.BET_RESULT.WON) {
+              netWinAmount = bet.stake;
+            } else if (bet.settlementResult === Bet.BET_RESULT.LOST) {
+              netWinAmount = -bet.exposure;
+            }
+          }
+          break;
+        }
+
+        case Bet.MARKET_TYPES.BOOKMAKERS_FANCY: {
+          if (bet.betType === 'yes') {
+            if (bet.settlementResult === Bet.BET_RESULT.WON) {
+              netWinAmount = (bet.stake * (bet.rate || 0)) / 100;
+            } else if (bet.settlementResult === Bet.BET_RESULT.LOST) {
+              netWinAmount = -bet.exposure;
+            }
+          } else if (bet.betType === 'no') {
+            if (bet.settlementResult === Bet.BET_RESULT.WON) {
+              netWinAmount = 0;
+            } else if (bet.settlementResult === Bet.BET_RESULT.LOST) {
+              netWinAmount = -bet.exposure;
+            }
+          }
+          break;
+        }
+
+        case Bet.MARKET_TYPES.LINE_MARKET:
+        case Bet.MARKET_TYPES.METER_MARKET:
+        case Bet.MARKET_TYPES.FANCY: {
+          if (bet.settlementResult === Bet.BET_RESULT.WON) {
+            netWinAmount = bet.stake;
+          } else if (bet.settlementResult === Bet.BET_RESULT.LOST) {
+            netWinAmount = -bet.exposure;
+          } else {
+            netWinAmount = 0;
+          }
+          break;
+        }
+
+        case Bet.MARKET_TYPES.KADO_MARKET: {
+          if (bet.settlementResult === Bet.BET_RESULT.WON) {
+            const multiplier = bet.rate || 2;
+            netWinAmount = bet.stake * (multiplier - 1);
+          } else if (bet.settlementResult === Bet.BET_RESULT.LOST) {
+            netWinAmount = -bet.exposure;
+          }
+          break;
+        }
+
+        default:
+          // Fallback: no wallet adjustment for unknown market type
+          netWinAmount = 0;
+      }
+
+      userNetAmountMapPaiseInt.set(
+        userKey,
+        userNetAmountMapPaiseInt.get(userKey) + toInt(netWinAmount)
+      );
+
+      // Reopen bet
+      bet.status = Bet.BET_STATUS.OPEN;
+      bet.settlementResult = null;
+      bet.settledAt = null;
+      await bet.save(sessionOpts(session));
+    }
+
+    // Reverse the wallet changes: apply negative of the original netWinAmount
+    for (const [userKey, netWinPaiseInt] of userNetAmountMapPaiseInt.entries()) {
+      if (!netWinPaiseInt) continue;
+
+      await syncWalletToOpenBetsRisk({
+        session,
+        userId: userKey,
+        netWinAmountPaiseInt: -netWinPaiseInt,
+        description: `${marketType} settlement revert`,
+        req,
+        requireWalletAvailable: false,
+      });
+    }
+
+    return { revertedBets: bets.length };
   });
 };
 
@@ -1606,15 +2084,9 @@ const cancelMarket = async (payload, req) => {
 
     const bets = await Bet.find(filter).session(session).exec();
 
+    const affectedUserIds = new Set();
     for (const bet of bets) {
-      await settleExposure({
-        session,
-        userId: bet.userId,
-        exposure: bet.exposure,
-        netWinAmount: 0,
-        description: `BET void/cancel${reason ? ` — ${String(reason).slice(0, 120)}` : ''}`,
-        req,
-      });
+      affectedUserIds.add(String(bet.userId));
 
       bet.status = Bet.BET_STATUS.SETTLED;
       bet.settlementResult = Bet.BET_RESULT.VOID;
@@ -1622,7 +2094,71 @@ const cancelMarket = async (payload, req) => {
       await bet.save(sessionOpts(session));
     }
 
+    for (const userKey of affectedUserIds) {
+      await syncWalletToOpenBetsRisk({
+        session,
+        userId: userKey,
+        netWinAmountPaiseInt: 0,
+        description: `BET void/cancel${reason ? ` — ${String(reason).slice(0, 120)}` : ''}`,
+        req,
+        requireWalletAvailable: false,
+      });
+    }
+
     return { cancelledBets: bets.length };
+  });
+};
+
+/**
+ * Delete a single OPEN bet by Mongo _id (betUid).
+ * - Removes the bet document (no audit row kept).
+ * - Recomputes wallet risk for the bet user.
+ * Settled bets cannot be deleted here; use settlement/cancel flows instead.
+ */
+const removeBetByUid = async (payload, req) => {
+  return await withTransaction(async (session) => {
+    const { betUid, reason } = payload;
+
+    if (!mongoose.Types.ObjectId.isValid(String(betUid))) {
+      throw betError('INVALID_BET_UID', 'betUid must be a valid MongoDB ID', 400);
+    }
+
+    const bet = await withSession(Bet.findById(betUid), session).exec();
+    if (!bet) {
+      throw betError('BET_NOT_FOUND', 'Bet not found', 404);
+    }
+    if (bet.status !== Bet.BET_STATUS.OPEN) {
+      throw betError('BET_NOT_OPEN', 'Only OPEN bets can be deleted', 400);
+    }
+
+    const userIdStr = String(bet.userId);
+    const snapshot = {
+      deletedBetId: bet._id,
+      userId: bet.userId,
+      marketId: bet.marketId,
+      eventId: bet.eventId,
+      marketType: bet.marketType,
+      selectionId: bet.selectionId,
+    };
+
+    const del = await withSession(Bet.deleteOne({ _id: bet._id }), session).exec();
+    if (!del.deletedCount) {
+      throw betError('BET_DELETE_FAILED', 'Bet could not be deleted', 500);
+    }
+
+    await syncWalletToOpenBetsRisk({
+      session,
+      userId: userIdStr,
+      netWinAmountPaiseInt: 0,
+      description: `BET deleted by UID${reason ? ` — ${String(reason).slice(0, 120)}` : ''}`,
+      req,
+      requireWalletAvailable: false,
+    });
+
+    return {
+      deleted: true,
+      ...snapshot,
+    };
   });
 };
 
@@ -2038,7 +2574,8 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
 
 /**
  * Admin: hierarchy-wide bet list for a particular market (per bet rows, includes username).
- * Filters: required eventId; optional sport, marketId, marketType, status, userId, from, to, limit.
+ * Filters: required eventId; optional sport, marketId, marketType, userId, from, to, limit.
+ * Always returns only unsettled bets (status = open).
  * Hierarchy-scoped: only users under the admin (SUPER_ADMIN = all users).
  *
  * Returns array of rows like:
@@ -2051,7 +2588,7 @@ const getAdminHierarchyUserMarketProfitLoss = async (adminUserId, adminRole, que
  * }
  */
 const getAdminHierarchyMarketBets = async (adminUserId, adminRole, query = {}) => {
-  const { sport, eventId, marketId, marketType, status, userId, from, to, limit = 200 } = query;
+  const { sport, eventId, marketId, marketType, userId, from, to, limit = 200 } = query;
   const limitNum = Math.min(Number(limit) || 200, 500);
 
   if (!eventId) {
@@ -2083,12 +2620,12 @@ const getAdminHierarchyMarketBets = async (adminUserId, adminRole, query = {}) =
   const match = {
     userId: { $in: targetUserIds },
     eventId: String(eventId),
+    status: Bet.BET_STATUS.OPEN,
   };
 
   if (sport) match.sport = sport;
   if (marketId) match.marketId = String(marketId);
   if (marketType) match.marketType = normalizeMarketTypeAlias(String(marketType));
-  if (status) match.status = status;
 
   const fromDate = from instanceof Date ? from : (from ? new Date(from) : null);
   const toDate = to instanceof Date ? to : (to ? new Date(to) : null);
@@ -2835,6 +3372,8 @@ module.exports = {
   getTodayOpenBets,
   settleMarket,
   cancelMarket,
+  removeBetByUid,
+  revertMarketSettlement,
   getUserTotalProfitLoss,
   getUnsettledBetsForSettlement,
 };

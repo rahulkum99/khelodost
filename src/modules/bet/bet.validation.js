@@ -45,10 +45,6 @@ const validateGetMyBets = [
     .optional()
     .isIn(['cricket', 'soccer', 'tennis', 'casino'])
     .withMessage('Invalid sport'),
-  query('status')
-    .optional()
-    .isIn(['open', 'settled'])
-    .withMessage('Invalid status'),
   query('marketType')
     .optional()
     .isIn(validMarketTypes)
@@ -189,6 +185,37 @@ const validateCancelMarket = [
     .isString()
     .isLength({ max: 200 })
     .withMessage('reason must be a string up to 200 chars'),
+];
+
+const validateRemoveBetByUid = [
+  body('betUid')
+    .exists({ checkFalsy: true })
+    .withMessage('betUid is required')
+    .bail()
+    .isMongoId()
+    .withMessage('betUid must be a valid MongoDB ID'),
+  body('reason')
+    .optional({ nullable: true })
+    .isString()
+    .isLength({ max: 200 })
+    .withMessage('reason must be a string up to 200 chars'),
+];
+
+const validateRevertFancySettlement = [
+  body('marketId')
+    .exists({ checkFalsy: true })
+    .withMessage('marketId is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim()),
+  body('eventId')
+    .exists({ checkFalsy: true })
+    .withMessage('eventId is required')
+    .bail()
+    .customSanitizer((v) => String(v).trim()),
+  // Optional: revert only one fancy section under same marketId.
+  body('selectionId')
+    .optional({ nullable: true })
+    .customSanitizer((v) => String(v).trim()),
 ];
 
 const validateAdminBetList = [
@@ -534,6 +561,8 @@ module.exports = {
   validateGetMyEventProfitLoss,
   validateSettleMarket,
   validateCancelMarket,
+  validateRemoveBetByUid,
+  validateRevertFancySettlement,
   validateAdminBetList,
   validateAdminUserBetList,
   validateAdminUserProfitLoss,
