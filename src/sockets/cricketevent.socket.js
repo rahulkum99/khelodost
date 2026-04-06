@@ -28,12 +28,100 @@ module.exports = (io) => {
   ]);
 
   const filterCricketMarketsByGtype = (data) => {
+    const hasNumericDuplicateSuffix = (nat = '') => /[\s._-]*\d+\s*[.,]*\s*$/i.test(String(nat).trim());
+
+    const isFallOfFirstWkt = (nat = '') => {
+      // Remove all "Fall of 1st wkt ..." runners from fancy lists.
+      // Example: "Fall of 1st wkt CSK(...)" / "Fall of 1st wkt run bhav CSK 2 ..."
+      return /^\s*fall\s+of\s+1st\s+wkt\b/i.test(String(nat ?? ''));
+    };
+
+    const normalizeNat = (nat = '') => {
+      return String(nat)
+        .toLowerCase()
+        // Remove duplicate suffix variants like ". 2", ".2", "-2", "_2", " 2"
+        .replace(/[\s._-]*\d+$/g, '')
+        .replace(/[.,]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const getSectionPriority = (sectionItem) => {
+      const hasTradableOdds = Array.isArray(sectionItem?.odds)
+        && sectionItem.odds.some((odd) => Number(odd?.odds) > 0 || Number(odd?.size) > 0);
+      const status = String(sectionItem?.gstatus || '').toUpperCase();
+      const isActive = status === 'ACTIVE' || status === '';
+      const hasGscode = Number(sectionItem?.gscode) === 1;
+      const isBaseName = !hasNumericDuplicateSuffix(sectionItem?.nat);
+      const sectionSno = Number(sectionItem?.sno);
+      const sectionSid = Number(sectionItem?.sid);
+
+      // Stable ranking: base name > tradable odds > active > gscode.
+      return {
+        score: (isBaseName ? 8 : 0) + (hasTradableOdds ? 4 : 0) + (isActive ? 2 : 0) + (hasGscode ? 1 : 0),
+        isBaseName,
+        sectionSno: Number.isFinite(sectionSno) ? sectionSno : Number.MAX_SAFE_INTEGER,
+        sectionSid: Number.isFinite(sectionSid) ? sectionSid : Number.MAX_SAFE_INTEGER,
+      };
+    };
+
+    const dedupeMarketSections = (market) => {
+      if (!market || !Array.isArray(market.section)) {
+        return market;
+      }
+
+      const bestByNat = new Map();
+
+      for (const sectionItem of market.section) {
+        if (isFallOfFirstWkt(sectionItem?.nat)) {
+          continue;
+        }
+
+        const natKey = normalizeNat(sectionItem?.nat);
+        if (!natKey) {
+          continue;
+        }
+
+        if (!bestByNat.has(natKey)) {
+          bestByNat.set(natKey, sectionItem);
+          continue;
+        }
+
+        const existing = bestByNat.get(natKey);
+        const currentPriority = getSectionPriority(sectionItem);
+        const existingPriority = getSectionPriority(existing);
+
+        if (
+          currentPriority.score > existingPriority.score
+          || (
+            currentPriority.score === existingPriority.score
+            && (
+              currentPriority.sectionSno < existingPriority.sectionSno
+              || (
+                currentPriority.sectionSno === existingPriority.sectionSno
+                && currentPriority.sectionSid < existingPriority.sectionSid
+              )
+            )
+          )
+        ) {
+          bestByNat.set(natKey, sectionItem);
+        }
+      }
+
+      return {
+        ...market,
+        section: Array.from(bestByNat.values()),
+      };
+    };
+
     if (Array.isArray(data)) {
-      return data.filter((item) => item && ALLOWED_GTYPES.has(item.gtype));
+      return data
+        .filter((item) => item && ALLOWED_GTYPES.has(item.gtype))
+        .map((item) => dedupeMarketSections(item));
     }
 
     if (data && typeof data === 'object') {
-      return ALLOWED_GTYPES.has(data.gtype) ? data : null;
+      return ALLOWED_GTYPES.has(data.gtype) ? dedupeMarketSections(data) : null;
     }
 
     return data;
@@ -153,9 +241,10 @@ module.exports = (io) => {
         console.log(`ℹ️ User ${socket.id} already subscribed to cricket event: ${eventId}`);
         // Still send cached data
         const cached = getLatestCricketEventData(eventId);
-        if (cached !== null && cached !== undefined) {
-          socket.emit(`cricket_event_${eventId}`, cached);
-          console.log(`📤 Resent cached data for event ${eventId} to user: ${socket.id}`);
+        const filteredCached = filterCricketMarketsByGtype(cached);
+        if (filteredCached !== null && filteredCached !== undefined) {
+          socket.emit(`cricket_event_${eventId}`, filteredCached);
+          console.log(`📤 Resent cached filtered data for event ${eventId} to user: ${socket.id}`);
         }
         return;
       }

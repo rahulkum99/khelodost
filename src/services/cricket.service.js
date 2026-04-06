@@ -5,6 +5,19 @@ const API_URL = process.env.CRICKET_MATCHES_API_URL;
 let latestData = [];
 let isFetching = false; // Flag to prevent overlapping requests
 
+/** Exclude list entries whose event name references T10 or XI (e.g. "Melbourne Stars XI v ..."). */
+const isBlockedEventName = (eventName) => {
+  const name = String(eventName ?? '');
+  return /\bT10\b/i.test(name) || /\bXI\b/i.test(name);
+};
+
+const filterMatchesByEventName = (data) => {
+  if (!Array.isArray(data)) {
+    return data;
+  }
+  return data.filter((item) => !isBlockedEventName(item?.eventName));
+};
+
 const fetchCricketData = async () => {
   // If a request is already in progress, skip this call
   if (isFetching) {
@@ -21,7 +34,8 @@ const fetchCricketData = async () => {
       }
     });
 
-    latestData = response.data;
+    const raw = response.data;
+    latestData = Array.isArray(raw) ? filterMatchesByEventName(raw) : raw;
     return latestData;
   } catch (error) {
     if (error.code === 'ECONNABORTED') {

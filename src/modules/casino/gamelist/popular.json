@@ -96,12 +96,7 @@
         "sheetGameType": "newgame",
         "gameImage": "newgame/speed-blackjack-1-micorgaming.png"
     },
-    {
-        "gameHash": "af022dc4300f7c55ebdaf559688115d9",
-        "gameName": "sic-bo-lobby-pragmatic",
-        "sheetGameType": "sicbo",
-        "gameImage": "sicbo/sic-bo-lobby-pragmatic.png"
-    },
+
     {
         "gameHash": "724eebd5cbe7555b01ed60279cb59e5a",
         "gameName": "caribbean-stud-poker-evolution",
@@ -114,24 +109,13 @@
         "sheetGameType": "poker",
         "gameImage": "poker/poker-lobby-evolution.png"
     },
-    {
-        "gameHash": "1d93109e3e25654e679f911c60b4414b",
-        "gameName": "game-shows-lobby-pragmatic",
-        "sheetGameType": "gameshow",
-        "gameImage": "gameshow/game-shows-lobby-pragmatic.png"
-    },
+
 
     {
         "gameHash": "a9a6f0dab1c2cd8c11b395d230e273ce",
         "gameName": "dragon-tiger-microgaming",
         "sheetGameType": "dragontiger",
         "gameImage": "dragontiger/dragon-tiger-microgaming.png"
-    },
-    {
-        "gameHash": "b53a604877024ef2eab9946898e65d6b",
-        "gameName": "cash-or-crash-evolution",
-        "sheetGameType": "crash",
-        "gameImage": "crash/cash-or-crash-evolution.png"
     }
 
  

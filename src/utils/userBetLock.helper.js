@@ -48,7 +48,13 @@ const withUserBetLock = async (userId, fn, options = {}) => {
         }
       }
     } catch (err) {
-      // On duplicate-key races during upsert, just wait and retry
+      // Duplicate-key can happen on first upsert race for same user lock doc; retry.
+      // Do not mask unrelated DB errors as "busy".
+      if (err && err.code === 11000) {
+        // keep retrying until waitMs expires
+      } else {
+        throw err;
+      }
     }
 
     await sleep(pollMs);

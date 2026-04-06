@@ -37,6 +37,7 @@ const toObjectId = (id) => {
 // Helper: float comparison with tolerance
 const FLOAT_EPSILON = 0.0001;
 const floatEquals = (a, b) => Math.abs(Number(a) - Number(b)) < FLOAT_EPSILON;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Helper: normalize oname for comparison (remove spaces, lowercase)
 // Provider: "back2", Frontend may send: "back 2" or "Back2"
@@ -554,111 +555,126 @@ const placeBet = async (userId, payload, req) => {
     async () =>
       withTransaction(async (session) => {
         const uid = lockUid;
-    const {
-      sport,
-      eventId,
-      eventName,
-      marketId,
-      marketType,
-      selectionId,
-      selectionName,
-      betType,
-      odds,
-      // rate is optional in payload; for BOOKMAKERS_FANCY we treat odds as rate
-      rate: rawRate,
-      priceOname: clientPriceOname,
-      lineValue,
-      stake,
-    } = payload;
+        const {
+          sport,
+          eventId,
+          eventName,
+          marketId,
+          marketType,
+          selectionId,
+          selectionName,
+          betType,
+          odds,
+          // rate is optional in payload; for BOOKMAKERS_FANCY we treat odds as rate
+          rate: rawRate,
+          priceOname: clientPriceOname,
+          lineValue,
+          stake,
+        } = payload;
 
-    // Normalize marketType alias from frontend
-    const effectiveMarketType =
-      marketType === 'tos_maket' ? Bet.MARKET_TYPES.TOS_MARKET : marketType;
+        // Normalize marketType alias from frontend
+        const effectiveMarketType =
+          marketType === 'tos_maket' ? Bet.MARKET_TYPES.TOS_MARKET : marketType;
 
-    if (!sport || !['cricket', 'soccer', 'tennis', 'casino'].includes(sport)) {
-      throw betError('INVALID_SPORT', 'Invalid sport', 400);
-    }
+        if (!sport || !['cricket', 'soccer', 'tennis', 'casino'].includes(sport)) {
+          throw betError('INVALID_SPORT', 'Invalid sport', 400);
+        }
 
-    // 1. Fetch event data from cache by eventId
-    const eventJsonStamp = getEventDataFromCache(sport, eventId);
-    if (!eventJsonStamp) {
-      throw betConflict(
-        'EVENT_DATA_NOT_AVAILABLE',
-        'Event data not available. Please refresh and try again.'
-      );
-    }
+        // 1. Fetch event data from cache by eventId
+        const eventJsonStamp = getEventDataFromCache(sport, eventId);
+        if (!eventJsonStamp) {
+          throw betConflict(
+            'EVENT_DATA_NOT_AVAILABLE',
+            'Event data not available. Please refresh and try again.'
+          );
+        }
 
-    // 2. Find market by marketId
-    const marketsArray = Array.isArray(eventJsonStamp) ? eventJsonStamp : eventJsonStamp.data || [];
-    const matchedMarket =
-      Array.isArray(marketsArray) && marketsArray.length
-        ? marketsArray.find((m) => String(m.mid) === String(marketId))
-        : null;
+        // 2. Find market by marketId
+        const marketsArray = Array.isArray(eventJsonStamp) ? eventJsonStamp : eventJsonStamp.data || [];
+        const matchedMarket =
+          Array.isArray(marketsArray) && marketsArray.length
+            ? marketsArray.find((m) => String(m.mid) === String(marketId))
+            : null;
 
-    if (!matchedMarket) {
-      throw betConflict(
-        'MARKET_NOT_FOUND',
-        'Market not available. Please refresh and try again.'
-      );
-    }
+        if (!matchedMarket) {
+          throw betConflict(
+            'MARKET_NOT_FOUND',
+            'Market not available. Please refresh and try again.'
+          );
+        }
 
-    const marketName = matchedMarket.mname || null;
+        const marketName = matchedMarket.mname || null;
 
-    // 3. Find section by selectionId
-    const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
-    const matchedSection = sections.find((s) => String(s.sid) === String(selectionId));
+        // 3. Find section by selectionId
+        const sections = Array.isArray(matchedMarket.section) ? matchedMarket.section : [];
+        const matchedSection = sections.find((s) => String(s.sid) === String(selectionId));
 
-    if (!matchedSection || !Array.isArray(matchedSection.odds)) {
-      throw betConflict(
-        'SELECTION_NOT_AVAILABLE',
-        'Selection not available. Please refresh and try again.'
-      );
-    }
+        if (!matchedSection || !Array.isArray(matchedSection.odds)) {
+          throw betConflict(
+            'SELECTION_NOT_AVAILABLE',
+            'Selection not available. Please refresh and try again.'
+          );
+        }
 
-    // 4. Map betType to otype (back/lay or yes->back, no->lay)
-    let otype;
-    const backLayMarketTypes = [
-      Bet.MARKET_TYPES.MATCH_ODDS,
-      Bet.MARKET_TYPES.TIED_MATCH,
-      Bet.MARKET_TYPES.TOS_MARKET,
-      Bet.MARKET_TYPES.FANCY,
-      Bet.MARKET_TYPES.OVER_BY_OVER,
-      Bet.MARKET_TYPES.ODDEVEN,
-    ];
-    if (backLayMarketTypes.includes(effectiveMarketType)) {
-      if (!['back', 'lay'].includes(betType)) {
-        throw betError('INVALID_BET_TYPE', 'betType must be back or lay', 400);
-      }
-      otype = betType;
-    } else if (effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
-      if (!['yes', 'no'].includes(betType)) {
-        throw betError('INVALID_BET_TYPE', 'betType must be yes or no for BOOKMAKERS_FANCY', 400);
-      }
-      otype = betType === 'yes' ? 'back' : 'lay';
-    } else {
-      throw betError('UNSUPPORTED_MARKET_TYPE', `Market type ${effectiveMarketType} is not supported`, 400);
-    }
+        // 4. Map betType to otype (back/lay or yes->back, no->lay)
+        let otype;
+        const backLayMarketTypes = [
+          Bet.MARKET_TYPES.MATCH_ODDS,
+          Bet.MARKET_TYPES.TIED_MATCH,
+          Bet.MARKET_TYPES.TOS_MARKET,
+          Bet.MARKET_TYPES.FANCY,
+          Bet.MARKET_TYPES.OVER_BY_OVER,
+          Bet.MARKET_TYPES.ODDEVEN,
+        ];
+        if (backLayMarketTypes.includes(effectiveMarketType)) {
+          if (!['back', 'lay'].includes(betType)) {
+            throw betError('INVALID_BET_TYPE', 'betType must be back or lay', 400);
+          }
+          otype = betType;
+        } else if (effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY) {
+          if (!['yes', 'no'].includes(betType)) {
+            throw betError('INVALID_BET_TYPE', 'betType must be yes or no for BOOKMAKERS_FANCY', 400);
+          }
+          otype = betType === 'yes' ? 'back' : 'lay';
+        } else {
+          throw betError('UNSUPPORTED_MARKET_TYPE', `Market type ${effectiveMarketType} is not supported`, 400);
+        }
 
-    // 5. Validate odds is provided
-    if (odds === undefined || odds === null) {
-      throw betError('ODDS_REQUIRED', 'Odds are required', 400);
-    }
+        // 5. Validate odds is provided
+        if (odds === undefined || odds === null) {
+          throw betError('ODDS_REQUIRED', 'Odds are required', 400);
+        }
 
-    // 6. Validate priceOname is provided
-    if (!clientPriceOname) {
-      throw betError('PRICE_ONAME_REQUIRED', 'priceOname is required', 400);
-    }
+        // 6. Validate priceOname is provided
+        if (!clientPriceOname) {
+          throw betError('PRICE_ONAME_REQUIRED', 'priceOname is required', 400);
+        }
 
-    // 7. Find exact odds row by priceOname (normalized) and verify odds match
-    const ladder = matchedSection.odds;
+    // 7. Find exact odds row by priceOname (normalized) and verify odds match.
+    // Match is intentionally checked only after 2 seconds using fresh cache data.
     const normalizedClientOname = normalizeOname(clientPriceOname);
-    
-    const chosenRow = ladder.find(
-      (p) =>
-        String(p.otype).toLowerCase() === otype &&
-        normalizeOname(p.oname) === normalizedClientOname &&
-        floatEquals(p.odds, odds)
-    );
+    const findMatchingOddsRow = (oddsRows) =>
+      oddsRows.find(
+        (p) =>
+          String(p.otype).toLowerCase() === otype &&
+          normalizeOname(p.oname) === normalizedClientOname &&
+          floatEquals(p.odds, odds)
+      );
+
+    await sleep(2000);
+
+    const refreshedStamp = getEventDataFromCache(sport, eventId);
+    const refreshedMarkets = Array.isArray(refreshedStamp) ? refreshedStamp : refreshedStamp?.data || [];
+    const refreshedMarket = Array.isArray(refreshedMarkets)
+      ? refreshedMarkets.find((m) => String(m.mid) === String(marketId))
+      : null;
+    const refreshedSections = Array.isArray(refreshedMarket?.section) ? refreshedMarket.section : [];
+    const refreshedSection = refreshedSections.find((s) => String(s.sid) === String(selectionId));
+
+    const chosenRow =
+      refreshedSection && Array.isArray(refreshedSection.odds)
+        ? findMatchingOddsRow(refreshedSection.odds)
+        : null;
 
     if (!chosenRow) {
       throw betConflict(
@@ -667,126 +683,126 @@ const placeBet = async (userId, payload, req) => {
       );
     }
 
-    // Provider quote snapshot to persist
-    const priceTypeForBet = otype;
-    const priceOname = chosenRow.oname || null;
-    const priceSize = typeof chosenRow.size === 'number' ? chosenRow.size : null;
-    const priceTno = typeof chosenRow.tno === 'number' ? chosenRow.tno : null;
+        // Provider quote snapshot to persist
+        const priceTypeForBet = otype;
+        const priceOname = chosenRow.oname || null;
+        const priceSize = typeof chosenRow.size === 'number' ? chosenRow.size : null;
+        const priceTno = typeof chosenRow.tno === 'number' ? chosenRow.tno : null;
 
-    // For BOOKMAKERS_FANCY we conceptually treat "odds" as "rate"
-    const effectiveRate =
-      effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY
-        ? odds
-        : rawRate;
+        // For BOOKMAKERS_FANCY we conceptually treat "odds" as "rate"
+        const effectiveRate =
+          effectiveMarketType === Bet.MARKET_TYPES.BOOKMAKERS_FANCY
+            ? odds
+            : rawRate;
 
-    const exposure = calculateExposure({
-      marketType: effectiveMarketType,
-      betType,
-      stake,
-      odds,
-      rate: effectiveRate,
-    });
+        const exposure = calculateExposure({
+          marketType: effectiveMarketType,
+          betType,
+          stake,
+          odds,
+          rate: effectiveRate,
+        });
 
-    const [userForLimit, walletForLimit] = await Promise.all([
-      withSession(User.findById(uid).select('exposureLimit'), session).lean().exec(),
-      withSession(Wallet.findOne({ user: uid }), session).exec(),
-    ]);
-    if (!userForLimit) {
-      throw betError('USER_NOT_FOUND', 'User not found', 404);
-    }
-    if (!walletForLimit) {
-      throw betError('WALLET_NOT_FOUND', 'Wallet not found', 404);
-    }
-    if (!walletForLimit.isAvailable()) {
-      throw betError(
-        'WALLET_UNAVAILABLE',
-        `Wallet is ${walletForLimit.isLocked ? 'locked' : 'inactive'}. ${walletForLimit.lockedReason || ''}`.trim(),
-        400
-      );
-    }
+        const [userForLimit, walletForLimit] = await Promise.all([
+          withSession(User.findById(uid).select('exposureLimit'), session).lean().exec(),
+          withSession(Wallet.findOne({ user: uid }), session).exec(),
+        ]);
+        if (!userForLimit) {
+          throw betError('USER_NOT_FOUND', 'User not found', 404);
+        }
+        if (!walletForLimit) {
+          throw betError('WALLET_NOT_FOUND', 'Wallet not found', 404);
+        }
+        if (!walletForLimit.isAvailable()) {
+          throw betError(
+            'WALLET_UNAVAILABLE',
+            `Wallet is ${walletForLimit.isLocked ? 'locked' : 'inactive'}. ${walletForLimit.lockedReason || ''}`.trim(),
+            400
+          );
+        }
 
-    // Insufficient funds / exposure is enforced in syncWalletToOpenBetsRisk using
-    // total (balance + locked) vs recomputed locked from all OPEN bets (correct for hedging).
+        // Insufficient funds / exposure is enforced in syncWalletToOpenBetsRisk using
+        // total (balance + locked) vs recomputed locked from all OPEN bets (correct for hedging).
 
-    const rawExposureLimit = userForLimit.exposureLimit;
-    const exposureLimitPaiseInt =
-      rawExposureLimit != null && Number.isFinite(Number(rawExposureLimit))
-        ? toInt(Number(rawExposureLimit))
-        : null;
+        const rawExposureLimit = userForLimit.exposureLimit;
+        const exposureLimitPaiseInt =
+          rawExposureLimit != null && Number.isFinite(Number(rawExposureLimit))
+            ? toInt(Number(rawExposureLimit))
+            : null;
 
-    // Enforce exposure limit and total funds *before* insert so standalone Mongo (no txn)
-    // cannot leave an OPEN bet when syncWalletToOpenBetsRisk throws afterward.
-    const prospectiveBet = {
-      sport,
-      eventId,
-      marketId,
-      marketType: effectiveMarketType,
-      selectionId,
-      betType,
-      stake,
-      odds: odds || null,
-      rate: effectiveRate || null,
-      exposure,
-      eventJsonStamp,
-    };
-    const lockedIfPlaced = await computeUserLockedBalancePaiseInt({
-      userId: uid,
-      session,
-      extraBets: [prospectiveBet],
-    });
-    if (
-      exposureLimitPaiseInt != null &&
-      Number.isFinite(exposureLimitPaiseInt) &&
-      lockedIfPlaced > exposureLimitPaiseInt
-    ) {
-      throw betError(
-        'EXPOSURE_LIMIT_EXCEEDED',
-        `Exposure limit exceeded. Limit: ${fromInt(exposureLimitPaiseInt)}, current exposure: ${fromInt(lockedIfPlaced)}.`,
-        400
-      );
-    }
-    const totalBeforePaise =
-      toInt(Number(walletForLimit.balance || 0)) + toInt(Number(walletForLimit.lockedBalance || 0));
-    if (totalBeforePaise - lockedIfPlaced < 0) {
-      throw betError('INSUFFICIENT_WALLET_BALANCE', 'Insufficient wallet balance to place bet', 400);
-    }
-
-        const bet = await Bet.create(
-      [
-        {
-          userId: uid,
+        // Enforce exposure limit and total funds *before* insert so standalone Mongo (no txn)
+        // cannot leave an OPEN bet when syncWalletToOpenBetsRisk throws afterward.
+        const prospectiveBet = {
           sport,
           eventId,
-          eventName,
-          marketName,
-          eventJsonStamp,
           marketId,
           marketType: effectiveMarketType,
           selectionId,
-          selectionName,
           betType,
+          stake,
           odds: odds || null,
           rate: effectiveRate || null,
-          priceType: priceTypeForBet,
-          priceOname,
-          priceSize,
-          priceTno,
-          lineValue: lineValue || null,
-          stake,
           exposure,
-          status: Bet.BET_STATUS.OPEN,
-        },
-      ],
-      sessionOpts(session)
-    );
+          eventJsonStamp,
+        };
+        const lockedIfPlaced = await computeUserLockedBalancePaiseInt({
+          userId: uid,
+          session,
+          extraBets: [prospectiveBet],
+        });
+        if (
+          exposureLimitPaiseInt != null &&
+          Number.isFinite(exposureLimitPaiseInt) &&
+          lockedIfPlaced > exposureLimitPaiseInt
+        ) {
+          throw betError(
+            'EXPOSURE_LIMIT_EXCEEDED',
+            `Exposure limit exceeded. Limit: ${fromInt(exposureLimitPaiseInt)}, current exposure: ${fromInt(lockedIfPlaced)}.`,
+            400
+          );
+        }
+        const totalBeforePaise =
+          toInt(Number(walletForLimit.balance || 0)) + toInt(Number(walletForLimit.lockedBalance || 0));
+        if (totalBeforePaise - lockedIfPlaced < 0) {
+          throw betError('INSUFFICIENT_WALLET_BALANCE', 'Insufficient wallet balance to place bet', 400);
+        }
+
+        const bet = await Bet.create(
+          [
+            {
+              userId: uid,
+              sport,
+              eventId,
+              eventName,
+              marketName,
+              eventJsonStamp,
+              marketId,
+              marketType: effectiveMarketType,
+              selectionId,
+              selectionName,
+              betType,
+              odds: odds || null,
+              rate: effectiveRate || null,
+              priceType: priceTypeForBet,
+              priceOname,
+              priceSize,
+              priceTno,
+              lineValue: lineValue || null,
+              stake,
+              exposure,
+              status: Bet.BET_STATUS.OPEN,
+            },
+          ],
+          sessionOpts(session)
+        );
 
         const { wallet: syncedWallet } = await syncWalletToOpenBetsRisk({
-      session,
-      userId: uid,
-      netWinAmountPaiseInt: 0,
-      exposureLimitPaiseInt,
-      description: `Exposure risk sync for ${effectiveMarketType} bet`,
-      req,
+          session,
+          userId: uid,
+          netWinAmountPaiseInt: 0,
+          exposureLimitPaiseInt,
+          description: `Exposure risk sync for ${effectiveMarketType} bet`,
+          req,
         });
 
         const placedBet = bet[0].toObject();
